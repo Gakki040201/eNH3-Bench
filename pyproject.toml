@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enh3bench"
+version = "0.0.1"
+description = "A no-API benchmark for AI-assisted extraction and validation of electrochemical ammonia synthesis literature."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "eNH3-Bench contributors" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

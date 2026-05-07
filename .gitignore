@@ -1,0 +1,13 @@
+__pycache__/
+.venv/
+.env
+
+data/predictions/*
+!data/predictions/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+
+paper/figures/*.png
+paper/figures/*.pdf
+paper/tables/*.csv
+paper/tables/*.xlsx
