@@ -1,0 +1,4 @@
+paper_id,title,doi,year,journal,article_type,open_access,source_file,notes
+P001,Example protocol for validated electrochemical nitrogen reduction,10.0000/example1,2026,Example Protocols,protocol,true,,Synthetic example record for validation annotation.
+P002,Example lithium-mediated nitrogen reduction study,10.0000/example2,2026,Example Electrochemistry,primary_research,true,,Synthetic example record for LiNRR extraction.
+P003,Example nitrate reduction to ammonia study,10.0000/example3,2026,Example Catalysis,primary_research,true,,Synthetic example record for NO3RR extraction.
