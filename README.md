@@ -29,6 +29,18 @@ The initial benchmark repository provides:
 
 The benchmark core is no-API by default. It does not require OpenAI, DeepSeek, GraphRAG, AutoGen, LangChain, cloud models, website scraping, PDF parsing, or model training. Baseline tooling is intended to run locally with lightweight Python standard-library code, with `pytest` available only as an optional development dependency.
 
+## v0.2 Real-Paper Gold Dataset Workflow
+
+The v0.2 scaffold prepares a ten-paper real-literature case study without adding API integrations, PDF parsing, or UI code. Paper slots are defined in `data/papers/papers.v0.2.template.csv`, manual span placeholders are defined in `data/spans/spans.v0.2.template.jsonl`, and matching gold-label templates are defined in `data/gold/gold.v0.2.template.jsonl`.
+
+Use the local checker in template mode while source spans are still empty:
+
+```bash
+C:\Python314\python.exe scripts/check_gold_dataset.py --papers data/papers/papers.v0.2.template.csv --spans data/spans/spans.v0.2.template.jsonl --gold data/gold/gold.v0.2.template.jsonl --allow-empty-source-span
+```
+
+For a filled dataset, omit `--allow-empty-source-span` so empty gold evidence spans fail validation. The checker writes a local Markdown summary to `data/reports/gold_dataset_check.md`.
+
 ## Planned Data Layout
 
 ```text

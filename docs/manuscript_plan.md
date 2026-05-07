@@ -36,3 +36,16 @@ prediction system, an autonomous agent, or a UI. The contribution is a benchmark
 for measuring whether extraction systems can stay grounded in source evidence
 while respecting the reliability constraints of electrochemical ammonia
 synthesis claims.
+
+## v0.2 Milestone
+
+The v0.2 alpha milestone should add the first real-paper gold dataset case
+study:
+
+- 10 papers selected by functional benchmark slots.
+- 20-50 manually selected source spans.
+- 20-50 gold evidence records.
+- First real benchmark evaluation using the local baseline and evaluator.
+
+This milestone should remain no-API by default. It should not add automated PDF
+parsing, cloud model execution, or UI workflows.
