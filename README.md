@@ -41,6 +41,20 @@ C:\Python314\python.exe scripts/check_gold_dataset.py --papers data/papers/paper
 
 For a filled dataset, omit `--allow-empty-source-span` so empty gold evidence spans fail validation. The checker writes a local Markdown summary to `data/reports/gold_dataset_check.md`.
 
+## Machine-Drafted Human-Verified Workflow
+
+The optional v0.2 machine-drafted workflow remains local and no-API:
+
+1. Place Markdown files in `input_markdown/`.
+2. Run `C:\Python314\python.exe scripts/find_candidate_spans.py`.
+3. Run `C:\Python314\python.exe scripts/run_draft_extraction.py`.
+4. Run `C:\Python314\python.exe scripts/build_audit_packet.py`.
+5. Manually review `data/audit/review_sheet.v0.2.csv` with `data/audit/audit_packet.v0.2.md`.
+6. Run `C:\Python314\python.exe scripts/merge_reviewed_gold.py`.
+7. Run `C:\Python314\python.exe scripts/check_gold_dataset.py --papers data/papers/papers.v0.2.template.csv --spans data/candidates/candidate_spans.v0.2.jsonl --gold data/gold/gold.v0.2.reviewed.jsonl`.
+
+Draft evidence is not gold until human review accepts it.
+
 ## Planned Data Layout
 
 ```text

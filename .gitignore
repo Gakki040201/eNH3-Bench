@@ -6,6 +6,14 @@ data/predictions/*
 !data/predictions/.gitkeep
 data/reports/*
 !data/reports/.gitkeep
+input_markdown/*
+!input_markdown/.gitkeep
+data/candidates/*
+!data/candidates/.gitkeep
+data/drafts/*
+!data/drafts/.gitkeep
+data/audit/*
+!data/audit/.gitkeep
 
 paper/figures/*.png
 paper/figures/*.pdf
