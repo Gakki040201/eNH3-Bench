@@ -51,6 +51,16 @@ prepare review materials, but eNH3-specific schema validation, reliability
 rubrics, source grounding, and human verification determine what counts as
 trusted benchmark gold.
 
+## Lowest-Level CLI Workflow Positioning
+
+The lowest-level CLI workflow should be described as a reproducibility layer for
+non-programmer users. It converts local `.md` and `.txt` documents into
+Markdown, discovers candidate spans, drafts evidence, and builds an audit
+packet before stopping for human verification. It deliberately avoids PDF
+parsing, Docling, APIs, GraphRAG, and UI code so that the benchmark remains a
+transparent source-grounded evaluation protocol rather than an autonomous
+literature-mining system.
+
 ## v0.2 Milestone
 
 The v0.2 alpha milestone should add the first real-paper gold dataset case

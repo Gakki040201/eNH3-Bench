@@ -2,12 +2,15 @@ __pycache__/
 .venv/
 .env
 
+input_raw/*
+!input_raw/.gitkeep
+input_markdown/*
+!input_markdown/.gitkeep
+
 data/predictions/*
 !data/predictions/.gitkeep
 data/reports/*
 !data/reports/.gitkeep
-input_markdown/*
-!input_markdown/.gitkeep
 data/candidates/*
 !data/candidates/.gitkeep
 data/drafts/*

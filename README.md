@@ -55,6 +55,37 @@ The optional v0.2 machine-drafted workflow remains local and no-API:
 
 Draft evidence is not gold until human review accepts it.
 
+## Lowest-Level CLI Workflow
+
+For a minimal local run from documents to audit packet:
+
+```powershell
+# 1. Put .md, .txt, or optionally .docx files in input_raw\
+
+# 2. Convert local files to Markdown
+C:\Python314\python.exe scripts\convert_local_documents.py
+
+# 3. Create candidate spans, draft evidence, audit packet, and review CSV
+C:\Python314\python.exe scripts\run_minimal_review_pipeline.py
+
+# 4. Human review
+# Open data\audit\audit_packet.v0.2.md
+# Open data\audit\review_sheet.v0.2.csv
+# Fill accept/reject/include_in_gold/reliability_override/correction_notes
+
+# 5. Merge accepted reviewed records into gold JSONL
+C:\Python314\python.exe scripts\merge_reviewed_gold.py
+
+# 6. Validate reviewed gold
+C:\Python314\python.exe scripts\check_gold_dataset.py --papers data\papers\papers.v0.2.template.csv --spans data\candidates\candidate_spans.v0.2.jsonl --gold data\gold\gold.v0.2.reviewed.jsonl
+
+# 7. Evaluate predictions after a prediction file exists
+C:\Python314\python.exe scripts\evaluate_predictions.py --gold data\gold\gold.v0.2.reviewed.jsonl --pred data\predictions\your_predictions.jsonl
+```
+
+PDF conversion is deferred. Manually convert PDFs to Markdown for now or use a
+future adapter when it exists.
+
 ## Using Generic Scientific Agent Skills With eNH3-Bench
 
 Generic scientific agent skills can optionally assist eNH3-Bench construction
