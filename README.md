@@ -55,6 +55,18 @@ The optional v0.2 machine-drafted workflow remains local and no-API:
 
 Draft evidence is not gold until human review accepts it.
 
+## Using Generic Scientific Agent Skills With eNH3-Bench
+
+Generic scientific agent skills can optionally assist eNH3-Bench construction
+by helping with Markdown preparation, source-span triage, draft evidence
+records, tables, and manuscript text. They are not required to run the
+benchmark, are not imported as a dependency, and are not trusted as a source of
+gold labels.
+
+Any skill-assisted output is treated as machine-drafted evidence. It must pass
+the eNH3-Bench schema, audit packet, review sheet, and human source-grounded
+verification before it can become gold data.
+
 ## Planned Data Layout
 
 ```text

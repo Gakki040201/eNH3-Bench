@@ -37,6 +37,20 @@ for measuring whether extraction systems can stay grounded in source evidence
 while respecting the reliability constraints of electrochemical ammonia
 synthesis claims.
 
+## Relationship To Generic Scientific Agent Skill Libraries
+
+Generic scientific agent skill libraries provide execution aids for agents:
+document handling, scientific writing, review workflows, data analysis, and
+tool-specific guidance. eNH3-Bench is not positioned as a competing generic
+skill library. It is a benchmark and evaluation protocol that defines a
+domain-specific task: extracting, validating, normalizing, and auditing
+electrochemical ammonia synthesis evidence.
+
+The manuscript should state that generic skills may help draft evidence or
+prepare review materials, but eNH3-specific schema validation, reliability
+rubrics, source grounding, and human verification determine what counts as
+trusted benchmark gold.
+
 ## v0.2 Milestone
 
 The v0.2 alpha milestone should add the first real-paper gold dataset case
