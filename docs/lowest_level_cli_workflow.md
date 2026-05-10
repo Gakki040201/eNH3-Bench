@@ -6,24 +6,25 @@ no-API.
 
 ## What You Need
 
-- Local `.md`, `.txt`, or optionally `.docx` files.
+- Local `.md`, `.txt`, `.docx`, or text-based `.pdf` files.
 - `C:\Python314\python.exe`
 - No API keys.
-- No PDF parser.
 - No UI.
 
-PDF conversion is intentionally deferred. Convert PDFs to Markdown manually for
-now, or wait for a future adapter.
+DOCX conversion uses optional `python-docx` when installed. Text-based PDF
+conversion uses optional `pymupdf` when installed. Scanned PDFs are unsupported
+in this phase and should be manually converted or deferred to a future
+Docling/OCR workflow.
 
 ## Step 1: Put Files In `input_raw/`
 
-Place local `.md`, `.txt`, or `.docx` files in:
+Place local `.md`, `.txt`, `.docx`, or text-based `.pdf` files in:
 
 ```powershell
 input_raw\
 ```
 
-Raw PDFs and full converted paper text should stay local and private unless the
+Raw files and full converted Markdown should stay local and private unless the
 source license permits redistribution.
 
 ## Step 2: Convert Local Documents To Markdown
@@ -34,6 +35,13 @@ C:\Python314\python.exe scripts\convert_local_documents.py
 
 This writes Markdown files to `input_markdown/` and a conversion manifest to
 `data/reports/document_conversion_manifest.json`.
+
+Unsupported files are recorded in the manifest instead of stopping the run.
+Install optional local packages only if needed:
+
+```powershell
+C:\Python314\python.exe -m pip install ".[document]"
+```
 
 ## Step 3: Run The Minimal Review Pipeline
 
@@ -88,3 +96,10 @@ the reviewed gold file and prediction file.
 ```powershell
 C:\Python314\python.exe scripts\evaluate_predictions.py --gold data\gold\gold.v0.2.reviewed.jsonl --pred data\predictions\your_predictions.jsonl
 ```
+
+## Skill-Style Boundary
+
+This conversion layer follows a skill-style document-processing workflow, but it
+does not import, vendor, or depend on `scientific-agent-skills`. Generic skills
+can guide Codex behavior conceptually, while eNH3-Bench remains self-contained.
+Human verification is still required before any draft record becomes gold.

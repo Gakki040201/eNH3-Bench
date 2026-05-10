@@ -36,10 +36,26 @@ def main() -> int:
     results = convert_directory(args.input_dir, args.output_dir)
     args.manifest_output.parent.mkdir(parents=True, exist_ok=True)
     args.manifest_output.write_text(json.dumps(results, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    converted = sum(1 for result in results if result["status"] in {"converted", "copied"})
-    print(f"Processed {len(results)} files; {converted} converted or copied")
+    counts = _status_counts(results)
+    print(f"Processed {len(results)} files")
+    print(f"- converted: {counts['converted']}")
+    print(f"- copied: {counts['copied']}")
+    print(f"- unsupported: {counts['unsupported']}")
+    print(f"- error: {counts['error']}")
     print(f"Wrote conversion manifest to {args.manifest_output}")
+    print("Next command:")
+    print("python scripts/run_minimal_review_pipeline.py --input-markdown-dir input_markdown --run-name v0.2")
     return 0
+
+
+def _status_counts(results: list[dict]) -> dict[str, int]:
+    counts = {"converted": 0, "copied": 0, "unsupported": 0, "error": 0}
+    for result in results:
+        status = result.get("status", "error")
+        if status not in counts:
+            status = "error"
+        counts[status] += 1
+    return counts
 
 
 if __name__ == "__main__":

@@ -18,6 +18,10 @@ dependencies = []
 dev = [
   "pytest"
 ]
+document = [
+  "python-docx",
+  "pymupdf"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

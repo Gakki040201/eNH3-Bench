@@ -60,7 +60,7 @@ Draft evidence is not gold until human review accepts it.
 For a minimal local run from documents to audit packet:
 
 ```powershell
-# 1. Put .md, .txt, or optionally .docx files in input_raw\
+# 1. Put .pdf, .docx, .txt, or .md files in input_raw\
 
 # 2. Convert local files to Markdown
 C:\Python314\python.exe scripts\convert_local_documents.py
@@ -83,8 +83,11 @@ C:\Python314\python.exe scripts\check_gold_dataset.py --papers data\papers\paper
 C:\Python314\python.exe scripts\evaluate_predictions.py --gold data\gold\gold.v0.2.reviewed.jsonl --pred data\predictions\your_predictions.jsonl
 ```
 
-PDF conversion is deferred. Manually convert PDFs to Markdown for now or use a
-future adapter when it exists.
+DOCX and text-based PDF conversion use optional local packages only:
+`python-docx` for `.docx` and `pymupdf` for text-based `.pdf`. Unsupported
+scanned PDFs should be manually converted or deferred to a future Docling/OCR
+workflow. Converted Markdown remains local/private and should not be published
+as full copyrighted text unless licensed.
 
 ## Using Generic Scientific Agent Skills With eNH3-Bench
 

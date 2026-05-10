@@ -56,8 +56,9 @@ trusted benchmark gold.
 The lowest-level CLI workflow should be described as a reproducibility layer for
 non-programmer users. It converts local `.md` and `.txt` documents into
 Markdown, discovers candidate spans, drafts evidence, and builds an audit
-packet before stopping for human verification. It deliberately avoids PDF
-parsing, Docling, APIs, GraphRAG, and UI code so that the benchmark remains a
+packet before stopping for human verification. It can optionally convert DOCX
+and text-based PDFs with local lightweight packages, but it deliberately avoids
+OCR, Docling, APIs, GraphRAG, and UI code so that the benchmark remains a
 transparent source-grounded evaluation protocol rather than an autonomous
 literature-mining system.
 
