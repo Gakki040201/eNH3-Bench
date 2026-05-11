@@ -37,14 +37,24 @@ EXTRACTED_FIELDS = [
 ]
 
 
-def build_audit_packet(spans: Iterable[dict[str, Any]], drafts: Iterable[dict[str, Any]]) -> str:
+def build_audit_packet(
+    spans: Iterable[dict[str, Any]],
+    drafts: Iterable[dict[str, Any]],
+    grounding_records: Iterable[dict[str, Any]] | None = None,
+    feedback_records: Iterable[dict[str, Any]] | None = None,
+) -> str:
     """Build a Markdown audit packet for human verification."""
 
     span_by_id = {str(span.get("span_id", "")): span for span in spans}
+    grounding_by_id = {str(item.get("evidence_id", "")): item for item in grounding_records or []}
+    feedback_by_id = {str(item.get("evidence_id", "")): item for item in feedback_records or []}
     lines = ["# eNH3-Bench Human Audit Packet", ""]
 
     for draft in drafts:
+        evidence_id = str(draft.get("evidence_id", ""))
         span = span_by_id.get(str(draft.get("span_id", "")), {})
+        grounding_record = grounding_by_id.get(evidence_id)
+        feedback_record = feedback_by_id.get(evidence_id)
         lines.extend(
             [
                 f"## {draft.get('evidence_id', '<missing evidence_id>')}",
@@ -65,6 +75,16 @@ def build_audit_packet(spans: Iterable[dict[str, Any]], drafts: Iterable[dict[st
                 "### Risk Flags",
                 "",
                 *_risk_flag_lines(draft),
+                "",
+                "### Field Grounding",
+                "",
+                _grounding_table(grounding_record),
+                "",
+                "### Machine Feedback",
+                "",
+                "Machine feedback; human verification required.",
+                "",
+                *_feedback_lines(feedback_record),
                 "",
                 "### Human Action Checklist",
                 "",
@@ -109,6 +129,31 @@ def _field_table(draft: dict[str, Any]) -> str:
     for field in EXTRACTED_FIELDS:
         lines.append(f"| `{field}` | {_format_value(draft.get(field))} |")
     return "\n".join(lines)
+
+
+def _grounding_table(grounding_record: dict[str, Any] | None) -> str:
+    if not grounding_record:
+        return "No field grounding output available."
+    lines = ["| Field | Status | Risk flag |", "| --- | --- | --- |"]
+    for item in grounding_record.get("grounding", []):
+        field = _format_value(item.get("field"))
+        status = _format_value(item.get("grounding_status"))
+        risk = _format_value(item.get("risk_flag"))
+        lines.append(f"| `{field}` | {status} | {risk} |")
+    return "\n".join(lines)
+
+
+def _feedback_lines(feedback_record: dict[str, Any] | None) -> list[str]:
+    if not feedback_record or not feedback_record.get("feedback"):
+        return ["- None detected by rule feedback."]
+    lines: list[str] = []
+    for item in feedback_record.get("feedback", []):
+        severity = item.get("severity", "")
+        field = item.get("field") or "record"
+        message = item.get("message", "")
+        action = item.get("suggested_action", "")
+        lines.append(f"- `{severity}` `{field}`: {message} Suggested action: {action}")
+    return lines
 
 
 def _risk_flag_lines(draft: dict[str, Any]) -> list[str]:

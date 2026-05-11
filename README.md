@@ -81,6 +81,9 @@ C:\Python314\python.exe scripts\check_gold_dataset.py --papers data\papers\paper
 
 # 7. Evaluate predictions after a prediction file exists
 C:\Python314\python.exe scripts\evaluate_predictions.py --gold data\gold\gold.v0.2.reviewed.jsonl --pred data\predictions\your_predictions.jsonl
+
+# 8. Export domain summary after reviewed gold exists
+C:\Python314\python.exe scripts\export_domain_report.py --gold data\gold\gold.v0.2.reviewed.jsonl --output-md data\reports\domain_report.v0.2.md
 ```
 
 DOCX and text-based PDF conversion use optional local packages only:
@@ -88,6 +91,23 @@ DOCX and text-based PDF conversion use optional local packages only:
 scanned PDFs should be manually converted or deferred to a future Docling/OCR
 workflow. Converted Markdown remains local/private and should not be published
 as full copyrighted text unless licensed.
+
+## One-Command OpenScholar-Style Local Run
+
+The unified runner performs local conversion, candidate span discovery, draft
+extraction, field grounding, rule feedback, audit packet export, review-sheet
+export, and manifest writing:
+
+```powershell
+C:\Python314\python.exe scripts\run_enh3_scholar.py --input-dir input_raw --markdown-dir input_markdown --run-name v0.2 --top-n 8 --max-per-paper 3 --stop-at audit
+```
+
+This is an OpenScholar-inspired local workflow pattern, not an OpenScholar
+fork. It does not use OpenScholar code, datastore, APIs, retrievers, LLMs, or
+web search.
+
+For a plain-language overview of the final repository functionality, see
+`docs/final_project_functionality.md`.
 
 ## Using Generic Scientific Agent Skills With eNH3-Bench
 
@@ -100,6 +120,16 @@ gold labels.
 Any skill-assisted output is treated as machine-drafted evidence. It must pass
 the eNH3-Bench schema, audit packet, review sheet, and human source-grounded
 verification before it can become gold data.
+
+## External Code Reuse And Attribution
+
+OpenScholar is an Apache-2.0 project that may serve as an external conceptual
+reference for pipeline organization. eNH3-Bench does not vendor OpenScholar,
+does not import it, and does not imply endorsement by OpenScholar authors.
+
+Any future copied or modified external code must be recorded in
+`docs/code_reuse_log.md`, retain required attribution notices, and follow the
+reuse protocol in `docs/external_reference_protocol.md`.
 
 ## Planned Data Layout
 

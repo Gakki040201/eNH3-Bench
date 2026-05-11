@@ -21,6 +21,8 @@ from enh3bench.audit_packet import (  # noqa: E402
 
 DEFAULT_SPANS = ROOT / "data" / "candidates" / "candidate_spans.v0.2.jsonl"
 DEFAULT_DRAFTS = ROOT / "data" / "drafts" / "draft_evidence.v0.2.jsonl"
+DEFAULT_GROUNDING = ROOT / "data" / "drafts" / "field_grounding.v0.2.jsonl"
+DEFAULT_FEEDBACK = ROOT / "data" / "drafts" / "draft_feedback.v0.2.jsonl"
 DEFAULT_OUTPUT_MD = ROOT / "data" / "audit" / "audit_packet.v0.2.md"
 DEFAULT_OUTPUT_CSV = ROOT / "data" / "audit" / "review_sheet.v0.2.csv"
 
@@ -51,6 +53,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build human audit packet and review sheet.")
     parser.add_argument("--spans", type=Path, default=DEFAULT_SPANS, help="Candidate span JSONL.")
     parser.add_argument("--drafts", type=Path, default=DEFAULT_DRAFTS, help="Draft evidence JSONL.")
+    parser.add_argument("--grounding", type=Path, default=DEFAULT_GROUNDING, help="Optional field grounding JSONL.")
+    parser.add_argument("--feedback", type=Path, default=DEFAULT_FEEDBACK, help="Optional draft feedback JSONL.")
     parser.add_argument("--output-md", type=Path, default=DEFAULT_OUTPUT_MD, help="Audit packet Markdown.")
     parser.add_argument("--output-csv", type=Path, default=DEFAULT_OUTPUT_CSV, help="Review sheet CSV.")
     return parser.parse_args()
@@ -60,8 +64,10 @@ def main() -> int:
     args = parse_args()
     spans = load_jsonl(args.spans)
     drafts = load_jsonl(args.drafts)
+    grounding = load_jsonl(args.grounding) if args.grounding.exists() else []
+    feedback = load_jsonl(args.feedback) if args.feedback.exists() else []
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
-    args.output_md.write_text(build_audit_packet(spans, drafts), encoding="utf-8", newline="\n")
+    args.output_md.write_text(build_audit_packet(spans, drafts, grounding, feedback), encoding="utf-8", newline="\n")
     write_review_sheet(build_review_sheet_rows(spans, drafts), args.output_csv)
     print(f"Wrote audit packet to {args.output_md}")
     print(f"Wrote review sheet to {args.output_csv}")

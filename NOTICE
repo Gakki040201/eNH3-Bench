@@ -1,0 +1,13 @@
+eNH3-Bench
+
+eNH3-Bench is a separate project for source-grounded electrochemical ammonia
+synthesis evidence extraction and reliability validation.
+
+OpenScholar may be used as an external conceptual or code reference for
+pipeline organization ideas such as unified CLI entrypoints, retrieval,
+feedback, and attribution checking. eNH3-Bench does not vendor OpenScholar and
+does not imply endorsement by OpenScholar authors or Apache.
+
+Any copied or modified OpenScholar-derived files must be clearly marked in the
+file, preserve required license and attribution notices, and be recorded in
+docs/code_reuse_log.md before release.

@@ -27,6 +27,8 @@ def parse_args() -> argparse.Namespace:
         default=6,
         help="Maximum candidate spans per Markdown document.",
     )
+    parser.add_argument("--top-n", type=int, default=None, help="Global maximum candidate spans.")
+    parser.add_argument("--max-per-paper", type=int, default=None, help="Maximum candidate spans per document.")
     return parser.parse_args()
 
 
@@ -36,10 +38,14 @@ def main() -> int:
         input_markdown_dir=args.input_markdown_dir,
         run_name=args.run_name,
         max_spans_per_document=args.max_spans_per_document,
+        top_n=args.top_n,
+        max_per_paper=args.max_per_paper,
     )
     print(f"Documents: {manifest['document_count']}")
     print(f"Candidate spans: {manifest['candidate_span_count']}")
     print(f"Draft evidence records: {manifest['draft_evidence_count']}")
+    print(f"Field grounding records: {manifest['field_grounding_count']}")
+    print(f"Feedback records: {manifest['draft_feedback_count']}")
     print(manifest["next_human_step"])
     return 0
 
