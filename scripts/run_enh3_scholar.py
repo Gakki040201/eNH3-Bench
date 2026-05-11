@@ -29,6 +29,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-n", type=int, default=8)
     parser.add_argument("--max-per-paper", type=int, default=3)
     parser.add_argument("--skip-conversion", action="store_true")
+    parser.add_argument("--converter", choices=["auto", "docling", "markitdown", "pymupdf", "basic"], default="auto")
+    parser.add_argument("--force-reconvert", action="store_true")
+    parser.add_argument("--clean-markdown", action="store_true")
     parser.add_argument("--stop-at", choices=["audit", "gold", "evaluation"], default="audit")
     parser.add_argument("--review-sheet", type=Path, default=None)
     parser.add_argument("--papers", type=Path, default=Path("data/papers/papers.v0.2.template.csv"))
@@ -45,11 +48,20 @@ def run_pipeline(args: argparse.Namespace) -> dict[str, Any]:
         stop_at=args.stop_at,
         skip_conversion=args.skip_conversion,
         papers_path=str(args.papers) if args.papers else None,
+        converter=args.converter,
+        force_reconvert=args.force_reconvert,
+        clean_markdown=args.clean_markdown,
     )
 
     conversion_results: list[dict[str, Any]] = []
     if not config.skip_conversion:
-        conversion_results = convert_directory(config.input_dir, config.markdown_dir)
+        conversion_results = convert_directory(
+            config.input_dir,
+            config.markdown_dir,
+            converter=config.converter,
+            force=config.force_reconvert,
+            clean_output=config.clean_markdown,
+        )
 
     manifest = run_minimal_review_pipeline(
         input_markdown_dir=config.markdown_dir,
@@ -61,6 +73,7 @@ def run_pipeline(args: argparse.Namespace) -> dict[str, Any]:
         "skipped": config.skip_conversion,
         "results": conversion_results,
         "summary": _status_counts(conversion_results),
+        "converter_summary": _converter_counts(conversion_results),
     }
     _write_json(manifest, Path("data/reports") / f"workflow_manifest.{config.run_name}.json")
 
@@ -104,6 +117,7 @@ def main() -> int:
     print(f"Draft evidence records: {manifest['draft_evidence_count']}")
     print(f"Field grounding records: {manifest['field_grounding_count']}")
     print(f"Feedback records: {manifest['draft_feedback_count']}")
+    print(f"Conversion method summary: {manifest.get('conversion', {}).get('converter_summary', {})}")
     print(
         f"Next human step: open data/audit/audit_packet.{args.run_name}.md and "
         f"data/audit/review_sheet.{args.run_name}.csv"
@@ -172,6 +186,14 @@ def _status_counts(results: list[dict[str, Any]]) -> dict[str, int]:
         status = str(result.get("status", "error"))
         counts[status if status in counts else "error"] += 1
     return counts
+
+
+def _converter_counts(results: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for result in results:
+        converter_used = str(result.get("converter_used") or "none")
+        counts[converter_used] = counts.get(converter_used, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 if __name__ == "__main__":

@@ -92,6 +92,47 @@ scanned PDFs should be manually converted or deferred to a future Docling/OCR
 workflow. Converted Markdown remains local/private and should not be published
 as full copyrighted text unless licensed.
 
+For higher-quality paper conversion, install optional local converters:
+
+```powershell
+C:\Python314\python.exe -m pip install docling markitdown pymupdf
+```
+
+Recommended Docling-first rerun for local PDFs:
+
+```powershell
+C:\Python314\python.exe scripts\run_enh3_scholar.py ^
+  --input-dir input_raw ^
+  --markdown-dir input_markdown ^
+  --run-name v0.2_docling ^
+  --top-n 20 ^
+  --max-per-paper 5 ^
+  --converter docling ^
+  --force-reconvert ^
+  --clean-markdown ^
+  --stop-at audit
+```
+
+Fallback auto mode tries Docling, then MarkItDown, then local PyMuPDF/basic
+conversion:
+
+```powershell
+C:\Python314\python.exe scripts\run_enh3_scholar.py ^
+  --input-dir input_raw ^
+  --markdown-dir input_markdown ^
+  --run-name v0.2_auto ^
+  --top-n 20 ^
+  --max-per-paper 5 ^
+  --converter auto ^
+  --force-reconvert ^
+  --clean-markdown ^
+  --stop-at audit
+```
+
+Use Docling first for paper PDFs. Use `auto` if Docling is unavailable or a
+specific file fails. MarkItDown is an optional Python package fallback; this
+repository does not vendor or import scientific-agent-skills.
+
 ## One-Command OpenScholar-Style Local Run
 
 The unified runner performs local conversion, candidate span discovery, draft

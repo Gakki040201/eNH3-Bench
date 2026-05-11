@@ -6,7 +6,8 @@ packet for electrochemical ammonia synthesis literature.
 ## What It Can Do
 
 - Convert local `.md`, `.txt`, `.docx`, and text-based `.pdf` files into local
-  Markdown when optional local packages are installed.
+  Markdown with Docling-first, MarkItDown fallback, and PyMuPDF/basic fallback
+  when optional local packages are installed.
 - Find candidate evidence spans.
 - Draft eNH3 evidence records.
 - Check whether important fields are grounded in source spans.
@@ -24,7 +25,8 @@ packet for electrochemical ammonia synthesis literature.
 - It does not train models.
 - It does not provide a UI.
 - It does not perform OCR.
-- It does not use Docling yet.
+- It does not vendor Docling or perform OCR; Docling is only an optional local
+  converter dependency.
 - It does not replace human source-grounded verification.
 
 ## How It Differs From Large Agent Repositories

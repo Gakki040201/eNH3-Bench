@@ -51,3 +51,11 @@ not gold labels.
 The benchmark core must continue to run with local Python standard-library code.
 The optional use of generic skills should be reported as workflow assistance,
 not as a required dependency or a hidden source of labels.
+
+## Document Conversion Adapters
+
+The local conversion layer may use optional Python packages such as Docling,
+MarkItDown, and PyMuPDF. This is a self-contained adapter implementation in
+eNH3-Bench. It does not import or vendor scientific-agent-skills. MarkItDown may
+be conceptually aligned with skill-style document processing, but any use here
+is through the optional Python package only.

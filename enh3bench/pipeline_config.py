@@ -15,3 +15,6 @@ class PipelineConfig:
     stop_at: str
     skip_conversion: bool
     papers_path: str | None
+    converter: str = "auto"
+    force_reconvert: bool = False
+    clean_markdown: bool = False

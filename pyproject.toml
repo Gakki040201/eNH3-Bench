@@ -20,6 +20,8 @@ dev = [
 ]
 document = [
   "python-docx",
+  "docling",
+  "markitdown",
   "pymupdf"
 ]
 

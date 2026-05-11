@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -53,15 +54,29 @@ class MarkdownConverterTests(unittest.TestCase):
             self.assertEqual(result["status"], "converted")
             self.assertEqual(Path(result["output_path"]).suffix, ".md")
             output_text = Path(result["output_path"]).read_text(encoding="utf-8")
-            self.assertIn("txt_to_markdown", output_text)
+            self.assertIn("conversion_method: basic", output_text)
             self.assertIn("Faradaic efficiency was 62%.\n\nNH3 yield was reported.", output_text)
+
+    def test_auto_preserves_basic_text_behavior_without_optional_converters(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            source = base / "paper.txt"
+            source.write_text("NH3 text paragraph.", encoding="utf-8")
+            with (
+                mock.patch("enh3bench.markdown_converter.has_docling_python", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_docling_cli", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_markitdown_python", return_value=False),
+            ):
+                result = convert_local_document(source, base / "out", converter="auto")
+            self.assertEqual(result["status"], "converted")
+            self.assertEqual(result["converter_used"], "basic")
 
     def test_pdf_returns_unsupported_without_exception(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             source = Path(temp_dir) / "paper.pdf"
             source.write_bytes(b"%PDF placeholder")
             with mock.patch("enh3bench.markdown_converter.has_pymupdf", return_value=False):
-                result = convert_local_document(source, Path(temp_dir) / "out")
+                result = convert_local_document(source, Path(temp_dir) / "out", converter="pymupdf")
             self.assertEqual(result["status"], "unsupported")
             self.assertIsNone(result["output_path"])
             self.assertIn("Install pymupdf", result["message"])
@@ -71,7 +86,7 @@ class MarkdownConverterTests(unittest.TestCase):
             source = Path(temp_dir) / "paper.docx"
             source.write_bytes(b"docx placeholder")
             with mock.patch("enh3bench.markdown_converter.has_python_docx", return_value=False):
-                result = convert_local_document(source, Path(temp_dir) / "out")
+                result = convert_local_document(source, Path(temp_dir) / "out", converter="basic")
             self.assertEqual(result["status"], "unsupported")
             self.assertIsNone(result["output_path"])
             self.assertEqual(result["message"], "Install python-docx to convert DOCX files.")
@@ -90,10 +105,30 @@ class MarkdownConverterTests(unittest.TestCase):
             base = Path(temp_dir)
             (base / "visible.txt").write_text("NH3 visible.", encoding="utf-8")
             (base / "paper.pdf").write_bytes(b"%PDF placeholder")
-            with mock.patch("enh3bench.markdown_converter.has_pymupdf", return_value=False):
+            with (
+                mock.patch("enh3bench.markdown_converter.has_docling_python", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_docling_cli", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_markitdown_python", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_pymupdf", return_value=False),
+            ):
                 results = convert_directory(base, base / "out")
             statuses = sorted(result["status"] for result in results)
             self.assertEqual(statuses, ["converted", "unsupported"])
+
+    def test_clean_output_removes_markdown_but_keeps_gitkeep(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            source_dir = base / "input"
+            out = base / "out"
+            source_dir.mkdir()
+            out.mkdir()
+            (source_dir / "visible.txt").write_text("NH3 visible.", encoding="utf-8")
+            (out / "old.md").write_text("old", encoding="utf-8")
+            (out / ".gitkeep").write_text("", encoding="utf-8")
+            results = convert_directory(source_dir, out, clean_output=True)
+            self.assertEqual(results[0]["status"], "converted")
+            self.assertFalse((out / "old.md").exists())
+            self.assertTrue((out / ".gitkeep").exists())
 
     def test_mocked_pymupdf_text_pdf_conversion(self) -> None:
         class FakePage:
@@ -128,13 +163,83 @@ class MarkdownConverterTests(unittest.TestCase):
                 mock.patch("enh3bench.markdown_converter.has_pymupdf", return_value=True),
                 mock.patch.dict(sys.modules, {"fitz": FakeFitz}),
             ):
-                result = convert_local_document(source, base / "out")
+                result = convert_local_document(source, base / "out", converter="pymupdf")
             self.assertEqual(result["status"], "converted")
+            self.assertEqual(result["converter_used"], "pymupdf")
             self.assertEqual(result["pages"], 2)
             output_text = Path(result["output_path"]).read_text(encoding="utf-8")
             self.assertIn("## Page 1", output_text)
             self.assertIn("## Page 2", output_text)
             self.assertIn("NH3 yield on page one.", output_text)
+
+    def test_mocked_docling_success_uses_docling(self) -> None:
+        class FakeConverted:
+            class document:
+                @staticmethod
+                def export_to_markdown() -> str:
+                    return "Docling markdown with NH3 yield."
+
+        class FakeDocumentConverter:
+            def convert(self, path: str) -> FakeConverted:
+                return FakeConverted()
+
+        fake_module = types.ModuleType("docling.document_converter")
+        fake_module.DocumentConverter = FakeDocumentConverter
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            source = base / "paper.pdf"
+            source.write_bytes(b"%PDF placeholder")
+            with (
+                mock.patch("enh3bench.markdown_converter.has_docling_python", return_value=True),
+                mock.patch.dict(sys.modules, {"docling": types.ModuleType("docling"), "docling.document_converter": fake_module}),
+            ):
+                result = convert_local_document(source, base / "out", converter="docling")
+            self.assertEqual(result["status"], "converted")
+            self.assertEqual(result["converter_used"], "docling")
+            output_text = Path(result["output_path"]).read_text(encoding="utf-8")
+            self.assertIn("conversion_method: docling", output_text)
+
+    def test_docling_failure_auto_falls_back_to_basic(self) -> None:
+        class FailingDocumentConverter:
+            def convert(self, path: str):
+                raise RuntimeError("docling failed")
+
+        class FakePage:
+            def get_text(self, mode: str) -> str:
+                return "Fallback NH3 yield page text with enough characters."
+
+        class FakeDocument:
+            def __iter__(self):
+                return iter([FakePage()])
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback) -> None:
+                return None
+
+        class FakeFitz:
+            @staticmethod
+            def open(path: str) -> FakeDocument:
+                return FakeDocument()
+
+        fake_docling = types.ModuleType("docling.document_converter")
+        fake_docling.DocumentConverter = FailingDocumentConverter
+        with tempfile.TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            source = base / "paper.pdf"
+            source.write_bytes(b"%PDF placeholder")
+            with (
+                mock.patch("enh3bench.markdown_converter.has_docling_python", return_value=True),
+                mock.patch("enh3bench.markdown_converter.has_docling_cli", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_markitdown_python", return_value=False),
+                mock.patch("enh3bench.markdown_converter.has_pymupdf", return_value=True),
+                mock.patch.dict(sys.modules, {"docling": types.ModuleType("docling"), "docling.document_converter": fake_docling, "fitz": FakeFitz}),
+            ):
+                result = convert_local_document(source, base / "out", converter="auto")
+            self.assertEqual(result["status"], "converted")
+            self.assertEqual(result["converter_used"], "pymupdf")
+            self.assertIn("Previous attempts", result["message"])
 
 
 if __name__ == "__main__":

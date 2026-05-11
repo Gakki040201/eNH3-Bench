@@ -37,6 +37,10 @@ class RunEnh3ScholarTests(unittest.TestCase):
                     "4",
                     "--max-per-paper",
                     "2",
+                    "--converter",
+                    "basic",
+                    "--force-reconvert",
+                    "--clean-markdown",
                     "--stop-at",
                     "audit",
                 ],
@@ -49,6 +53,7 @@ class RunEnh3ScholarTests(unittest.TestCase):
             self.assertTrue((base / "data" / "audit" / "audit_packet.test.md").exists())
             self.assertTrue((base / "data" / "audit" / "review_sheet.test.csv").exists())
             self.assertIn("Next human step", result.stdout)
+            self.assertIn("Conversion method summary", result.stdout)
 
 
 if __name__ == "__main__":
