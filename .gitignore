@@ -6,6 +6,7 @@ input_raw/*
 !input_raw/.gitkeep
 input_markdown/*
 !input_markdown/.gitkeep
+external_repos/
 
 data/predictions/*
 !data/predictions/.gitkeep
@@ -17,6 +18,8 @@ data/drafts/*
 !data/drafts/.gitkeep
 data/audit/*
 !data/audit/.gitkeep
+data/extraction_runs/*
+!data/extraction_runs/.gitkeep
 
 paper/figures/*.png
 paper/figures/*.pdf

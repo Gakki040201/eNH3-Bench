@@ -150,6 +150,38 @@ web search.
 For a plain-language overview of the final repository functionality, see
 `docs/final_project_functionality.md`.
 
+## eNH3-ExtractBench: Four-Framework Localization
+
+eNH3-Bench now includes a lightweight eNH3-ExtractBench layer localized from
+four materials-literature extraction frameworks:
+
+1. OpenScholar-style local runner for document-to-audit workflows.
+2. Docling-first conversion for local paper files.
+3. eNH3-ChatExtract prompt chain with an offline rule fallback.
+4. eNH3-NERRE-style JSON extraction scaffold with an offline rule fallback.
+5. ToolBench-style method comparison across gold records and method outputs.
+
+This is not a fork or reproduction of those systems. It does not vendor external
+repositories, does not call APIs by default, and does not make machine outputs
+into gold without human verification.
+
+Run offline extraction method scaffolds after candidate spans exist:
+
+```powershell
+C:\Python314\python.exe scripts\run_enh3_chatextract.py --spans data\candidates\candidate_spans.v0.2_docling.jsonl --run-name v0.4_pilot
+C:\Python314\python.exe scripts\run_enh3_nerre_style.py --spans data\candidates\candidate_spans.v0.2_docling.jsonl --run-name v0.4_pilot
+```
+
+Evaluate method outputs against reviewed gold:
+
+```powershell
+C:\Python314\python.exe scripts\evaluate_extraction_runs.py --gold data\gold\gold.v0.2.reviewed.jsonl --run-name v0.4_pilot
+C:\Python314\python.exe scripts\build_extraction_comparison_report.py --comparison-json data\extraction_runs\v0.4_pilot\comparison_report.json
+```
+
+See `docs/eNH3_ExtractBench_final_design.md` and
+`docs/four_paper_localization_plan.md` for the localization guardrails.
+
 ## Using Generic Scientific Agent Skills With eNH3-Bench
 
 Generic scientific agent skills can optionally assist eNH3-Bench construction
