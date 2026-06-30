@@ -20,6 +20,12 @@ data/audit/*
 !data/audit/.gitkeep
 data/extraction_runs/*
 !data/extraction_runs/.gitkeep
+data/ledgers/*
+!data/ledgers/.gitkeep
+data/training/*
+!data/training/.gitkeep
+models/*
+!models/.gitkeep
 
 paper/figures/*.png
 paper/figures/*.pdf

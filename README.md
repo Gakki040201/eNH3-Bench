@@ -4,6 +4,61 @@ eNH3-Bench is a reproducible benchmark for AI-assisted extraction and validation
 
 The benchmark is designed around evidence-grounded claims from electrochemical nitrogen-to-ammonia studies, including eNRR, LiNRR, NO3RR, NO2RR, NORR, and mixed or unclear nitrogen-source systems. Its primary focus is not materials prediction, autonomous agents, or web applications. The core task is to extract structured evidence and assess whether reported ammonia synthesis claims are reliably supported by the source literature.
 
+## Final Minimal Use: eNH3-TriageBench
+
+The final minimal CLI system is eNH3-TriageBench: a local, evidence-gated literature triage workflow for electrochemical ammonia synthesis. It classifies source spans, routes evidence ledgers, scores experiment follow-up directions, exports Markdown/CSV reports, builds training datasets from reviewed outputs, and optionally trains small local scikit-learn models. It does not call APIs, scrape websites, require a GPU, or train LLMs.
+
+Run the final triage pipeline:
+
+```powershell
+C:\Python314\python.exe scripts\run_final_triage_pipeline.py ^
+  --input-dir input_raw ^
+  --markdown-dir input_markdown ^
+  --run-name final_pilot ^
+  --converter docling ^
+  --top-n 30 ^
+  --max-per-paper 6 ^
+  --force-reconvert
+```
+
+Build training datasets:
+
+```powershell
+C:\Python314\python.exe scripts\build_training_dataset.py --run-name final_pilot
+```
+
+Train the source-span classifier:
+
+```powershell
+C:\Python314\python.exe scripts\train_source_span_classifier.py --run-name final_pilot
+```
+
+Train the triage ranker:
+
+```powershell
+C:\Python314\python.exe scripts\train_triage_ranker.py --run-name final_pilot
+```
+
+Predict with trained models:
+
+```powershell
+C:\Python314\python.exe scripts\predict_with_trained_models.py --run-name final_pilot
+```
+
+Check final outputs:
+
+```powershell
+C:\Python314\python.exe scripts\check_final_outputs.py --run-name final_pilot
+```
+
+Optional local training dependencies:
+
+```powershell
+C:\Python314\python.exe -m pip install scikit-learn joblib
+```
+
+See `docs/final_cli_workflow.md`, `docs/final_outputs_and_meaning.md`, and `docs/training_workflow.md` for the complete workflow.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:
