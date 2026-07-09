@@ -24,6 +24,8 @@ data/ledgers/*
 !data/ledgers/.gitkeep
 data/boundary_ledger/*
 !data/boundary_ledger/.gitkeep
+data/provenance/*
+!data/provenance/.gitkeep
 data/training/*
 !data/training/.gitkeep
 models/*

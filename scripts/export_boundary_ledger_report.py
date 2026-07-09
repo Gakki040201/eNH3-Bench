@@ -88,11 +88,27 @@ def render_report(
         "",
         _counter_table(_list_counter(taxes, "detected_taxes"), "Hidden tax"),
         "",
-        "## 9. High-risk overclaim examples",
+        "## 9. Provenance distribution",
+        "",
+        _counter_table(_counter(_records_with_provenance(bundles, claims), "provenance_type"), "Provenance type"),
+        "",
+        "## 10. Claim-rights decisions changed by provenance",
+        "",
+        _provenance_constrained_examples(claims),
+        "",
+        "## 11. Text-class/provenance conflicts",
+        "",
+        _conflict_examples(claims),
+        "",
+        "## 12. Low-trust provenance warnings",
+        "",
+        _low_trust_examples(claims),
+        "",
+        "## 13. High-risk overclaim examples",
         "",
         _high_risk_examples(claims, taxes),
         "",
-        "## 10. Why this is not generic literature extraction",
+        "## 14. Why this is not generic literature extraction",
         "",
         (
             "Generic extraction asks what values are present in text. BoundaryLedger "
@@ -121,6 +137,15 @@ def _list_counter(records: list[dict[str, Any]], key: str) -> Counter[str]:
         if isinstance(value, str) and value:
             counter.update([value])
     return counter
+
+
+def _records_with_provenance(
+    bundles: list[dict[str, Any]],
+    claims: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if any(record.get("provenance_type") for record in bundles):
+        return bundles
+    return claims
 
 
 def _counter_table(counter: Counter[str], label: str) -> str:
@@ -158,6 +183,63 @@ def _high_risk_examples(claims: list[dict[str, Any]], taxes: list[dict[str, Any]
     if not rows:
         return "No high-risk overclaim examples were found."
     return _markdown_table(["Claim", "Paper", "Boundary", "Status", "Risk flags", "Hidden taxes", "Source preview"], rows)
+
+
+def _provenance_constrained_examples(claims: list[dict[str, Any]], limit: int = 12) -> str:
+    selected = [claim for claim in claims if bool(claim.get("provenance_constrained"))]
+    if not selected:
+        return "No claim-rights decisions were provenance-constrained in this run."
+    rows = [
+        [
+            claim.get("claim_id") or "",
+            claim.get("paper_id") or "",
+            claim.get("text_class") or "",
+            claim.get("provenance_type") or "",
+            claim.get("maximum_supported_boundary") or "",
+            claim.get("admissibility_status") or "",
+        ]
+        for claim in selected[:limit]
+    ]
+    return _markdown_table(["Claim", "Paper", "Text class", "Provenance", "Boundary", "Status"], rows)
+
+
+def _conflict_examples(claims: list[dict[str, Any]], limit: int = 12) -> str:
+    selected = [claim for claim in claims if bool(claim.get("text_class_provenance_conflict"))]
+    if not selected:
+        return "No text-class/provenance conflicts were found."
+    rows = [
+        [
+            claim.get("claim_id") or "",
+            claim.get("paper_id") or "",
+            claim.get("text_class") or "",
+            claim.get("provenance_type") or "",
+            "; ".join(str(flag) for flag in (claim.get("overclaim_risk_flags") or [])[:4]),
+            _preview(claim.get("source_text") or ""),
+        ]
+        for claim in selected[:limit]
+    ]
+    return _markdown_table(["Claim", "Paper", "Text class", "Provenance", "Flags", "Source preview"], rows)
+
+
+def _low_trust_examples(claims: list[dict[str, Any]], limit: int = 12) -> str:
+    selected = [
+        claim
+        for claim in claims
+        if bool(claim.get("is_reject_or_low_trust")) or claim.get("admissibility_status") == "reject_or_low_trust_provenance"
+    ]
+    if not selected:
+        return "No low-trust provenance warnings were found."
+    rows = [
+        [
+            claim.get("claim_id") or "",
+            claim.get("paper_id") or "",
+            claim.get("provenance_type") or "",
+            claim.get("admissibility_status") or "",
+            _preview(claim.get("source_text") or ""),
+        ]
+        for claim in selected[:limit]
+    ]
+    return _markdown_table(["Claim", "Paper", "Provenance", "Status", "Source preview"], rows)
 
 
 def _preview(value: Any, limit: int = 160) -> str:

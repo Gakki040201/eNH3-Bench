@@ -1,0 +1,353 @@
+"""Heuristic document-provenance rules for eNH3-BoundaryLedger."""
+
+from __future__ import annotations
+
+import re
+from typing import Any
+
+
+PROVENANCE_TYPES = (
+    "body",
+    "abstract",
+    "methods",
+    "results",
+    "discussion",
+    "table",
+    "review_table",
+    "figure_caption",
+    "scheme_caption",
+    "reference",
+    "bibliography",
+    "supplementary",
+    "front_matter",
+    "metadata",
+    "copyright_note",
+    "unknown",
+)
+
+PRIMARY_ADMISSIBLE_PROVENANCE = (
+    "body",
+    "abstract",
+    "methods",
+    "results",
+    "discussion",
+)
+
+SECONDARY_OR_CONTEXT_PROVENANCE = (
+    "table",
+    "review_table",
+    "figure_caption",
+    "scheme_caption",
+    "supplementary",
+)
+
+REJECT_OR_LOW_TRUST_PROVENANCE = (
+    "reference",
+    "bibliography",
+    "front_matter",
+    "metadata",
+    "copyright_note",
+)
+
+
+def normalize_provenance_type(value: str) -> str:
+    """Normalize a provenance label to a supported value."""
+
+    normalized = re.sub(r"[^a-z0-9]+", "_", str(value or "").casefold()).strip("_")
+    aliases = {
+        "": "unknown",
+        "text": "body",
+        "paragraph": "body",
+        "section": "body",
+        "main_text": "body",
+        "result": "results",
+        "experimental": "methods",
+        "experimental_section": "methods",
+        "method": "methods",
+        "materials_and_methods": "methods",
+        "fig": "figure_caption",
+        "figure": "figure_caption",
+        "caption": "figure_caption",
+        "picture": "figure_caption",
+        "scheme": "scheme_caption",
+        "table_caption": "table",
+        "references": "reference",
+        "citation": "reference",
+        "literature_cited": "bibliography",
+        "bib": "bibliography",
+        "supporting_information": "supplementary",
+        "si": "supplementary",
+        "supplement": "supplementary",
+        "frontmatter": "front_matter",
+        "front": "front_matter",
+        "copyright": "copyright_note",
+    }
+    candidate = aliases.get(normalized, normalized)
+    if candidate in PROVENANCE_TYPES:
+        return candidate
+    return "unknown"
+
+
+def is_primary_admissible(provenance_type: str) -> bool:
+    return normalize_provenance_type(provenance_type) in PRIMARY_ADMISSIBLE_PROVENANCE
+
+
+def is_secondary_or_context(provenance_type: str) -> bool:
+    return normalize_provenance_type(provenance_type) in SECONDARY_OR_CONTEXT_PROVENANCE
+
+
+def is_reject_or_low_trust(provenance_type: str) -> bool:
+    return normalize_provenance_type(provenance_type) in REJECT_OR_LOW_TRUST_PROVENANCE
+
+
+def infer_provenance_from_text(
+    text: str,
+    section: str | None = None,
+    raw_record: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Infer document provenance from text, section labels, and optional record metadata."""
+
+    raw_record = raw_record or {}
+    source_text = str(text or "")
+    normalized = _normalize(source_text)
+    section_text = _normalize(section or raw_record.get("source_section") or raw_record.get("section") or "")
+    signals: list[str] = []
+
+    explicit = _explicit_record_provenance(raw_record)
+    if explicit:
+        signals.append("explicit record provenance")
+        return _result(explicit, "high", signals)
+
+    if _copyright_note(normalized, raw_record):
+        signals.append("copyright or conversion-use note")
+        return _result("copyright_note", "high", signals)
+
+    metadata_score, metadata_signals = _metadata_score(source_text, normalized, raw_record)
+    if metadata_score >= 3:
+        signals.extend(metadata_signals)
+        provenance_type = "front_matter" if _near_beginning_or_front_matter(source_text, raw_record) else "metadata"
+        return _result(provenance_type, "high", signals)
+    if metadata_score >= 1 and _near_beginning_or_front_matter(source_text, raw_record):
+        signals.extend(metadata_signals)
+        return _result("front_matter", "medium", signals)
+
+    reference_score, reference_signals = _reference_score(source_text, normalized, section_text)
+    if reference_score >= 4:
+        signals.extend(reference_signals)
+        provenance_type = "bibliography" if "bibliography" in section_text or "literature cited" in section_text else "reference"
+        return _result(provenance_type, "high", signals)
+    if reference_score >= 2 and "reference" in section_text:
+        signals.extend(reference_signals)
+        return _result("reference", "high", signals)
+
+    caption_type, caption_confidence, caption_signals = _caption_signal(source_text, normalized)
+    if caption_type:
+        signals.extend(caption_signals)
+        return _result(caption_type, caption_confidence, signals)
+
+    table_score, table_signals = _table_score(source_text, normalized)
+    if table_score >= 2:
+        signals.extend(table_signals)
+        if _looks_like_review_table(source_text, normalized):
+            signals.append("literature-comparison table")
+            return _result("review_table", "high", signals)
+        return _result("table", "high" if table_score >= 3 else "medium", signals)
+
+    if _supplementary_signal(normalized, section_text):
+        signals.append("supplementary or supporting-information signal")
+        return _result("supplementary", "medium", signals)
+
+    section_type = _section_provenance(section_text, normalized)
+    if section_type != "unknown":
+        signals.append(f"section signal: {section_text or section_type}")
+        return _result(section_type, "medium", signals)
+
+    if source_text.strip():
+        signals.append("non-empty text without table/caption/reference metadata signal")
+        return _result("body", "low", signals)
+    return _result("unknown", "low", ["empty source text"])
+
+
+def _result(provenance_type: str, confidence: str, signals: list[str]) -> dict[str, Any]:
+    normalized = normalize_provenance_type(provenance_type)
+    return {
+        "provenance_type": normalized,
+        "confidence": confidence if confidence in {"low", "medium", "high"} else "low",
+        "signals": signals,
+        "is_primary_admissible": is_primary_admissible(normalized),
+        "is_secondary_or_context": is_secondary_or_context(normalized),
+        "is_reject_or_low_trust": is_reject_or_low_trust(normalized),
+    }
+
+
+def _explicit_record_provenance(record: dict[str, Any]) -> str:
+    for key in ("provenance_type", "docling_label", "block_type", "label"):
+        value = record.get(key)
+        if value is None:
+            continue
+        normalized = normalize_provenance_type(str(value))
+        if normalized not in {"unknown", "body"}:
+            return normalized
+    return ""
+
+
+def _metadata_score(text: str, normalized: str, record: dict[str, Any]) -> tuple[int, list[str]]:
+    signals: list[str] = []
+    score = 0
+    metadata_keys = [
+        "source_file:",
+        "conversion_method:",
+        "human_verification_required",
+        "copyright_note",
+        "document_id:",
+        "created_at:",
+        "source_format:",
+        "conversion_status:",
+    ]
+    hits = [key for key in metadata_keys if key in normalized]
+    if hits:
+        score += len(hits)
+        signals.append("YAML/Docling metadata keys: " + ", ".join(hits[:5]))
+    metadata_lines = sum(1 for line in text.splitlines() if re.match(r"^\s*[A-Za-z0-9_\-]+:\s*", line))
+    if metadata_lines >= 3:
+        score += 2
+        signals.append("repeated metadata-like lines")
+    if record.get("source_section") in {"front_matter", "metadata"}:
+        score += 2
+        signals.append("record source_section metadata/front_matter")
+    return score, signals
+
+
+def _near_beginning_or_front_matter(text: str, record: dict[str, Any]) -> bool:
+    span_id = str(record.get("span_id") or record.get("source_span_id") or "")
+    page = record.get("page")
+    if str(page).strip() in {"1", "0"}:
+        return True
+    if re.search(r"(?:^|[_-])s?0{0,2}1$", span_id.casefold()):
+        return True
+    stripped = text.lstrip()
+    return stripped.startswith("---") or stripped.startswith("{")
+
+
+def _copyright_note(normalized: str, record: dict[str, Any]) -> bool:
+    return "copyright_note" in normalized or "do not publish full copyrighted text" in normalized or record.get("provenance_type") == "copyright_note"
+
+
+def _reference_score(text: str, normalized: str, section_text: str) -> tuple[int, list[str]]:
+    signals: list[str] = []
+    score = 0
+    if any(label in section_text for label in ["references", "reference", "bibliography", "literature cited"]):
+        score += 3
+        signals.append("reference-like section label")
+    doi_hits = len(re.findall(r"\bdoi\b|10\.\d{4,9}/", normalized))
+    if doi_hits >= 2:
+        score += 2
+        signals.append("multiple DOI strings")
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    numbered = sum(1 for line in lines if re.match(r"^(?:\[\d+\]|\d+[\).])\s+", line))
+    if len(lines) >= 2 and numbered >= max(2, len(lines) // 3):
+        score += 3
+        signals.append("numbered reference-list lines")
+    et_al_hits = normalized.count("et al")
+    if et_al_hits >= 3:
+        score += 2
+        signals.append("repeated et al. citation patterns")
+    journal_patterns = len(re.findall(r"\b(?:19|20)\d{2}\b[^.\n]{0,80}\b\d{1,4}\s*[-,]\s*\d{1,5}", normalized))
+    if journal_patterns >= 2:
+        score += 2
+        signals.append("journal year-volume-page patterns")
+    author_year = len(re.findall(r"\b[A-Z][A-Za-z-]+,\s+[A-Z].{0,80}\((?:19|20)\d{2}\)", text))
+    if author_year >= 2:
+        score += 2
+        signals.append("author-year citation-list patterns")
+    return score, signals
+
+
+def _caption_signal(text: str, normalized: str) -> tuple[str, str, list[str]]:
+    stripped = text.strip()
+    signals: list[str] = []
+    if re.match(r"^(?:fig\.?|figure|extended data fig\.?|supplementary fig\.?)\s*[A-Za-z0-9.\-:)]", stripped, re.IGNORECASE):
+        signals.append("figure-caption prefix")
+        return "figure_caption", "high", signals
+    if re.match(r"^scheme\s*[A-Za-z0-9.\-:)]", stripped, re.IGNORECASE):
+        signals.append("scheme-caption prefix")
+        return "scheme_caption", "high", signals
+    if any(needle in normalized[:120] for needle in ["fig. ", "figure ", "extended data fig", "supplementary fig"]):
+        signals.append("caption-like figure signal near start")
+        return "figure_caption", "medium", signals
+    if "scheme " in normalized[:120]:
+        signals.append("caption-like scheme signal near start")
+        return "scheme_caption", "medium", signals
+    return "", "low", signals
+
+
+def _table_score(text: str, normalized: str) -> tuple[int, list[str]]:
+    score = 0
+    signals: list[str] = []
+    pipe_lines = [line for line in text.splitlines() if line.count("|") >= 2]
+    delimiter_rows = [line for line in pipe_lines if re.search(r"\|\s*:?-{2,}:?\s*\|", line)]
+    if len(pipe_lines) >= 2:
+        score += 2
+        signals.append("markdown pipe-table syntax")
+    if delimiter_rows:
+        score += 1
+        signals.append("markdown delimiter row")
+    headers = [
+        "reference",
+        "catalyst",
+        "reactant",
+        "electrolyte",
+        "fe",
+        "faradaic efficiency",
+        "yield",
+        "potential",
+        "cell voltage",
+        "15n",
+    ]
+    header_hits = [header for header in headers if header in normalized]
+    has_table_label = bool(re.search(r"\btable\s+s?\d+", normalized))
+    if len(header_hits) >= 4 and (pipe_lines or has_table_label):
+        score += 2
+        signals.append("eNH3 table headers: " + ", ".join(header_hits[:6]))
+    elif len(header_hits) >= 4:
+        score += 1
+        signals.append("eNH3 metric/header terms without table structure")
+    if has_table_label:
+        score += 1
+        signals.append("table label")
+    return score, signals
+
+
+def _looks_like_review_table(text: str, normalized: str) -> bool:
+    if any(needle in normalized for needle in ["review table", "literature summary", "previous reports", "reported in previous studies"]):
+        return True
+    lines = [line for line in text.splitlines() if line.strip()]
+    citation_rows = sum(1 for line in lines if re.search(r"\b(?:19|20)\d{2}\b|\bet al\.?", line, re.IGNORECASE))
+    reference_column = "reference" in normalized and any(header in normalized for header in ["catalyst", "electrolyte", "fe", "15n"])
+    return reference_column and citation_rows >= 3
+
+
+def _supplementary_signal(normalized: str, section_text: str) -> bool:
+    return any(
+        needle in f"{section_text} {normalized[:300]}"
+        for needle in ["supplementary", "supporting information", "supplementary table", "supplementary fig", " si "]
+    )
+
+
+def _section_provenance(section_text: str, normalized: str) -> str:
+    section_blob = f"{section_text} {normalized[:120]}"
+    if "abstract" in section_blob:
+        return "abstract"
+    if any(needle in section_blob for needle in ["results", "result and discussion"]):
+        return "results"
+    if "discussion" in section_blob:
+        return "discussion"
+    if any(needle in section_blob for needle in ["experimental", "methods", "materials and methods"]):
+        return "methods"
+    if any(needle in section_blob for needle in ["introduction", "conclusion", "body"]):
+        return "body"
+    return "unknown"
+
+
+def _normalize(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").casefold()).strip()

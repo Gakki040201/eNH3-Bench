@@ -74,6 +74,21 @@ C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name fina
 
 Outputs are written under `data\boundary_ledger\{run_name}\` and `data\reports\boundary_ledger_report.{run_name}.md`. See `docs/boundary_ledger_concept.md`, `docs/claim_rights_schema.md`, and `docs/hidden_tax_rubric.md`.
 
+### Phase B: Docling provenance hardening
+
+Phase B marks source spans as primary body text, tables, review tables, captions, references, metadata/front matter, or supplementary context before claim-rights adjudication. Docling JSON is used when available, and older runs fall back to deterministic provenance inference.
+
+```powershell
+C:\Python314\python.exe scripts\export_docling_provenance.py --run-name final_pilot
+C:\Python314\python.exe scripts\attach_provenance_to_spans.py --run-name final_pilot
+C:\Python314\python.exe scripts\build_evidence_bundles.py --run-name final_pilot
+C:\Python314\python.exe scripts\classify_claim_rights.py --run-name final_pilot
+C:\Python314\python.exe scripts\detect_hidden_taxes.py --run-name final_pilot
+C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name final_pilot
+```
+
+See `docs/docling_provenance_hardening.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:

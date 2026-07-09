@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.boundary_schema import has_any_value
+from enh3bench.document_provenance import infer_provenance_for_record
 from enh3bench.ledger_router import load_jsonl
 
 
@@ -89,6 +90,7 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
     paper_id = _first_text(record, "paper_id")
     source_text = _source_text(record)
     bundle_id = _bundle_id(paper_id, evidence_id, source_span_id)
+    provenance_info = _record_provenance_info(record)
 
     bundle: dict[str, Any] = {
         "bundle_id": bundle_id,
@@ -103,8 +105,14 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
         "recommended_ledger": _first_text(record, "recommended_ledger"),
         "allow_field_extraction": bool(record.get("allow_field_extraction", False)),
         "allow_gold": bool(record.get("allow_gold", False)),
+        "provenance_type": provenance_info.get("provenance_type", "unknown"),
+        "provenance_confidence": provenance_info.get("provenance_confidence", "low"),
+        "provenance_signals": provenance_info.get("provenance_signals", []),
+        "is_primary_admissible": bool(provenance_info.get("is_primary_admissible", False)),
+        "is_secondary_or_context": bool(provenance_info.get("is_secondary_or_context", False)),
+        "is_reject_or_low_trust": bool(provenance_info.get("is_reject_or_low_trust", False)),
         "extracted_fields": _extracted_fields(record),
-        "provenance": _provenance(record),
+        "provenance": _provenance(record, provenance_info),
         "grounding_status": _grounding_status(source_text),
         "raw_record": raw_record,
     }
@@ -217,13 +225,31 @@ def _extracted_fields(record: dict[str, Any]) -> dict[str, Any]:
     return fields
 
 
-def _provenance(record: dict[str, Any]) -> dict[str, Any]:
+def _record_provenance_info(record: dict[str, Any]) -> dict[str, Any]:
+    if record.get("provenance_type"):
+        return {
+            "provenance_id": record.get("provenance_id"),
+            "provenance_type": record.get("provenance_type"),
+            "provenance_confidence": record.get("provenance_confidence") or "low",
+            "provenance_signals": record.get("provenance_signals") or [],
+            "is_primary_admissible": bool(record.get("is_primary_admissible", False)),
+            "is_secondary_or_context": bool(record.get("is_secondary_or_context", False)),
+            "is_reject_or_low_trust": bool(record.get("is_reject_or_low_trust", False)),
+        }
+    return infer_provenance_for_record(record)
+
+
+def _provenance(record: dict[str, Any], provenance_info: dict[str, Any]) -> dict[str, Any]:
     provenance = {
         "source_record_keys": sorted(str(key) for key in record.keys()),
         "source_span_id": _first_text(record, "source_span_id", "span_id", "id"),
         "evidence_id": _first_text(record, "evidence_id"),
         "classification_confidence": _first_text(record, "confidence"),
         "classification_reasons": record.get("reasons") or [],
+        "provenance_id": provenance_info.get("provenance_id") or "",
+        "provenance_type": provenance_info.get("provenance_type") or "unknown",
+        "provenance_confidence": provenance_info.get("provenance_confidence") or "low",
+        "provenance_signals": provenance_info.get("provenance_signals") or [],
     }
     source_file = _first_text(record, "source_file")
     if source_file:
@@ -273,6 +299,12 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "recommended_ledger",
         "allow_field_extraction",
         "allow_gold",
+        "provenance_type",
+        "provenance_confidence",
+        "provenance_signals",
+        "is_primary_admissible",
+        "is_secondary_or_context",
+        "is_reject_or_low_trust",
         "extracted_fields",
         "provenance",
         "grounding_status",

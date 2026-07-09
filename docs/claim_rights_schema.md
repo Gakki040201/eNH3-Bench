@@ -50,3 +50,20 @@ The ledger recommends controls when a claim needs them:
 - Missing NOx control: add NOx/nitrate/nitrite screening.
 - HOR claim: add H2-off/HOR-off control.
 - Flow reactor claim: add gas/liquid product accounting and wetting/flooding diagnosis.
+
+## Provenance-constrained claim rights
+
+Phase B adds provenance fields to claim-rights records:
+
+- provenance_type
+- provenance_confidence
+- provenance_signals
+- is_primary_admissible
+- is_secondary_or_context
+- is_reject_or_low_trust
+- provenance_constrained
+- text_class_provenance_conflict
+
+Provenance dominates text class when they disagree. A span labelled primary_performance but inferred as reference, bibliography, metadata, front_matter, or copyright_note is treated as unsupported_or_secondary with admissibility_status reject_or_low_trust_provenance.
+
+Review-table provenance maps to secondary_summary_claim and secondary_only. Figure and scheme captions default to context_only_caption and require pair_with_primary_body_text. Ordinary table provenance cannot exceed cell_metric without paired evidence. Supplementary provenance adds supplementary_requires_crosscheck.

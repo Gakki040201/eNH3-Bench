@@ -9,13 +9,17 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.boundary_schema import HIDDEN_TAX_TYPES, coerce_float, has_any_value
+from enh3bench.document_provenance import infer_provenance_for_record
+from enh3bench.provenance_rules import is_reject_or_low_trust, normalize_provenance_type
 
 
 def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     """Detect process and measurement burdens hidden behind a claim."""
 
     merged = _merged_record(record)
+    _ensure_provenance_fields(merged)
     text = _normalized_text(merged)
+    provenance_type = str(merged.get("provenance_type") or "unknown")
     detected: list[str] = []
     hidden_assumptions: list[str] = []
     missing_measurements: list[str] = []
@@ -67,6 +71,22 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
         required_controls.append("report FE with NH3 yield, voltage, current density, runtime, energy efficiency, and product state")
         reasoning.append("FE appears without the full metric matrix needed for boundary comparison.")
 
+    if provenance_type in {"reference", "bibliography", "review_table", "figure_caption", "scheme_caption", "table"}:
+        hidden_assumptions.append("secondary_or_context_text_cannot_establish_primary_boundary")
+        reasoning.append(f"{provenance_type} provenance cannot establish a primary boundary by itself.")
+        if provenance_type in {"figure_caption", "scheme_caption", "table", "review_table"}:
+            missing_measurements.append("primary_body_text_pairing_required")
+            required_controls.append("pair context/table/caption evidence with primary body text")
+    if is_reject_or_low_trust(provenance_type) and _has_fe(merged, text):
+        detected.append("measurement_matrix_tax")
+        reasoning.append("low-trust provenance makes reported metrics non-admissible without primary body text.")
+    if is_reject_or_low_trust(provenance_type) and _contains_any(
+        text,
+        ["contamination", "nox", "nitrate", "nitrite", "background ammonia", "false positive", "impurity"],
+    ):
+        detected.append("contamination_tax")
+        reasoning.append("low-trust provenance cannot resolve contamination attribution.")
+
     detected = _dedupe([tax for tax in detected if tax in HIDDEN_TAX_TYPES])
     return {
         "tax_record_id": _tax_record_id(merged),
@@ -74,6 +94,8 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
         "source_span_id": str(merged.get("source_span_id") or merged.get("span_id") or ""),
         "evidence_id": str(merged.get("evidence_id") or ""),
         "text_class": str(merged.get("text_class") or "unknown"),
+        "provenance_type": provenance_type,
+        "provenance_confidence": str(merged.get("provenance_confidence") or "low"),
         "detected_taxes": detected,
         "main_gain": _main_gain(merged, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -137,6 +159,20 @@ def _tax_record_id(record: dict[str, Any]) -> str:
         if value:
             return f"HT_{value}"
     return "HT_TODO"
+
+
+def _ensure_provenance_fields(record: dict[str, Any]) -> None:
+    if record.get("provenance_type"):
+        record["provenance_type"] = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
+        record.setdefault("provenance_confidence", "low")
+        return
+    provenance = infer_provenance_for_record(record)
+    record["provenance_type"] = provenance.get("provenance_type") or "unknown"
+    record["provenance_confidence"] = provenance.get("provenance_confidence") or "low"
+    record["provenance_signals"] = provenance.get("provenance_signals") or []
+    record["is_primary_admissible"] = provenance.get("is_primary_admissible", False)
+    record["is_secondary_or_context"] = provenance.get("is_secondary_or_context", False)
+    record["is_reject_or_low_trust"] = provenance.get("is_reject_or_low_trust", False)
 
 
 def _source_text(record: dict[str, Any]) -> str:
@@ -294,6 +330,8 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "source_span_id",
         "evidence_id",
         "text_class",
+        "provenance_type",
+        "provenance_confidence",
         "detected_taxes",
         "main_gain",
         "hidden_assumptions",

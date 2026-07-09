@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.claim_rights import export_claim_rights_ledger  # noqa: E402
+from enh3bench.document_provenance import attach_existing_or_infer, load_provenance_records  # noqa: E402
 from enh3bench.evidence_bundle import load_records_from_ledgers  # noqa: E402
 from enh3bench.ledger_router import load_jsonl  # noqa: E402
 
@@ -19,6 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-name", default="final_pilot")
     parser.add_argument("--ledger-dir", type=Path, default=Path("data") / "ledgers")
     parser.add_argument("--boundary-dir", type=Path, default=Path("data") / "boundary_ledger")
+    parser.add_argument("--provenance-dir", type=Path, default=Path("data") / "provenance")
     return parser.parse_args()
 
 
@@ -29,6 +31,7 @@ def main() -> int:
     source = evidence_path
     if not records:
         records = load_records_from_ledgers(args.run_name, args.ledger_dir)
+        records = attach_existing_or_infer(records, load_provenance_records(args.run_name, args.provenance_dir))
         source = args.ledger_dir / args.run_name
     outputs = export_claim_rights_ledger(records, args.run_name, args.boundary_dir)
     print(f"Loaded records: {len(records)}")

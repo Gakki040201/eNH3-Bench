@@ -16,6 +16,12 @@ from enh3bench.boundary_schema import (
     max_boundary,
     normalize_yes_no,
 )
+from enh3bench.document_provenance import infer_provenance_for_record
+from enh3bench.provenance_rules import (
+    is_reject_or_low_trust,
+    is_secondary_or_context,
+    normalize_provenance_type,
+)
 
 
 PRIMARY_CLASSES = {"primary_performance", "primary_performance_with_validation"}
@@ -27,13 +33,34 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
 
     merged = _merged_record(record)
     text_class = str(merged.get("text_class") or "unknown").strip() or "unknown"
+    _ensure_provenance_fields(merged)
+    provenance_type = str(merged.get("provenance_type") or "unknown")
     source_text = _source_text(merged)
     fields = _boundary_field_presence(merged)
     present, missing = _present_missing_by_boundary(fields)
     validation_gates = _validation_gates(merged)
     required_controls = _required_controls(merged, fields, validation_gates)
-    risk_flags: list[str] = []
+    risk_flags: list[str] = _provenance_risk_flags(text_class, provenance_type)
     reasoning: list[str] = []
+
+    provenance_override = _provenance_override(
+        merged,
+        text_class,
+        provenance_type,
+        fields,
+        present,
+        missing,
+        validation_gates,
+        required_controls,
+        risk_flags,
+        source_text,
+    )
+    if provenance_override is not None:
+        return provenance_override
+
+    if provenance_type == "supplementary":
+        risk_flags.append("supplementary_requires_crosscheck")
+        reasoning.append("supplementary provenance allows extraction but requires source linkage to primary body evidence.")
 
     if text_class == "reference_list":
         reasoning.append("reference lists cannot support primary eNH3 claims.")
@@ -66,7 +93,7 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
             missing,
             validation_gates,
             ["primary source span", "source-specific validation evidence"],
-            ["secondary_source_overclaim"],
+            _dedupe([*risk_flags, "secondary_source_overclaim"]),
             required_controls,
             ["Trace the summarized entry to its primary source and rerun claim-rights adjudication."],
             reasoning,
@@ -151,7 +178,8 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
         )
 
     claim_type = _claim_type(merged, fields)
-    boundary, boundary_reasons, risk_flags = _primary_boundary(merged, text_class, fields, validation_gates)
+    boundary, boundary_reasons, primary_risk_flags = _primary_boundary(merged, text_class, fields, validation_gates)
+    risk_flags = _dedupe([*risk_flags, *primary_risk_flags])
     reasoning.extend(boundary_reasons)
     admissibility_status = _admissibility_status(boundary, fields, validation_gates, source_text)
     if not source_text:
@@ -229,6 +257,14 @@ def _result(
         "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
         "evidence_id": str(record.get("evidence_id") or ""),
         "text_class": text_class,
+        "provenance_type": str(record.get("provenance_type") or "unknown"),
+        "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "provenance_signals": record.get("provenance_signals") or [],
+        "is_primary_admissible": bool(record.get("is_primary_admissible", False)),
+        "is_secondary_or_context": bool(record.get("is_secondary_or_context", False)),
+        "is_reject_or_low_trust": bool(record.get("is_reject_or_low_trust", False)),
+        "provenance_constrained": bool(record.get("provenance_constrained", False)),
+        "text_class_provenance_conflict": bool(record.get("text_class_provenance_conflict", False)),
         "claim_type": claim_type,
         "maximum_supported_boundary": maximum_supported_boundary,
         "admissibility_status": admissibility_status,
@@ -263,12 +299,179 @@ def _merged_record(record: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _ensure_provenance_fields(record: dict[str, Any]) -> None:
+    if not record.get("provenance_type"):
+        provenance = infer_provenance_for_record(record)
+    else:
+        provenance = record
+    provenance_type = normalize_provenance_type(str(provenance.get("provenance_type") or "unknown"))
+    record["provenance_type"] = provenance_type
+    record["provenance_confidence"] = provenance.get("provenance_confidence") or provenance.get("confidence") or "low"
+    record["provenance_signals"] = provenance.get("provenance_signals") or provenance.get("signals") or []
+    record["is_primary_admissible"] = bool(provenance.get("is_primary_admissible", False))
+    record["is_secondary_or_context"] = bool(provenance.get("is_secondary_or_context", is_secondary_or_context(provenance_type)))
+    record["is_reject_or_low_trust"] = bool(provenance.get("is_reject_or_low_trust", is_reject_or_low_trust(provenance_type)))
+
+
+def _provenance_risk_flags(text_class: str, provenance_type: str) -> list[str]:
+    flags: list[str] = []
+    normalized = normalize_provenance_type(provenance_type)
+    if _text_class_provenance_conflict(text_class, normalized):
+        flags.append("text_class_provenance_conflict")
+    return flags
+
+
+def _provenance_override(
+    record: dict[str, Any],
+    text_class: str,
+    provenance_type: str,
+    fields: dict[str, bool],
+    present: dict[str, list[str]],
+    missing: dict[str, list[str]],
+    validation_gates: dict[str, str],
+    required_controls: list[str],
+    risk_flags: list[str],
+    source_text: str,
+) -> dict[str, Any] | None:
+    normalized = normalize_provenance_type(provenance_type)
+    if "text_class_provenance_conflict" in risk_flags:
+        record["text_class_provenance_conflict"] = True
+
+    if normalized in {"reference", "bibliography", "front_matter", "metadata", "copyright_note"}:
+        record["provenance_constrained"] = True
+        risk_flags = _dedupe([*risk_flags, "low_trust_provenance"])
+        reasoning = [f"{normalized} provenance cannot establish primary eNH3 performance boundaries."]
+        return _result(
+            record,
+            text_class,
+            "unsupported_claim",
+            "unsupported_or_secondary",
+            "reject_or_low_trust_provenance",
+            present,
+            missing,
+            validation_gates,
+            ["primary body text"],
+            risk_flags,
+            required_controls,
+            ["Use primary body/results/methods text before adjudicating performance claim rights."],
+            reasoning,
+            source_text,
+        )
+
+    if normalized == "review_table":
+        record["provenance_constrained"] = True
+        risk_flags = _dedupe([*risk_flags, "review_table_not_primary"])
+        return _result(
+            record,
+            text_class,
+            "secondary_summary_claim",
+            "unsupported_or_secondary",
+            "secondary_only",
+            present,
+            missing,
+            validation_gates,
+            ["primary body text", "source-specific validation evidence"],
+            risk_flags,
+            required_controls,
+            ["Trace review-table rows to primary body text."],
+            ["review-table provenance is secondary even when performance values are present."],
+            source_text,
+        )
+
+    if normalized == "table":
+        record["provenance_constrained"] = True
+        if _own_result_table(record, fields):
+            boundary = "cell_metric" if any(fields.get(name) for name in BOUNDARY_FIELDS["cell_metric"]) else "product_admissibility"
+            return _result(
+                record,
+                text_class,
+                "performance_claim",
+                boundary,
+                "table_metric_only_requires_body_pairing",
+                present,
+                missing,
+                validation_gates,
+                _missing_boundary_fields(boundary, missing, fields, record),
+                _dedupe([*risk_flags, "table_requires_primary_body_pairing"]),
+                _dedupe([*required_controls, "pair_with_primary_body_text"]),
+                ["Pair original result table values with primary body text before stronger claim rights."],
+                ["ordinary table provenance is capped at cell_metric without paired body evidence."],
+                source_text,
+            )
+        return _result(
+            record,
+            text_class,
+            "secondary_summary_claim",
+            "unsupported_or_secondary",
+            "secondary_only",
+            present,
+            missing,
+            validation_gates,
+            ["primary body text"],
+            _dedupe([*risk_flags, "table_not_primary_body_text"]),
+            _dedupe([*required_controls, "pair_with_primary_body_text"]),
+            ["Pair table values with the paper's own body text."],
+            ["table provenance is not primary body evidence unless clearly an original results table."],
+            source_text,
+        )
+
+    if normalized in {"figure_caption", "scheme_caption"}:
+        record["provenance_constrained"] = True
+        paired = bool(record.get("paired_body_evidence") or record.get("paired_primary_body_evidence"))
+        boundary = "cell_metric" if paired else "product_admissibility"
+        return _result(
+            record,
+            text_class,
+            "unsupported_claim",
+            boundary,
+            "context_only_caption",
+            present,
+            missing,
+            validation_gates,
+            _missing_boundary_fields(boundary, missing, fields, record),
+            _dedupe([*risk_flags, "caption_not_primary_body_text"]),
+            _dedupe([*required_controls, "pair_with_primary_body_text"]),
+            ["Pair caption evidence with primary body text before performance claim-rights escalation."],
+            ["caption provenance is context-only unless paired primary body evidence is provided."],
+            source_text,
+        )
+
+    return None
+
+
 def _claim_id(record: dict[str, Any]) -> str:
     for key in ("evidence_id", "source_span_id", "span_id"):
         value = str(record.get(key) or "").strip()
         if value:
             return f"CR_{value}"
     return "CR_TODO"
+
+
+def _text_class_provenance_conflict(text_class: str, provenance_type: str) -> bool:
+    if text_class in PRIMARY_CLASSES and (
+        is_reject_or_low_trust(provenance_type) or provenance_type in {"review_table", "figure_caption", "scheme_caption"}
+    ):
+        return True
+    if text_class in {"reference_list"} and provenance_type in {"body", "abstract", "methods", "results", "discussion"}:
+        return True
+    if text_class == "review_table" and provenance_type in {"body", "abstract", "methods", "results", "discussion"}:
+        return True
+    return False
+
+
+def _own_result_table(record: dict[str, Any], fields: dict[str, bool]) -> bool:
+    text = _normalized_text(record)
+    if "review_table" == str(record.get("text_class") or ""):
+        return False
+    if _contains_any(text, ["previous reports", "previous studies", "literature summary", "review table"]):
+        return False
+    citation_hits = len(re.findall(r"\b(?:19|20)\d{2}\b|\bet al\.?", text))
+    if "reference" in text and citation_hits >= 3:
+        return False
+    if _contains_any(text, ["this work", "our catalyst", "this study", "sample", "n-ov", "pristine"]):
+        return True
+    metric_present = any(fields.get(name) for name in BOUNDARY_FIELDS["cell_metric"])
+    return metric_present and citation_hits < 3
 
 
 def _source_text(record: dict[str, Any]) -> str:
@@ -766,6 +969,14 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "source_span_id",
         "evidence_id",
         "text_class",
+        "provenance_type",
+        "provenance_confidence",
+        "provenance_signals",
+        "is_primary_admissible",
+        "is_secondary_or_context",
+        "is_reject_or_low_trust",
+        "provenance_constrained",
+        "text_class_provenance_conflict",
         "claim_type",
         "maximum_supported_boundary",
         "admissibility_status",

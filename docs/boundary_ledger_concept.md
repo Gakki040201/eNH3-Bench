@@ -28,3 +28,17 @@ BoundaryLedger therefore records the maximum supported boundary:
 - plant_facing_insufficient
 
 This turns extraction into adjudication: the output says both what was found and what the claim is allowed to mean.
+
+## Phase B provenance layer
+
+Phase B adds provenance hardening before evidence bundles and claim-rights adjudication. Each span receives a provenance type such as body, methods, results, table, review_table, figure_caption, reference, bibliography, front_matter, metadata, supplementary, or unknown.
+
+This matters because the same eNH3 vocabulary appears in primary experimental prose, review tables, captions, references, conversion metadata, and supplementary material. Provenance now constrains claim rights:
+
+- reference, bibliography, front matter, metadata, and copyright-note spans are low trust for primary performance boundaries;
+- review tables remain secondary-only;
+- captions are context-only unless paired with primary body text;
+- ordinary tables are capped at cell-metric use unless paired with stronger body evidence;
+- supplementary evidence requires cross-checking.
+
+Docling JSON can provide document-structure signals when available. Old runs still work because BoundaryLedger falls back to deterministic provenance inference from text and section labels.
