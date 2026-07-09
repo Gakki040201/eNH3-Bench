@@ -59,6 +59,21 @@ C:\Python314\python.exe -m pip install scikit-learn joblib
 
 See `docs/final_cli_workflow.md`, `docs/final_outputs_and_meaning.md`, and `docs/training_workflow.md` for the complete workflow.
 
+## eNH3-BoundaryLedger: claim-rights layer
+
+eNH3-BoundaryLedger is a source-grounded claim-rights and boundary-admissibility engine for electrochemical ammonia synthesis. eNH3-TriageBench remains the supported CLI workflow name; BoundaryLedger is the scientific method layer that asks what each claim is allowed to support: product admissibility, cell metrics, reactor legibility, partial process boundaries, or only secondary/contextual use.
+
+Build BoundaryLedger outputs after classified spans or ledgers exist:
+
+```powershell
+C:\Python314\python.exe scripts\build_evidence_bundles.py --run-name final_pilot
+C:\Python314\python.exe scripts\classify_claim_rights.py --run-name final_pilot
+C:\Python314\python.exe scripts\detect_hidden_taxes.py --run-name final_pilot
+C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name final_pilot
+```
+
+Outputs are written under `data\boundary_ledger\{run_name}\` and `data\reports\boundary_ledger_report.{run_name}.md`. See `docs/boundary_ledger_concept.md`, `docs/claim_rights_schema.md`, and `docs/hidden_tax_rubric.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:

@@ -22,6 +22,8 @@ data/extraction_runs/*
 !data/extraction_runs/.gitkeep
 data/ledgers/*
 !data/ledgers/.gitkeep
+data/boundary_ledger/*
+!data/boundary_ledger/.gitkeep
 data/training/*
 !data/training/.gitkeep
 models/*
