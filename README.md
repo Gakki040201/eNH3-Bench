@@ -136,6 +136,21 @@ C:\Python314\python.exe scripts\calibrate_boundary_ledger.py --run-name final_pi
 
 See `docs/human_audit_protocol.md`.
 
+### Phase E: eNH3-BoundaryBench benchmark construction
+
+Phase E converts validated Phase D human-reviewed records into eNH3-BoundaryBench task datasets. It builds six benchmark tasks for source-span classification, validation-gate extraction, claim-rights boundary classification, hidden-tax detection, required-control prediction, and experiment-decision ranking.
+
+Build, split, evaluate, and document the benchmark:
+
+```powershell
+C:\Python314\python.exe scripts\build_boundary_benchmark.py --run-name final_pilot
+C:\Python314\python.exe scripts\split_boundary_benchmark.py --run-name final_pilot --seed 13
+C:\Python314\python.exe scripts\evaluate_boundary_benchmark.py --run-name final_pilot
+C:\Python314\python.exe scripts\export_benchmark_datacard.py --run-name final_pilot
+```
+
+The builder uses `data\gold\{run_name}\human_gold_claim_rights.jsonl` when present, otherwise validated `data\human_audit\{run_name}\reviewed_audit_records.jsonl`. Unreviewed records are excluded. See `docs/boundary_benchmark_tasks.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:

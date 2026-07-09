@@ -33,6 +33,8 @@ data/llm_verification/*
 !data/llm_verification/.gitkeep
 data/calibration/*
 !data/calibration/.gitkeep
+data/benchmarks/*
+!data/benchmarks/.gitkeep
 data/gold/*
 !data/gold/.gitkeep
 data/model_runs/*
