@@ -42,3 +42,19 @@ This matters because the same eNH3 vocabulary appears in primary experimental pr
 - supplementary evidence requires cross-checking.
 
 Docling JSON can provide document-structure signals when available. Old runs still work because BoundaryLedger falls back to deterministic provenance inference from text and section labels.
+
+## Phase C and Phase D audit chain
+
+Phase C can add optional OpenAI-compatible LLM verification. The LLM checks the rule output against the source span and records disagreements such as a more permissive boundary, a more conservative boundary, missing-control disagreements, or text-class disagreements. These LLM rows are audit signals only; they do not replace the rule ledger and do not create gold labels.
+
+Phase D adds human audit and calibration. It exports the rule ledger, hidden-tax ledger, and optional LLM verification rows into `data/human_audit/{run_name}/human_audit_sheet.csv` and `.jsonl`. Reviewers fill only the `human_*` fields. Reviewed records are imported into `data/human_audit/{run_name}/reviewed_audit_records.*`; gold outputs under `data/gold/{run_name}/` are created only when import is run with `--accept-as-gold`.
+
+Calibration then compares:
+
+- BoundaryLedger rule boundaries against human boundaries;
+- LLM verification boundaries against human boundaries;
+- required-control labels against human labels;
+- hidden-tax labels against human labels;
+- overclaim and underclaim rates for future rule refinement.
+
+This keeps the core sequence explicit: deterministic rules remain the source rule ledger, LLM output remains a verifier/auditor, and human labels become gold only after explicit validation and import.

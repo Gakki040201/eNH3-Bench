@@ -19,6 +19,8 @@ data/drafts/*
 !data/drafts/.gitkeep
 data/audit/*
 !data/audit/.gitkeep
+data/human_audit/*
+!data/human_audit/.gitkeep
 data/extraction_runs/*
 !data/extraction_runs/.gitkeep
 data/ledgers/*
@@ -29,6 +31,10 @@ data/provenance/*
 !data/provenance/.gitkeep
 data/llm_verification/*
 !data/llm_verification/.gitkeep
+data/calibration/*
+!data/calibration/.gitkeep
+data/gold/*
+!data/gold/.gitkeep
 data/model_runs/*
 !data/model_runs/.gitkeep
 data/training/*

@@ -111,6 +111,31 @@ C:\Python314\python.exe scripts\verify_with_llm.py --run-name final_pilot --max-
 
 See `docs/phase_c_ustc_api.md`.
 
+### Phase D: Human audit and calibration
+
+Phase D exports BoundaryLedger rule outputs, hidden-tax outputs, and optional LLM verification rows into human-review sheets. Human labels are validated on import. They do not overwrite rule ledgers, and they become gold only when imported with `--accept-as-gold`.
+
+Export priority audit rows with optional USTC/DeepSeek verification columns:
+
+```powershell
+C:\Python314\python.exe scripts\export_human_audit_sheet.py --run-name final_pilot --llm-model deepseek-v4-pro --top-n 50 --priority-only
+C:\Python314\python.exe scripts\export_review_instructions.py --run-name final_pilot
+```
+
+Import a reviewed CSV:
+
+```powershell
+C:\Python314\python.exe scripts\import_human_audit_sheet.py --run-name final_pilot --input data\human_audit\final_pilot\human_audit_sheet.reviewed.csv
+```
+
+Run calibration after reviewed records exist:
+
+```powershell
+C:\Python314\python.exe scripts\calibrate_boundary_ledger.py --run-name final_pilot
+```
+
+See `docs/human_audit_protocol.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:

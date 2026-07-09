@@ -73,3 +73,14 @@ C:\Python314\python.exe scripts\compare_llm_models.py --run-name final_pilot --m
 - Use source spans only.
 - LLM output is an audit signal, not gold.
 - Human review is required before any label becomes gold evidence.
+
+## Phase D handoff
+
+LLM verification outputs should be exported into Phase D human audit sheets before they are used for any calibration or gold-label workflow:
+
+```powershell
+C:\Python314\python.exe scripts\export_human_audit_sheet.py --run-name final_pilot --llm-model deepseek-v4-pro --top-n 50 --priority-only
+C:\Python314\python.exe scripts\export_review_instructions.py --run-name final_pilot
+```
+
+The LLM fields remain separate from the rule fields in the audit sheet. They become comparison columns for human review, not replacements for BoundaryLedger rule outputs.
