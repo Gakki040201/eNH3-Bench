@@ -5,8 +5,8 @@ import os
 import unittest
 from unittest.mock import patch
 
-from enh3bench.llm_clients import MockLLMClient, OpenAICompatibleClient, sanitize_model_name_for_path
-from enh3bench.llm_clients.openai_compatible import normalize_chat_completions_endpoint
+from enh3bench.llm_clients import LLMClientError, MockLLMClient, OpenAICompatibleClient, sanitize_model_name_for_path
+from enh3bench.llm_clients.openai_compatible import extract_chat_completion_content, normalize_chat_completions_endpoint
 
 
 class LLMClientTests(unittest.TestCase):
@@ -46,6 +46,37 @@ class LLMClientTests(unittest.TestCase):
         self.assertTrue(available)
         self.assertEqual(client.endpoint, "https://api.llm.ustc.edu.cn/v1/chat/completions")
         self.assertEqual(client.model, "ustc-model")
+
+    def test_extract_standard_string_content(self) -> None:
+        response = {"choices": [{"message": {"content": '{"ok":true}'}}]}
+        self.assertEqual(extract_chat_completion_content(response), '{"ok":true}')
+
+    def test_extract_list_content(self) -> None:
+        response = {"choices": [{"message": {"content": [{"type": "text", "text": "abc"}, {"text": "def"}]}}]}
+        content = extract_chat_completion_content(response)
+        self.assertIn("abc", content)
+        self.assertIn("def", content)
+
+    def test_extract_dict_content(self) -> None:
+        response = {"choices": [{"message": {"content": {"text": "abc"}}}]}
+        self.assertEqual(extract_chat_completion_content(response), "abc")
+
+    def test_extract_choice_text(self) -> None:
+        response = {"choices": [{"text": "abc"}]}
+        self.assertEqual(extract_chat_completion_content(response), "abc")
+
+    def test_extract_top_level_output_text(self) -> None:
+        response = {"output_text": "abc"}
+        self.assertEqual(extract_chat_completion_content(response), "abc")
+
+    def test_extract_reasoning_content_fallback(self) -> None:
+        response = {"choices": [{"message": {"content": None, "reasoning_content": "abc"}}]}
+        self.assertEqual(extract_chat_completion_content(response), "abc")
+
+    def test_empty_response_raises_client_error(self) -> None:
+        response = {"choices": [{"message": {"content": None}}]}
+        with self.assertRaises(LLMClientError):
+            extract_chat_completion_content(response)
 
     def test_path_sanitization(self) -> None:
         self.assertEqual(sanitize_model_name_for_path('ustc/model:alpha beta?'), "ustc_model_alpha_beta")
