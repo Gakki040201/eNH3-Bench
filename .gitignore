@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 .env
+*.env
 
 input_raw/*
 !input_raw/.gitkeep
@@ -26,6 +27,10 @@ data/boundary_ledger/*
 !data/boundary_ledger/.gitkeep
 data/provenance/*
 !data/provenance/.gitkeep
+data/llm_verification/*
+!data/llm_verification/.gitkeep
+data/model_runs/*
+!data/model_runs/.gitkeep
 data/training/*
 !data/training/.gitkeep
 models/*

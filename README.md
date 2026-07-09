@@ -89,6 +89,28 @@ C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name fina
 
 See `docs/docling_provenance_hardening.md`.
 
+### Phase C: Optional USTC/OpenAI-compatible LLM verification
+
+Phase C adds an optional ChatExtract-style verification layer using an OpenAI-compatible chat completions API. It verifies BoundaryLedger rule outputs against source spans and writes audit/disagreement records for human review. It does not replace the rule system and does not create gold labels.
+
+Mock run with no network:
+
+```powershell
+C:\Python314\python.exe scripts\verify_with_llm.py --run-name final_pilot --model mock --max-records 10 --mock
+C:\Python314\python.exe scripts\compare_llm_models.py --run-name final_pilot --models mock --max-records 10 --mock
+```
+
+Real USTC-compatible API example:
+
+```powershell
+$env:USTC_API_KEY="..."
+$env:USTC_BASE_URL="https://api.llm.ustc.edu.cn"
+$env:USTC_MODEL="..."
+C:\Python314\python.exe scripts\verify_with_llm.py --run-name final_pilot --max-records 10
+```
+
+See `docs/phase_c_ustc_api.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:
