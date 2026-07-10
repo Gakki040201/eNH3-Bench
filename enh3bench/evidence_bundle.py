@@ -120,6 +120,9 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
     if run_name:
         bundle["run_name"] = run_name
         bundle["provenance"]["run_name"] = run_name
+    support_hint_boundary = _first_text(record, "support_hint_boundary")
+    if support_hint_boundary:
+        bundle["support_hint_boundary"] = support_hint_boundary
     return bundle
 
 
@@ -305,6 +308,7 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "is_primary_admissible",
         "is_secondary_or_context",
         "is_reject_or_low_trust",
+        "support_hint_boundary",
         "extracted_fields",
         "provenance",
         "grounding_status",

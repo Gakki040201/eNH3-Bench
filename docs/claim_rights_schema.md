@@ -67,3 +67,12 @@ Phase B adds provenance fields to claim-rights records:
 Provenance dominates text class when they disagree. A span labelled primary_performance but inferred as reference, bibliography, metadata, front_matter, or copyright_note is treated as unsupported_or_secondary with admissibility_status reject_or_low_trust_provenance.
 
 Review-table provenance maps to secondary_summary_claim and secondary_only. Figure and scheme captions default to context_only_caption and require pair_with_primary_body_text. Ordinary table provenance cannot exceed cell_metric without paired evidence. Supplementary provenance adds supplementary_requires_crosscheck.
+
+## Caption support hints versus supported boundaries
+
+Caption records separate what a caption suggests from what it can support by itself:
+
+- `maximum_supported_boundary` means what the evidence itself supports.
+- `support_hint_boundary` means what boundary the caption may point toward if paired with primary body text.
+
+Unpaired figure and scheme captions remain `maximum_supported_boundary=unsupported_or_secondary` with `admissibility_status=context_only_caption`. A caption with FE, yield, 15N, flow, HOR, capture, or recycle terms can receive a `support_hint_boundary`, but that hint is not a primary claim boundary until paired primary body evidence is available.

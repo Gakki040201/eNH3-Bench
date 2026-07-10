@@ -19,7 +19,7 @@ The Phase B layer restores a lightweight document-structure signal using Docling
 - Primary body text includes body, abstract, methods, results, and discussion provenance.
 - Review tables remain secondary summaries and cannot become primary performance evidence.
 - Ordinary tables may support cell-metric extraction only when they look like the paper's own result table, and still require paired body text for stronger claims.
-- Figure and scheme captions are context-only unless paired with primary body evidence.
+- Figure and scheme captions are context-only unless paired with primary body evidence. Caption records may expose `support_hint_boundary`, but unpaired captions remain `unsupported_or_secondary` as actual claim boundaries.
 - References, bibliography, front matter, metadata, and copyright notes are low trust for primary performance boundaries.
 - Supplementary spans can support extraction but require cross-checking against primary source linkage.
 

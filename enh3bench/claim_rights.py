@@ -10,6 +10,7 @@ from typing import Any
 
 from enh3bench.boundary_schema import (
     BOUNDARY_FIELDS,
+    SUPPORT_HINT_FIELD,
     boundary_rank,
     coerce_float,
     has_any_value,
@@ -268,6 +269,10 @@ def _result(
         "claim_type": claim_type,
         "maximum_supported_boundary": maximum_supported_boundary,
         "admissibility_status": admissibility_status,
+        SUPPORT_HINT_FIELD: str(record.get(SUPPORT_HINT_FIELD) or "unsupported_or_secondary"),
+        "paired_body_required": _truthy(record.get("paired_body_required")),
+        "caption_context_only": _truthy(record.get("caption_context_only")),
+        "paired_caption_context": _truthy(record.get("paired_caption_context")),
         "missing_boundary_fields": _dedupe(missing_boundary_fields),
         "validation_gates": validation_gates,
         "boundary_fields_present": boundary_fields_present,
@@ -417,22 +422,27 @@ def _provenance_override(
 
     if normalized in {"figure_caption", "scheme_caption"}:
         record["provenance_constrained"] = True
-        paired = bool(record.get("paired_body_evidence") or record.get("paired_primary_body_evidence"))
-        boundary = "cell_metric" if paired else "product_admissibility"
+        paired = _truthy(record.get("paired_body_evidence")) or _truthy(record.get("paired_primary_body_evidence"))
+        if paired:
+            record["paired_caption_context"] = True
+            return None
+        record[SUPPORT_HINT_FIELD] = _caption_support_hint_boundary(record)
+        record["paired_body_required"] = True
+        record["caption_context_only"] = True
         return _result(
             record,
             text_class,
-            "unsupported_claim",
-            boundary,
+            _caption_claim_type(text_class),
+            "unsupported_or_secondary",
             "context_only_caption",
             present,
             missing,
             validation_gates,
-            _missing_boundary_fields(boundary, missing, fields, record),
-            _dedupe([*risk_flags, "caption_not_primary_body_text"]),
-            _dedupe([*required_controls, "pair_with_primary_body_text"]),
+            ["primary body text pairing"],
+            _dedupe([*risk_flags, "caption_not_primary_evidence", "pair_with_primary_body_text_required"]),
+            _dedupe([*required_controls, "primary body text pairing", "pair_with_primary_body_text"]),
             ["Pair caption evidence with primary body text before performance claim-rights escalation."],
-            ["caption provenance is context-only unless paired primary body evidence is provided."],
+            ["Caption text is context only and cannot establish a primary boundary without paired body evidence."],
             source_text,
         )
 
@@ -472,6 +482,74 @@ def _own_result_table(record: dict[str, Any], fields: dict[str, bool]) -> bool:
         return True
     metric_present = any(fields.get(name) for name in BOUNDARY_FIELDS["cell_metric"])
     return metric_present and citation_hits < 3
+
+
+def _caption_claim_type(text_class: str) -> str:
+    if text_class == "protocol_guideline":
+        return "protocol_claim"
+    if text_class in NEGATIVE_CLASSES:
+        return "negative_evidence_claim"
+    if text_class in {"figure_caption", "background_context", "review_table"}:
+        return "secondary_summary_claim"
+    return "unsupported_claim"
+
+
+def _caption_support_hint_boundary(record: dict[str, Any]) -> str:
+    text = _normalized_text(record)
+    candidates: list[str] = []
+    if _contains_any(text, ["15n", "15 n", "isotope", "isotopic", "blank", "nox", "contamination", "contaminant"]):
+        candidates.append("product_admissibility")
+    if _caption_has_metric_terms(text):
+        candidates.append("cell_metric")
+    if _contains_any(
+        text,
+        [
+            "flow",
+            "gde",
+            "gas diffusion",
+            "hor",
+            "hydrogen oxidation",
+            "outlet",
+            "runtime",
+            "stability",
+            "stable for",
+        ],
+    ):
+        candidates.append("reactor_legibility")
+    if _contains_any(
+        text,
+        [
+            "capture",
+            "solvent inventory",
+            "electrolyte inventory",
+            "recycle",
+            "h2 source",
+            "hydrogen source",
+            "auxiliary",
+            "tea",
+            "technoeconomic",
+        ],
+    ):
+        candidates.append("process_partial")
+    return max_boundary(candidates)
+
+
+def _caption_has_metric_terms(text: str) -> bool:
+    return _contains_any(
+        text,
+        [
+            "faradaic efficiency",
+            "nh3 yield",
+            "ammonia yield",
+            "yield rate",
+            "current density",
+            "potential",
+            "voltage",
+            " v vs",
+            "ma cm",
+            "ma/cm",
+        ],
+    ) or bool(re.search(r"\bfe\b|\bfe\s*\(?%?\)?", text))
 
 
 def _source_text(record: dict[str, Any]) -> str:
@@ -932,6 +1010,12 @@ def _contains_any(text: str, needles: list[str]) -> bool:
     return any(needle in text for needle in needles)
 
 
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}
+
+
 def _dedupe(items: list[str]) -> list[str]:
     seen: set[str] = set()
     deduped: list[str] = []
@@ -980,6 +1064,10 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "claim_type",
         "maximum_supported_boundary",
         "admissibility_status",
+        SUPPORT_HINT_FIELD,
+        "paired_body_required",
+        "caption_context_only",
+        "paired_caption_context",
         "missing_boundary_fields",
         "validation_gates",
         "boundary_fields_present",

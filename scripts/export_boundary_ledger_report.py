@@ -92,27 +92,31 @@ def render_report(
         "",
         _counter_table(_counter(_records_with_provenance(bundles, claims), "provenance_type"), "Provenance type"),
         "",
-        "## 10. Claim-rights decisions changed by provenance",
+        "## 10. Caption support hints",
+        "",
+        _caption_support_hint_section(claims),
+        "",
+        "## 11. Claim-rights decisions changed by provenance",
         "",
         _provenance_constrained_examples(claims),
         "",
-        "## 11. Text-class/provenance conflicts",
+        "## 12. Text-class/provenance conflicts",
         "",
         _conflict_examples(claims),
         "",
-        "## 12. Low-trust provenance warnings",
+        "## 13. Low-trust provenance warnings",
         "",
         _low_trust_examples(claims),
         "",
-        "## 13. High-risk overclaim examples",
+        "## 14. High-risk overclaim examples",
         "",
         _high_risk_examples(claims, taxes),
         "",
-        "## 14. Hidden-tax records constrained by low-trust provenance",
+        "## 15. Hidden-tax records constrained by low-trust provenance",
         "",
         _low_trust_hidden_tax_examples(taxes),
         "",
-        "## 15. Why this is not generic literature extraction",
+        "## 16. Why this is not generic literature extraction",
         "",
         (
             "Generic extraction asks what values are present in text. BoundaryLedger "
@@ -244,6 +248,23 @@ def _low_trust_examples(claims: list[dict[str, Any]], limit: int = 12) -> str:
         for claim in selected[:limit]
     ]
     return _markdown_table(["Claim", "Paper", "Provenance", "Status", "Source preview"], rows)
+
+
+def _caption_support_hint_section(claims: list[dict[str, Any]]) -> str:
+    captions = [
+        claim
+        for claim in claims
+        if str(claim.get("provenance_type") or "") in {"figure_caption", "scheme_caption"}
+        or str(claim.get("admissibility_status") or "") == "context_only_caption"
+    ]
+    lines = [
+        f"- Caption/context records: {len(captions)}",
+        "",
+        "Caption support hints are not primary claim boundaries.",
+        "",
+        _counter_table(_counter(captions, "support_hint_boundary"), "Support hint boundary"),
+    ]
+    return "\n".join(lines)
 
 
 def _low_trust_hidden_tax_examples(taxes: list[dict[str, Any]], limit: int = 12) -> str:

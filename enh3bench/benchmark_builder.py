@@ -312,6 +312,9 @@ def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any])
         "rule_maximum_supported_boundary": str(
             record.get("maximum_supported_boundary") or record.get("rule_maximum_supported_boundary") or ""
         ),
+        "support_hint_boundary": str(record.get("support_hint_boundary") or ""),
+        "paired_body_required": bool(record.get("paired_body_required")),
+        "caption_context_only": bool(record.get("caption_context_only")),
         "rule_admissibility_status": str(record.get("admissibility_status") or record.get("rule_admissibility_status") or ""),
         "llm_model": str(record.get("llm_model") or ""),
         "llm_text_class": str(record.get("llm_text_class") or ""),

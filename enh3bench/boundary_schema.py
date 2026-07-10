@@ -30,6 +30,9 @@ SUPPORTED_BOUNDARIES = (
     "plant_facing_insufficient",
 )
 
+SUPPORT_HINT_FIELD = "support_hint_boundary"
+SUPPORTED_SUPPORT_HINT_BOUNDARIES = SUPPORTED_BOUNDARIES
+
 CLAIM_TYPES = (
     "performance_claim",
     "validation_claim",

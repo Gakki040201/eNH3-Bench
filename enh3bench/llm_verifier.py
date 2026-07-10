@@ -83,6 +83,8 @@ def build_verification_prompt(record: dict[str, Any]) -> list[dict[str, str]]:
         "Do not use outside knowledge.\n"
         "Do not upgrade claims beyond the evidence.\n"
         "Do not treat review tables, references, captions, metadata, or supplementary text as primary experimental body evidence unless explicitly paired with primary body text.\n"
+        "Captions are context-only unless paired with primary body text. For unpaired captions, maximum_supported_boundary must remain unsupported_or_secondary.\n"
+        "If a caption contains FE, yield, 15N, flow, or reactor information, describe the needed primary body pairing in required_controls rather than upgrading the boundary.\n"
         "Return strict JSON only."
     )
     rule_payload = {
@@ -91,6 +93,9 @@ def build_verification_prompt(record: dict[str, Any]) -> list[dict[str, str]]:
         "provenance_type": str(record.get("provenance_type") or "unknown"),
         "rule_claim_type": str(record.get("claim_type") or ""),
         "rule_maximum_supported_boundary": str(record.get("maximum_supported_boundary") or ""),
+        "rule_support_hint_boundary": str(record.get("support_hint_boundary") or ""),
+        "caption_context_only": bool(record.get("caption_context_only")),
+        "paired_body_required": bool(record.get("paired_body_required")),
         "rule_admissibility_status": str(record.get("admissibility_status") or ""),
         "rule_missing_boundary_fields": record.get("missing_boundary_fields") or [],
         "rule_hidden_tax": record.get("hidden_tax") or record.get("detected_taxes") or [],
@@ -316,6 +321,12 @@ def compare_rule_and_llm(record: dict[str, Any], llm_result: dict[str, Any]) -> 
     elif low_trust:
         trusted_boundary_reason = "LLM output did not exceed low-trust provenance constraint."
 
+    if _unpaired_caption(record) and llm_rank > boundary_rank("unsupported_or_secondary"):
+        needs_human_review = True
+        flags.append("llm_upgraded_unpaired_caption")
+        trusted_boundary = "unsupported_or_secondary"
+        trusted_boundary_reason = "Unpaired caption cannot establish primary boundary."
+
     field_support = llm_result.get("field_support") if isinstance(llm_result.get("field_support"), dict) else {}
     isotope_support = str(field_support.get("isotope_15N") or "").casefold()
     if isotope_support == "explicit" and not _source_mentions_isotope(str(record.get("source_text") or "")):
@@ -418,6 +429,13 @@ def _low_trust_provenance(record: dict[str, Any]) -> bool:
     return _truthy(record.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
 
 
+def _unpaired_caption(record: dict[str, Any]) -> bool:
+    provenance_type = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
+    if provenance_type not in {"figure_caption", "scheme_caption"}:
+        return False
+    return not (_truthy(record.get("paired_body_evidence")) or _truthy(record.get("paired_primary_body_evidence")))
+
+
 def _truthy(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -477,6 +495,9 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "provenance_type",
         "claim_type",
         "maximum_supported_boundary",
+        "support_hint_boundary",
+        "paired_body_required",
+        "caption_context_only",
         "admissibility_status",
         "llm_model",
         "llm_verification",

@@ -36,6 +36,9 @@ AUDIT_FIELD_ORDER = [
     "text_class",
     "claim_type",
     "maximum_supported_boundary",
+    "support_hint_boundary",
+    "paired_body_required",
+    "caption_context_only",
     "admissibility_status",
     "missing_boundary_fields",
     "required_controls",
@@ -176,6 +179,8 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
         add(2, "review_table_not_primary")
     if status == "context_only_caption" or provenance_type in {"figure_caption", "scheme_caption"}:
         add(2, "context_only_caption")
+    if _caption_has_support_hint(record, provenance_type):
+        add(4, "caption_has_support_hint_requires_body_pairing")
     if _n2_to_nh3_claim(record) and not _gate_explicit(record, "isotope_15N"):
         add(4, "missing_15N_for_N2_to_NH3_claim")
     if not _gate_explicit(record, "blank_control"):
@@ -349,28 +354,36 @@ def export_audit_report(
         "",
         f"- Provenance-constrained: {sum(1 for record in records if _truthy(record.get('provenance_constrained')))}",
         f"- Low-trust provenance: {sum(1 for record in records if _truthy(record.get('is_reject_or_low_trust')))}",
+        f"- Captions with support hints: {sum(1 for record in records if _caption_has_support_hint(record, str(record.get('provenance_type') or '')))}",
         "",
-        "## 5. Top audit priority reasons",
+        "## 5. Caption support hints",
+        "",
+        _markdown_table(
+            ["Support hint", "Records"],
+            [[key, count] for key, count in _caption_hint_counter(records).most_common()],
+        ),
+        "",
+        "## 6. Top audit priority reasons",
         "",
         _markdown_table(["Reason", "Records"], [[key, count] for key, count in reason_counts.most_common(12)]),
         "",
-        "## 6. Records needing human review",
+        "## 7. Records needing human review",
         "",
         f"- needs_human_review=true: {sum(1 for record in records if _truthy(record.get('needs_human_review')))}",
         f"- priority score > 0: {sum(1 for record in records if int(record.get('audit_priority_score') or 0) > 0)}",
         "",
-        "## 7. Human label completion status if reviewed records exist",
+        "## 8. Human label completion status if reviewed records exist",
         "",
         f"- Reviewed records available: {total_reviewed}",
         "",
-        "## 8. Next review instructions",
+        "## 9. Next review instructions",
         "",
         (
             "Open data/human_audit/{run}/human_audit_sheet.csv, fill only the human_* "
             "columns, save a reviewed copy, then import it with scripts/import_human_audit_sheet.py."
         ).format(run=run_name),
         "",
-        "## 9. Safety statement",
+        "## 10. Safety statement",
         "",
         (
             "Human labels do not overwrite rule outputs. They become gold only when a reviewed "
@@ -559,6 +572,22 @@ def _llm_boundary_differs_from_rule(record: dict[str, Any]) -> bool:
     rule_boundary = str(record.get("maximum_supported_boundary") or record.get("rule_maximum_supported_boundary") or "")
     llm_boundary = str(record.get("llm_maximum_supported_boundary") or "")
     return bool(rule_boundary and llm_boundary and rule_boundary != llm_boundary)
+
+
+def _caption_has_support_hint(record: dict[str, Any], provenance_type: str) -> bool:
+    normalized = normalize_provenance_type(provenance_type)
+    hint = str(record.get("support_hint_boundary") or "").strip()
+    return normalized in {"figure_caption", "scheme_caption"} and hint not in {"", "unsupported_or_secondary"}
+
+
+def _caption_hint_counter(records: list[dict[str, Any]]) -> Counter[str]:
+    counter: Counter[str] = Counter()
+    for record in records:
+        provenance_type = normalize_provenance_type(str(record.get("provenance_type") or ""))
+        if provenance_type not in {"figure_caption", "scheme_caption"}:
+            continue
+        counter[str(record.get("support_hint_boundary") or "unsupported_or_secondary")] += 1
+    return counter
 
 
 def _list_counter(records: list[dict[str, Any]], key: str) -> Counter[str]:

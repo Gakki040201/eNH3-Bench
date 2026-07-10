@@ -32,6 +32,9 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     required_controls: list[str] = []
     reasoning: list[str] = []
 
+    if provenance_type in {"figure_caption", "scheme_caption"}:
+        return _caption_hidden_tax_result(merged, text, provenance_type)
+
     low_trust = _truthy(merged.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
     if low_trust and not _domain_tax_allowed_under_low_trust(merged):
         return _low_trust_hidden_tax_result(merged, text, provenance_type)
@@ -297,6 +300,45 @@ def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_t
         missing_measurements.extend(["NOx/nitrate/nitrite screen", "background ammonia", "blank controls"])
         required_controls.append("screen NOx/nitrate/nitrite and background ammonia with blanks")
         reasoning.append("Contamination terms are explicit enough to retain contamination_tax under low-trust provenance.")
+
+    detected = _dedupe([tax for tax in detected if tax in HIDDEN_TAX_TYPES])
+    return {
+        "tax_record_id": _tax_record_id(record),
+        "paper_id": str(record.get("paper_id") or ""),
+        "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
+        "evidence_id": str(record.get("evidence_id") or ""),
+        "text_class": str(record.get("text_class") or "unknown"),
+        "provenance_type": provenance_type,
+        "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "detected_taxes": detected,
+        "main_gain": _main_gain(record, text),
+        "hidden_assumptions": _dedupe(hidden_assumptions),
+        "missing_measurements": _dedupe(missing_measurements),
+        "required_controls": _dedupe(required_controls),
+        "severity": _low_trust_severity(detected),
+        "reasoning": _dedupe(reasoning),
+        "source_text": _source_text(record),
+    }
+
+
+def _caption_hidden_tax_result(record: dict[str, Any], text: str, provenance_type: str) -> dict[str, Any]:
+    detected: list[str] = []
+    hidden_assumptions = ["caption_requires_primary_body_pairing"]
+    missing_measurements = ["primary_body_text_pairing_required"]
+    required_controls = ["pair context/table/caption evidence with primary body text"]
+    reasoning = ["Caption text is context only and cannot establish hidden process burdens without paired body evidence."]
+
+    if _performance_like(record, text):
+        detected.append("measurement_matrix_tax")
+        missing_measurements.extend(_missing_measurement_matrix(record, text))
+        reasoning.append("Performance-like caption terms are retained only as measurement-matrix audit hints.")
+
+    if _contamination_terms(text):
+        detected.append("contamination_tax")
+        hidden_assumptions.append("nitrogen-containing impurities and background ammonia do not explain the NH3 signal.")
+        missing_measurements.extend(["NOx/nitrate/nitrite screen", "background ammonia", "blank controls"])
+        required_controls.append("screen NOx/nitrate/nitrite and background ammonia with blanks")
+        reasoning.append("Contamination terms are explicit enough to retain contamination_tax for caption review.")
 
     detected = _dedupe([tax for tax in detected if tax in HIDDEN_TAX_TYPES])
     return {

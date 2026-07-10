@@ -78,6 +78,8 @@ Outputs are written under `data\boundary_ledger\{run_name}\` and `data\reports\b
 
 Phase B marks source spans as primary body text, tables, review tables, captions, references, metadata/front matter, or supplementary context before claim-rights adjudication. Docling JSON is used when available, and older runs fall back to deterministic provenance inference.
 
+Caption records expose `support_hint_boundary` separately from `maximum_supported_boundary`; unpaired figure and scheme captions remain context-only and `unsupported_or_secondary`.
+
 ```powershell
 C:\Python314\python.exe scripts\export_docling_provenance.py --run-name final_pilot
 C:\Python314\python.exe scripts\attach_provenance_to_spans.py --run-name final_pilot
