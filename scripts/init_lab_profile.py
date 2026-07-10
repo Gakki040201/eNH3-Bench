@@ -15,6 +15,7 @@ from enh3bench.lab_profile import default_ustc_linnr_profile, save_lab_profile  
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Initialize an editable lab capability profile.")
     parser.add_argument("--output", type=Path, default=Path("data") / "lab_profiles" / "ustc_linnr_profile.yaml")
+    parser.add_argument("--profile-template", choices=["conservative", "ustc-linnr-realistic"], default="conservative")
     parser.add_argument("--format", choices=["yaml", "json"], default="yaml")
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -31,7 +32,7 @@ def main() -> int:
         print(f"Lab profile already exists: {output}")
         print("Use --overwrite to replace it.")
         return 0
-    save_lab_profile(default_ustc_linnr_profile(), output)
+    save_lab_profile(default_ustc_linnr_profile(profile_template=args.profile_template), output)
     print(f"Lab profile written: {output}")
     print("Edit this profile before generating routes.")
     return 0

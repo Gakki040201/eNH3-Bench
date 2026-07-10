@@ -181,15 +181,17 @@ The builder uses `data\gold\{run_name}\human_gold_claim_rights.jsonl` when prese
 Phase F0 converts BoundaryLedger gaps, hidden taxes, provenance constraints, optional LLM disagreements, human audit records, lab capabilities, and imported experiment results into structured experiment route cards. It is rule-based by default and does not call APIs.
 
 ```powershell
-C:\Python314\python.exe scripts\init_lab_profile.py --output data\lab_profiles\ustc_linnr_profile.yaml
-C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name pilot_existing_02 --lab-profile data\lab_profiles\ustc_linnr_profile.yaml
+C:\Python314\python.exe scripts\init_lab_profile.py --profile-template ustc-linnr-realistic --output data\lab_profiles\ustc_linnr_profile.local.yaml --overwrite
+C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name pilot_existing_02 --reaction-family LiNRR --lab-demo-only --include-sop-fields --lab-profile data\lab_profiles\ustc_linnr_profile.local.yaml
 C:\Python314\python.exe scripts\export_experiment_route_cards.py --run-name pilot_existing_02
 C:\Python314\python.exe scripts\export_experiment_result_template.py --run-name pilot_existing_02
 C:\Python314\python.exe scripts\import_experiment_results.py --run-name pilot_existing_02 --input data\experiment_results\pilot_existing_02\experiment_results.reviewed.csv
 C:\Python314\python.exe scripts\evaluate_experiment_loop.py --run-name pilot_existing_02
 ```
 
-See `docs/lab_constrained_experiment_planner.md` and `docs/closed_loop_workflow.md`.
+Patch C refines F0 into a USTC LiNRR wet-lab demonstration planner. Route cards include SOP anchor points, minimum report fields, raw-record requirements, and explicit boundary-upgrade limits, but they are not wet-lab SOPs. The eNH3 core remains reaction-family wide; LiNRR is only the default wet-lab demonstration family.
+
+See `docs/lab_constrained_experiment_planner.md`, `docs/closed_loop_workflow.md`, and `docs/ustc_linnr_closed_loop_demo.md`.
 
 ## What The Benchmark Evaluates
 

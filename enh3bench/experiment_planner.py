@@ -34,6 +34,19 @@ from enh3bench.reaction_profiles import (
 )
 
 
+_VARIABLE_SCREENING_ROUTES = {
+    "water_content_window",
+    "proton_donor_window",
+    "salt_solvent_window",
+    "operating_field_matrix",
+    "electrolyte_window",
+    "interphase_resistance",
+    "flow_wetting",
+    "HOR_proton_economy",
+    "outlet_product_split",
+}
+
+
 def load_boundary_inputs(run_name: str, model: str | None = None) -> dict[str, Any]:
     """Load BoundaryLedger, hidden-tax, optional LLM, and human-audit inputs."""
 
@@ -105,9 +118,9 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
             normalized = str(missing).casefold()
             route_type = "validation_gap_closure"
             if any(token in normalized for token in ["voltage", "current", "runtime", "product state"]):
-                route_type = "product_state_accounting" if "product state" in normalized else "electrolyte_window"
+                route_type = "outlet_product_split" if family == "LiNRR" and "product state" in normalized else "product_state_accounting" if "product state" in normalized else "operating_field_matrix"
             if "capture" in normalized:
-                route_type = "product_state_accounting"
+                route_type = "outlet_product_split" if family == "LiNRR" else "product_state_accounting"
             gaps.append({**base, "gap_type": f"missing {missing}", "route_type_hint": _profile_route_hint(family, route_type)})
 
         for tax in _list_values(record.get("detected_taxes")):
@@ -115,6 +128,9 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
                 continue
             route_type = _route_for_hidden_tax(tax)
             gaps.append({**base, "gap_type": tax, "route_type_hint": _profile_route_hint(family, route_type), "hidden_tax": tax})
+            if family == "LiNRR" and tax == "solvent_management_tax":
+                for extra_route in ("water_content_window", "proton_donor_window", "salt_solvent_window"):
+                    gaps.append({**base, "gap_type": f"{tax} via {extra_route}", "route_type_hint": extra_route, "hidden_tax": tax})
 
         flags = _list_values(record.get("overclaim_risk_flags")) + _list_values(record.get("llm_audit_flags"))
         if record.get("text_class_provenance_conflict") or "text_class_provenance_conflict" in flags:
@@ -143,6 +159,11 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
             text, [" hor", "hydrogen oxidation", "h2", "proton economy"]
         ):
             gaps.append({**base, "gap_type": "HOR/proton economy term", "route_type_hint": "HOR_proton_economy"})
+        if family == "LiNRR" and _contains_any(
+            text,
+            ["failure_mode", "failure mode", "electrolyte color", "leak", "back suction", "pump failure", "low fe", "too low", "high resistance"],
+        ):
+            gaps.append({**base, "gap_type": "postmortem/failure signal", "route_type_hint": "postmortem_failure_analysis"})
     return gaps
 
 
@@ -153,10 +174,18 @@ def propose_rule_based_routes(
     reaction_family: str | None = None,
     include_families: list[str] | None = None,
     lab_demo_only: bool = False,
+    require_baseline_first: bool = False,
+    include_sop_fields: bool = True,
 ) -> list[dict[str, Any]]:
     """Generate deterministic route cards from actionable gaps and lab profile."""
 
     filtered_gaps = _filter_gaps_by_reaction_family(actionable_gaps, lab_profile, reaction_family, include_families, lab_demo_only)
+    if (
+        require_baseline_first
+        and _baseline_family_enabled(lab_profile, reaction_family, include_families, lab_demo_only)
+        and (filtered_gaps or not actionable_gaps)
+    ):
+        filtered_gaps.append(_baseline_gap(run_name))
     by_route: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for gap in filtered_gaps:
         route_type = str(gap.get("route_type_hint") or "validation_gap_closure")
@@ -165,15 +194,22 @@ def propose_rule_based_routes(
 
     routes: list[dict[str, Any]] = []
     route_specs = [
-        ("validation_gap_closure", "Validation-gate closure panel", "control_experiment", ["15N2 isotope validation", "Ar blank", "N2-free blank", "NOx/nitrate/nitrite screening", "background NH3 control"], ["NH3_yield", "nitrate", "nitrite", "NOx", "product_state_split"], "missing validation gates"),
+        ("baseline_repeatability", "Li-NRR baseline repeatability check", "baseline_condition", ["three water-content measurements", "electrolyte resistance before/after", "SSC/PtAuSSC before-after photos", "voltage/current/runtime reporting"], ["FE", "NH3_yield", "OCV", "pump_speed", "full_cell_voltage", "current_density", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_resistance_before", "electrolyte_resistance_after", "IC_NH4", "failure_mode"], "baseline reproducibility before variable screening"),
+        ("validation_gap_closure", "Validation-gate closure panel", "control_experiment", ["15N2 isotope validation", "Ar blank", "N2-free blank", "NOx/nitrate/nitrite screening", "background NH3 control"], ["NH3_yield", "nitrate", "nitrite", "NOx", "product_state_split", "IC_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4", "gas_line_status", "liquid_line_status"], "missing validation gates"),
         ("electrolyte_window", "Electrolyte water/proton donor window", "water_content", ["electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content", "electrolyte_color"], "solvent_management_tax"),
-        ("interphase_resistance", "Interphase resistance and renewal diagnostic", "runtime", ["Ar blank", "voltage/current/runtime reporting"], ["EIS", "full_cell_voltage", "FE", "NH3_yield", "failure_mode", "photo_before_after"], "resistance_or_renewal_tax"),
-        ("flow_wetting", "Flow/GDE wetting and outlet product-state map", "gas_flow", ["gas/liquid product accounting", "wetting/flooding diagnosis", "Ar blank"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "full_cell_voltage", "failure_mode"], "wetting_outlet_capture_tax"),
-        ("HOR_proton_economy", "HOR on/off proton-economy boundary test", "HOR_on_off", ["H2-off control", "HOR-off control", "voltage/current/runtime reporting"], ["full_cell_voltage", "anode_potential", "cathode_potential", "NH3_yield", "H2"], "hydrogen_logistics_tax"),
+        ("water_content_window", "Li-NRR water-content window", "water_ppm", ["three water-content measurements", "electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_color", "IC_NH4"], "solvent_management_tax and water/proton ambiguity"),
+        ("proton_donor_window", "Li-NRR proton-donor identity/concentration window", "donor_identity", ["electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening", "three water-content measurements"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_color", "IC_NH4"], "proton donor ambiguity"),
+        ("salt_solvent_window", "Li salt and solvent drying-state window", "Li_salt_concentration", ["three water-content measurements", "electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content_before", "water_content_after", "electrolyte_color", "IC_NH4"], "Li salt/solvent boundary sensitivity"),
+        ("operating_field_matrix", "Operating-field voltage/current/runtime matrix", "potential", ["voltage/current/runtime reporting", "electrolyte resistance before/after"], ["FE", "NH3_yield", "full_cell_voltage", "current_density", "runtime", "EIS", "electrolyte_resistance_before", "electrolyte_resistance_after"], "operating-field disclosure gap"),
+        ("interphase_resistance", "Interphase resistance and renewal diagnostic", "runtime", ["Ar blank", "voltage/current/runtime reporting", "electrolyte resistance before/after", "SSC/PtAuSSC before-after photos"], ["EIS", "full_cell_voltage", "FE", "NH3_yield", "electrolyte_resistance_before", "electrolyte_resistance_after", "SSC_photo_before", "SSC_photo_after", "PtAuSSC_photo_before", "PtAuSSC_photo_after", "failure_mode", "electrolyte_color"], "resistance_or_renewal_tax"),
+        ("flow_wetting", "Flow/GDE wetting and outlet product-state map", "pump_speed", ["gas/liquid product accounting", "wetting/flooding diagnosis", "gas-line blank", "liquid-line blank"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "leak_status", "back_suction_status", "pump_status", "full_cell_voltage", "failure_mode"], "wetting_outlet_capture_tax"),
+        ("HOR_proton_economy", "HOR on/off proton-economy boundary test", "H2_flow", ["H2-off control", "HOR-off control", "voltage/current/runtime reporting"], ["full_cell_voltage", "anode_potential", "cathode_potential", "FE", "NH3_yield", "H2_observation", "product_state_split"], "hydrogen_logistics_tax"),
+        ("outlet_product_split", "Gas/liquid/trap/SSC ammonia product split", "capture_route", ["HCl trap accounting", "gas/liquid product accounting", "SSC soak solution accounting"], ["gas_phase_NH3", "liquid_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4", "product_state_split"], "outlet product-state accounting gap"),
         ("product_state_accounting", "Gas/liquid ammonia accounting and capture boundary", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "water_content"], "product_state/capture gap"),
         ("contamination_control", "NOx/background ammonia contamination stress test", "control_experiment", ["NOx/nitrate/nitrite screening", "background NH3 control", "Ar blank", "N2-free blank", "electrolyte blank"], ["nitrate", "nitrite", "NOx", "liquid_NH4"], "contamination_tax"),
         ("stability_failure", "Runtime stability and first-failure boundary test", "runtime", ["voltage/current/runtime reporting", "Ar blank"], ["runtime", "full_cell_voltage", "FE", "NH3_yield", "EIS", "failure_mode"], "stability/failure disclosure gap"),
         ("process_boundary_probe", "Process-boundary accounting probe", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting", "voltage/current/runtime reporting"], ["product_state_split", "full_cell_voltage", "water_content", "gas_phase_NH3", "liquid_NH4"], "process boundary overclaim risk"),
+        ("postmortem_failure_analysis", "Postmortem failure and operator-note analysis", "sampling_timepoint", ["electrolyte resistance before/after", "SSC/PtAuSSC before-after photos"], ["failure_mode", "electrolyte_color", "SSC_photo_before", "SSC_photo_after", "PtAuSSC_photo_before", "PtAuSSC_photo_after", "electrolyte_resistance_before", "electrolyte_resistance_after", "operator_failure_note"], "failure-mode diagnosis"),
     ]
     route_spec_by_type = {route_type: spec for route_type, *spec in route_specs}
     for family, route_type in sorted(by_route):
@@ -181,7 +217,21 @@ def propose_rule_based_routes(
         if not spec:
             continue
         title, variable_type, controls, measurements, target = spec
-        routes.append(_build_route(run_name, family, route_type, title, variable_type, controls, measurements, target, by_route[(family, route_type)], lab_profile))
+        routes.append(
+            _build_route(
+                run_name,
+                family,
+                route_type,
+                title,
+                variable_type,
+                controls,
+                measurements,
+                target,
+                by_route[(family, route_type)],
+                lab_profile,
+                include_sop_fields=include_sop_fields,
+            )
+        )
     return rank_routes(routes)
 
 
@@ -242,6 +292,7 @@ def _build_route(
     target: str,
     gaps: list[dict[str, Any]],
     lab_profile: dict[str, Any],
+    include_sop_fields: bool = True,
 ) -> dict[str, Any]:
     family = normalize_reaction_family(reaction_family)
     profile = get_reaction_profile(family)
@@ -257,7 +308,7 @@ def _build_route(
     capability_warnings = [f"missing capability: {item}" for item in missing_capabilities]
     score = _route_score(route_type, gaps, lab_profile, controls, missing_capabilities, primary_count, secondary_count)
     critical_missing = _critical_missing(route_type, missing_capabilities)
-    priority_label = _priority_label(score, critical_missing, infeasible, primary_count, secondary_count, gaps)
+    priority_label = _priority_label(route_type, score, critical_missing, infeasible, primary_count, secondary_count, gaps)
     lab_allowed = experimental_demonstration_allowed(family, lab_profile)
     if not lab_allowed and family != "unclear":
         priority_label = "defer_until_capability_available"
@@ -292,6 +343,11 @@ def _build_route(
         "stopping_rules": ["Stop route interpretation if mandatory controls fail.", "Do not upgrade claim boundary from invalid or incomplete controls."],
         "expected_outcomes": _expected_outcomes(route_type),
         "failure_diagnosis_tree": _failure_tree(route_type),
+        "SOP_anchor_points": _sop_anchor_points(route_type) if include_sop_fields else [],
+        "minimum_report_fields": _minimum_report_fields(route_type) if include_sop_fields else [],
+        "boundary_upgrade_if_successful": _boundary_upgrade_if_successful(route_type),
+        "boundary_not_closed_even_if_successful": _boundary_not_closed_even_if_successful(route_type),
+        "required_raw_records_to_save": _required_raw_records_to_save(route_type) if include_sop_fields else [],
         "lab_capability_warnings": capability_warnings,
         "safety_notes": _safety_notes(lab_profile),
         "estimated_difficulty": _difficulty(route_type, missing_capabilities),
@@ -319,8 +375,16 @@ def _route_score(
     secondary_count: int,
 ) -> int:
     score = 0
+    if route_type == "baseline_repeatability":
+        score += 55
     if route_type == "validation_gap_closure":
         score += 30
+    if route_type in {"water_content_window", "proton_donor_window", "salt_solvent_window"} and capability_available(profile, "can_measure_water_content"):
+        score += 20
+    if route_type == "flow_wetting" and capability_available(profile, "can_do_flow_cell") and capability_available(profile, "product_state_accounting_available"):
+        score += 20
+    if route_type == "HOR_proton_economy" and capability_available(profile, "can_do_HOR_coupling") and capability_available(profile, "H2_available"):
+        score += 20
     hidden_tax_counts = Counter(gap.get("hidden_tax") for gap in gaps if gap.get("hidden_tax"))
     if hidden_tax_counts:
         score += 25 + min(15, 3 * max(hidden_tax_counts.values()))
@@ -346,6 +410,7 @@ def _route_score(
 
 
 def _priority_label(
+    route_type: str,
     score: int,
     critical_missing: bool,
     infeasible: list[str],
@@ -353,6 +418,8 @@ def _priority_label(
     secondary_count: int,
     gaps: list[dict[str, Any]],
 ) -> str:
+    if route_type == "baseline_repeatability" and not critical_missing:
+        return "priority_experiment" if score >= 55 else "do_after_controls"
     if any(gap.get("llm_disagreement") or str(gap.get("gap_type")) == "provenance conflict" for gap in gaps):
         if score >= 35:
             return "needs_human_review"
@@ -362,6 +429,8 @@ def _priority_label(
         return "discard_as_secondary"
     if primary_count == 0:
         return "insufficient_evidence"
+    if route_type in _VARIABLE_SCREENING_ROUTES and not _baseline_or_human_ready(gaps):
+        return "do_after_controls" if score >= 35 else "insufficient_evidence"
     if score >= 60 and not critical_missing:
         return "priority_experiment"
     if score >= 45 and infeasible:
@@ -373,13 +442,56 @@ def _priority_label(
 
 def _critical_missing(route_type: str, missing_capabilities: list[str]) -> bool:
     critical_by_route = {
+        "baseline_repeatability": {"potentiostat_available", "can_record_full_cell_voltage", "can_measure_water_content"},
         "validation_gap_closure": {"can_do_15N_control", "isotopic_15N2_available", "can_do_NOx_screening"},
+        "water_content_window": {"can_measure_water_content", "Karl_Fischer_available"},
+        "proton_donor_window": {"can_measure_water_content", "Karl_Fischer_available"},
+        "salt_solvent_window": {"can_measure_water_content", "Karl_Fischer_available"},
         "flow_wetting": {"can_do_flow_cell", "product_state_accounting_available"},
         "HOR_proton_economy": {"can_do_HOR_coupling", "H2_available"},
+        "outlet_product_split": {"product_state_accounting_available"},
         "product_state_accounting": {"product_state_accounting_available"},
         "contamination_control": {"can_do_NOx_screening"},
     }
     return bool(set(missing_capabilities) & critical_by_route.get(route_type, set()))
+
+
+def _baseline_family_enabled(
+    lab_profile: dict[str, Any],
+    reaction_family: str | None,
+    include_families: list[str] | None,
+    lab_demo_only: bool,
+) -> bool:
+    families = _family_filter(reaction_family or "LiNRR", include_families)
+    if "LiNRR" not in families:
+        return False
+    return not lab_demo_only or experimental_demonstration_allowed("LiNRR", lab_profile)
+
+
+def _baseline_gap(run_name: str) -> dict[str, Any]:
+    return {
+        "source_basis_id": f"BASELINE_{run_name}",
+        "paper_id": "",
+        "source_span_id": "",
+        "evidence_id": "",
+        "provenance_type": "lab_profile",
+        "reaction_family": "LiNRR",
+        "reaction_profile_name": "LiNRR",
+        "lab_demonstration_allowed": True,
+        "primary_evidence": True,
+        "human_experiment_decision": "",
+        "gap_type": "baseline repeatability required",
+        "route_type_hint": "baseline_repeatability",
+        "baseline_required": True,
+    }
+
+
+def _baseline_or_human_ready(gaps: list[dict[str, Any]]) -> bool:
+    return any(
+        gap.get("baseline_complete")
+        or str(gap.get("human_experiment_decision") or "") in {"priority_experiment", "human_reviewed", "approved"}
+        for gap in gaps
+    )
 
 
 def _filter_gaps_by_reaction_family(
@@ -579,6 +691,90 @@ def _failure_tree(route_type: str) -> list[str]:
     ]
 
 
+def _sop_anchor_points(route_type: str) -> list[str]:
+    common = [
+        "glovebox and dry electrolyte handling",
+        "cell assembly",
+        "electrochemical test",
+        "sampling and IC",
+        "final experiment report",
+    ]
+    route_specific = {
+        "baseline_repeatability": ["Li salt/DG drying", "water-content test", "common failure diagnosis"],
+        "validation_gap_closure": ["gas/liquid/electrode assembly", "sampling and IC"],
+        "water_content_window": ["Li salt/DG drying", "water-content test"],
+        "proton_donor_window": ["Li salt/DG drying", "water-content test"],
+        "salt_solvent_window": ["Li salt/DG drying", "water-content test"],
+        "interphase_resistance": ["SSC/PtAuSSC preparation", "common failure diagnosis"],
+        "flow_wetting": ["gas/liquid/electrode assembly", "common failure diagnosis"],
+        "HOR_proton_economy": ["gas/liquid/electrode assembly", "common failure diagnosis"],
+        "outlet_product_split": ["gas/liquid/electrode assembly", "sampling and IC"],
+        "postmortem_failure_analysis": ["common failure diagnosis", "final experiment report"],
+    }
+    return _dedupe([*common, *route_specific.get(route_type, [])])
+
+
+def _minimum_report_fields(route_type: str) -> list[str]:
+    base = ["date", "operator", "condition_id", "FE", "NH3_yield", "full_cell_voltage", "runtime_hours", "controls_completed"]
+    extra = {
+        "baseline_repeatability": [
+            "OCV",
+            "pump_speed",
+            "water_content_before",
+            "water_content_mid",
+            "water_content_after",
+            "electrolyte_resistance_before",
+            "electrolyte_resistance_after",
+            "IC_NH4",
+        ],
+        "water_content_window": ["water_content_before", "water_content_mid", "water_content_after", "IC_NH4"],
+        "proton_donor_window": ["water_content_before", "water_content_mid", "water_content_after", "electrolyte_color"],
+        "salt_solvent_window": ["water_content_before", "water_content_after", "electrolyte_color"],
+        "interphase_resistance": ["EIS_summary", "electrolyte_resistance_before", "electrolyte_resistance_after", "failure_mode"],
+        "flow_wetting": ["gas_phase_NH3", "liquid_NH4", "leak_status", "back_suction_status", "pump_status"],
+        "HOR_proton_economy": ["H2_observation", "anode_potential", "cathode_potential", "product_state_split"],
+        "outlet_product_split": ["gas_phase_NH3", "liquid_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4"],
+        "postmortem_failure_analysis": ["failure_mode", "operator_failure_note", "SOP_deviation"],
+    }
+    return _dedupe([*base, *extra.get(route_type, [])])
+
+
+def _boundary_upgrade_if_successful(route_type: str) -> list[str]:
+    if route_type in {"baseline_repeatability", "operating_field_matrix"}:
+        return ["Can strengthen cell_metric repeatability and measurement-matrix support only."]
+    if route_type in {"validation_gap_closure", "contamination_control"}:
+        return ["Can strengthen product_admissibility when mandatory validation controls pass."]
+    if route_type in {"flow_wetting", "HOR_proton_economy", "outlet_product_split"}:
+        return ["Can support reactor_legibility for the measured LiNRR system if controls pass."]
+    if route_type in {"water_content_window", "proton_donor_window", "salt_solvent_window", "interphase_resistance"}:
+        return ["Can support measured cell/reactor boundary fields for the tested LiNRR operating window."]
+    return ["Can update only the targeted measured BoundaryLedger fields."]
+
+
+def _boundary_not_closed_even_if_successful(route_type: str) -> list[str]:
+    return [
+        "Does not establish plant/process readiness.",
+        "Does not generalize beyond the tested LiNRR setup.",
+        "Does not override missing primary literature evidence or failed mandatory controls.",
+    ]
+
+
+def _required_raw_records_to_save(route_type: str) -> list[str]:
+    records = ["raw current/voltage trace", "IC/calibration files", "completed route result template", "operator notes"]
+    route_specific = {
+        "baseline_repeatability": ["Karl Fischer readings before/mid/after", "SSC/PtAuSSC before-after photos"],
+        "water_content_window": ["Karl Fischer readings before/mid/after"],
+        "proton_donor_window": ["donor identity/concentration sheet", "Karl Fischer readings"],
+        "salt_solvent_window": ["Li salt/solvent drying log", "Karl Fischer readings"],
+        "interphase_resistance": ["EIS files before/after", "SSC/PtAuSSC before-after photos"],
+        "flow_wetting": ["gas/liquid line status log", "pump/leak/back-suction notes"],
+        "HOR_proton_economy": ["H2/HOR on-off log", "anode/cathode potential trace"],
+        "outlet_product_split": ["HCl trap IC files", "SSC soak solution IC files"],
+        "postmortem_failure_analysis": ["failure photos", "post-experiment report", "SOP deviation note"],
+    }
+    return _dedupe([*records, *route_specific.get(route_type, [])])
+
+
 def _safety_notes(profile: dict[str, Any]) -> list[str]:
     constraints = profile.get("constraints") if isinstance(profile.get("constraints"), dict) else {}
     notes = [str(item) for item in constraints.get("safety_constraints") or []]
@@ -667,6 +863,11 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "feasible_controls",
         "infeasible_controls",
         "required_measurements",
+        "SOP_anchor_points",
+        "minimum_report_fields",
+        "boundary_upgrade_if_successful",
+        "boundary_not_closed_even_if_successful",
+        "required_raw_records_to_save",
         "human_review_required",
         "llm_used",
         "llm_model",

@@ -90,6 +90,20 @@ SECTION_DEFAULTS: dict[str, dict[str, Any]] = {
         "can_do_HOR_off_control": False,
         "can_do_electrolyte_blank": False,
     },
+    "sop_capabilities": {
+        "has_Li_NRR_SOP": False,
+        "glovebox_transfer_SOP": False,
+        "Li_salt_drying_SOP": False,
+        "DG_drying_SOP": False,
+        "reference_electrode_SOP": False,
+        "gas_liquid_line_SOP": False,
+        "SSC_preparation_SOP": False,
+        "PtAuSSC_preparation_SOP": False,
+        "Karl_Fischer_SOP": False,
+        "IC_sampling_SOP": False,
+        "post_experiment_report_SOP": False,
+        "failure_diagnosis_SOP": False,
+    },
     "constraints": {
         "max_parallel_experiments": None,
         "max_conditions_per_week": None,
@@ -114,11 +128,18 @@ CONTROL_CAPABILITY_KEYS = {
     "voltage/current/runtime reporting": ("potentiostat_available", "can_record_full_cell_voltage"),
     "solvent inventory/recycle reporting": ("can_measure_water_content",),
     "primary body text pairing": (),
+    "electrolyte resistance before/after": ("EIS_available",),
+    "SSC/PtAuSSC before-after photos": ("SSC_preparation_SOP", "PtAuSSC_preparation_SOP"),
+    "three water-content measurements": ("can_measure_water_content", "Karl_Fischer_available", "Karl_Fischer_SOP"),
+    "HCl trap accounting": ("ammonia_gas_capture_available", "liquid_NH4_quantification_available"),
+    "SSC soak solution accounting": ("liquid_NH4_quantification_available",),
+    "gas-line blank": ("gas_liquid_line_SOP",),
+    "liquid-line blank": ("gas_liquid_line_SOP",),
 }
 
 
-def default_ustc_linnr_profile() -> dict[str, Any]:
-    """Return a conservative editable USTC Li-NRR profile template."""
+def default_ustc_linnr_profile(profile_template: str = "conservative") -> dict[str, Any]:
+    """Return an editable USTC Li-NRR profile template."""
 
     now = _utc_now()
     profile: dict[str, Any] = {
@@ -132,7 +153,87 @@ def default_ustc_linnr_profile() -> dict[str, Any]:
     }
     for section, defaults in SECTION_DEFAULTS.items():
         profile[section] = json.loads(json.dumps(defaults))
+    profile["allowed_reaction_families"] = ["LiNRR"]
+    profile["reaction_family_demonstrations"] = {"LiNRR": True}
+    if str(profile_template or "").casefold() in {"ustc-linnr-realistic", "ustc_linnr_realistic", "realistic"}:
+        _apply_ustc_linnr_realistic_defaults(profile)
     return profile
+
+
+def ustc_linnr_realistic_profile() -> dict[str, Any]:
+    """Return the realistic USTC Li-NRR SOP-grounded profile template."""
+
+    return default_ustc_linnr_profile(profile_template="ustc-linnr-realistic")
+
+
+def _apply_ustc_linnr_realistic_defaults(profile: dict[str, Any]) -> None:
+    profile["reactor_capabilities"].update(
+        {
+            "available_reactors": ["Li-NRR flow cell", "SSC/PtAuSSC cell"],
+            "can_do_flow_cell": True,
+            "can_do_SSC": True,
+            "can_do_HOR_coupling": True,
+            "gas_flow_control_available": True,
+            "liquid_flow_control_available": True,
+        }
+    )
+    profile["electrochemistry"].update(
+        {
+            "potentiostat_available": True,
+            "can_record_full_cell_voltage": True,
+            "EIS_available": True,
+            "chronoamperometry_available": True,
+        }
+    )
+    profile["electrolyte_chemistry"].update(
+        {
+            "solvents_available": ["DG", "THF"],
+            "lithium_salts_available": ["Li salt editable"],
+            "proton_donors_available": ["editable"],
+            "can_measure_water_content": True,
+            "Karl_Fischer_available": True,
+            "glovebox_available": True,
+            "drying_capability": True,
+        }
+    )
+    profile["gases"].update(
+        {
+            "N2_available": True,
+            "Ar_available": True,
+            "H2_available": True,
+            "isotopic_15N2_available": False,
+        }
+    )
+    profile["analytics"].update(
+        {
+            "ion_chromatography_available": True,
+            "ammonia_gas_capture_available": True,
+            "liquid_NH4_quantification_available": True,
+            "nitrate_nitrite_quantification_available": True,
+            "NOx_quantification_available": True,
+            "product_state_accounting_available": True,
+        }
+    )
+    profile["controls"].update(
+        {
+            "can_do_Ar_blank": True,
+            "can_do_N2_free_blank": True,
+            "can_do_15N_control": False,
+            "can_do_NOx_screening": True,
+            "can_do_background_NH3_control": True,
+            "can_do_H2_off_control": True,
+            "can_do_HOR_off_control": True,
+            "can_do_electrolyte_blank": True,
+        }
+    )
+    profile["sop_capabilities"].update({key: True for key in profile["sop_capabilities"]})
+    profile["constraints"].update(
+        {
+            "budget_level": "unknown",
+            "safety_constraints": ["Route cards are planning artifacts; local Li handling, gas handling, and electrolyte SOPs govern execution."],
+            "notes": "Editable realistic USTC Li-NRR demonstration template; 15N2 remains false until explicitly available.",
+        }
+    )
 
 
 def load_lab_profile(path: str | Path) -> dict[str, Any]:
@@ -208,6 +309,9 @@ def summarize_lab_profile(profile: dict[str, Any]) -> dict[str, Any]:
         "can_do_HOR_coupling": capability_available(profile, "can_do_HOR_coupling"),
         "isotopic_15N2_available": capability_available(profile, "isotopic_15N2_available"),
         "product_state_accounting_available": capability_available(profile, "product_state_accounting_available"),
+        "has_Li_NRR_SOP": capability_available(profile, "has_Li_NRR_SOP"),
+        "Karl_Fischer_SOP": capability_available(profile, "Karl_Fischer_SOP"),
+        "IC_sampling_SOP": capability_available(profile, "IC_sampling_SOP"),
     }
 
 

@@ -29,6 +29,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--reaction-family", default="LiNRR")
     parser.add_argument("--include-families")
     parser.add_argument("--lab-demo-only", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--require-baseline-first", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--include-sop-fields", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--llm-model")
     parser.add_argument("--use-llm", action="store_true")
     parser.add_argument("--max-routes", type=int)
@@ -57,6 +59,8 @@ def main() -> int:
         reaction_family=args.reaction_family,
         include_families=_parse_families(args.include_families),
         lab_demo_only=args.lab_demo_only,
+        require_baseline_first=args.require_baseline_first,
+        include_sop_fields=args.include_sop_fields,
     )
     routes = filter_routes(routes, min_score=args.min_score, priority_only=args.priority_only)
     if args.max_routes is not None:
@@ -76,6 +80,8 @@ def main() -> int:
     print(f"reaction_family: {args.reaction_family}")
     print(f"include_families: {args.include_families or ''}")
     print(f"lab_demo_only: {args.lab_demo_only}")
+    print(f"require_baseline_first: {args.require_baseline_first}")
+    print(f"include_sop_fields: {args.include_sop_fields}")
     print(f"routes_generated: {len(routes)}")
     print(f"priority_routes: {outputs['priority_routes']}")
     print(f"deferred_routes: {outputs['deferred_routes']}")
