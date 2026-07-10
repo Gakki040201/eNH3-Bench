@@ -26,6 +26,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate lab-constrained experiment routes.")
     parser.add_argument("--run-name", required=True)
     parser.add_argument("--lab-profile", required=True, type=Path)
+    parser.add_argument("--reaction-family", default="LiNRR")
+    parser.add_argument("--include-families")
+    parser.add_argument("--lab-demo-only", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--llm-model")
     parser.add_argument("--use-llm", action="store_true")
     parser.add_argument("--max-routes", type=int)
@@ -47,7 +50,14 @@ def main() -> int:
     inputs = load_boundary_inputs(args.run_name, model=args.llm_model)
     records = merge_planning_records(inputs)
     gaps = identify_actionable_gaps(records)
-    routes = propose_rule_based_routes(gaps, profile, args.run_name)
+    routes = propose_rule_based_routes(
+        gaps,
+        profile,
+        args.run_name,
+        reaction_family=args.reaction_family,
+        include_families=_parse_families(args.include_families),
+        lab_demo_only=args.lab_demo_only,
+    )
     routes = filter_routes(routes, min_score=args.min_score, priority_only=args.priority_only)
     if args.max_routes is not None:
         routes = routes[: max(0, args.max_routes)]
@@ -63,6 +73,9 @@ def main() -> int:
 
     print(f"records_loaded: {len(records)}")
     print(f"actionable_gaps: {len(gaps)}")
+    print(f"reaction_family: {args.reaction_family}")
+    print(f"include_families: {args.include_families or ''}")
+    print(f"lab_demo_only: {args.lab_demo_only}")
     print(f"routes_generated: {len(routes)}")
     print(f"priority_routes: {outputs['priority_routes']}")
     print(f"deferred_routes: {outputs['deferred_routes']}")
@@ -71,6 +84,12 @@ def main() -> int:
     print(f"CSV: {outputs['csv']}")
     print(f"Summary: {outputs['summary_json']}")
     return 0
+
+
+def _parse_families(value: str | None) -> list[str] | None:
+    if value is None:
+        return None
+    return [part.strip() for part in value.split(",") if part.strip()]
 
 
 if __name__ == "__main__":

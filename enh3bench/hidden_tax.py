@@ -17,6 +17,12 @@ from enh3bench.provenance_rules import (
     is_secondary_or_context,
     normalize_provenance_type,
 )
+from enh3bench.reaction_profiles import (
+    get_reaction_profile,
+    infer_reaction_family_from_text,
+    normalize_reaction_family,
+    profile_hidden_taxes,
+)
 
 
 SECONDARY_CONTEXT_HIDDEN_TAX_PROVENANCE = {
@@ -42,6 +48,7 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     merged = _merged_record(record)
     _ensure_provenance_fields(merged)
     text = _normalized_text(merged)
+    _ensure_reaction_profile(merged, text)
     provenance_type = str(merged.get("provenance_type") or "unknown")
     detected: list[str] = []
     hidden_assumptions: list[str] = []
@@ -59,35 +66,43 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     if low_trust and not _domain_tax_allowed_under_low_trust(merged):
         return _low_trust_hidden_tax_result(merged, text, provenance_type)
 
-    if _contains_any(text, ["electrolyte", "solvent", "donor", "additive", "water", "li salt", "lithium salt", "thf"]):
+    if _family_allows_tax(merged, "solvent_management_tax") and _contains_any(
+        text, ["electrolyte", "solvent", "donor", "additive", "water", "li salt", "lithium salt", "thf"]
+    ):
         detected.append("solvent_management_tax")
         hidden_assumptions.append("solvent, electrolyte, donor, and additive inventories remain stable or are replenished without cost.")
         missing_measurements.extend(["solvent inventory", "electrolyte replacement or recycle", "donor/additive consumption"])
         required_controls.append("track electrolyte composition and inventory before and after operation")
         reasoning.append("solvent/electrolyte terms imply an unclosed material-management burden.")
 
-    if _contains_any(text, ["sei", "interphase", "passivation", "resistance", "impedance", "renewal"]):
+    if _family_allows_tax(merged, "resistance_or_renewal_tax") and _contains_any(
+        text, ["sei", "interphase", "passivation", "resistance", "impedance", "renewal"]
+    ):
         detected.append("resistance_or_renewal_tax")
         hidden_assumptions.append("interphase, impedance, and renewal burdens do not degrade sustained operation.")
         missing_measurements.extend(["impedance over runtime", "renewal schedule", "passivation or failure onset"])
         required_controls.append("report impedance or renewal behavior over the same runtime as performance")
         reasoning.append("interphase/resistance language implies a renewal or durability burden.")
 
-    if _contains_any(text, ["flow", "gde", "ssc", "gas diffusion", "outlet", "flooding", "wetting", "capture"]):
+    if _family_allows_tax(merged, "wetting_outlet_capture_tax") and _contains_any(
+        text, ["flow", "gde", "ssc", "gas diffusion", "outlet", "flooding", "wetting", "capture"]
+    ):
         detected.append("wetting_outlet_capture_tax")
         hidden_assumptions.append("reactor outlet, wetting, flooding, and capture losses are negligible or disclosed.")
         missing_measurements.extend(["outlet product state", "gas/liquid product split", "wetting or flooding diagnosis", "capture efficiency"])
         required_controls.append("measure gas/liquid product accounting and wetting/flooding diagnostics")
         reasoning.append("flow/GDE/outlet terms imply capture and wetting burdens.")
 
-    if _contains_any(text, [" hor", "hydrogen oxidation", " h2 ", "h2,", "h2.", "h2 feed", "proton economy"]):
+    if _family_allows_tax(merged, "hydrogen_logistics_tax") and _contains_any(
+        text, [" hor", "hydrogen oxidation", " h2 ", "h2,", "h2.", "h2 feed", "proton economy"]
+    ):
         detected.append("hydrogen_logistics_tax")
         hidden_assumptions.append("hydrogen source, HOR coupling, and proton economy are already inside the claimed boundary.")
         missing_measurements.extend(["hydrogen source boundary", "H2 consumption", "HOR-off control"])
         required_controls.append("run H2-off/HOR-off controls and report hydrogen source logistics")
         reasoning.append("HOR/H2 language implies an unclosed hydrogen logistics boundary.")
 
-    if _contains_any(
+    if _family_allows_tax(merged, "contamination_tax") and _contains_any(
         text,
         ["contamination", "nox", "nitrate", "nitrite", "background ammonia", "false positive", "impurity"],
     ):
@@ -97,7 +112,7 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
         required_controls.append("screen NOx/nitrate/nitrite and background ammonia with blanks")
         reasoning.append("contamination terms directly create a source-attribution burden.")
 
-    if _has_fe(merged, text) and _measurement_matrix_missing(merged, text):
+    if _family_allows_tax(merged, "measurement_matrix_tax") and _has_fe(merged, text) and _measurement_matrix_missing(merged, text):
         detected.append("measurement_matrix_tax")
         hidden_assumptions.append("Faradaic efficiency alone is enough to compare performance across systems.")
         missing_measurements.extend(_missing_measurement_matrix(merged, text))
@@ -129,6 +144,8 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
         "text_class": str(merged.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(merged.get("provenance_confidence") or "low"),
+        "reaction_family": str(merged.get("reaction_family") or "unclear"),
+        "reaction_profile_name": str(merged.get("reaction_profile_name") or merged.get("reaction_family") or "unclear"),
         "detected_taxes": detected,
         "main_gain": _main_gain(merged, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -213,6 +230,21 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
     record["is_primary_admissible"] = provenance.get("is_primary_admissible", False)
     record["is_secondary_or_context"] = provenance.get("is_secondary_or_context", False)
     record["is_reject_or_low_trust"] = provenance.get("is_reject_or_low_trust", False)
+
+
+def _ensure_reaction_profile(record: dict[str, Any], text: str) -> None:
+    family_value = str(record.get("reaction_family") or "").strip()
+    family = normalize_reaction_family(family_value) if family_value else infer_reaction_family_from_text(text)
+    profile = get_reaction_profile(family)
+    record["reaction_family"] = family
+    record["reaction_profile_name"] = profile["reaction_family"]
+
+
+def _family_allows_tax(record: dict[str, Any], tax: str) -> bool:
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    if family == "unclear":
+        return True
+    return str(tax) in profile_hidden_taxes(family)
 
 
 def _normalize_hidden_tax_provenance_type(provenance_type: str) -> str:
@@ -345,6 +377,8 @@ def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_t
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -385,6 +419,8 @@ def _secondary_context_hidden_tax_result(record: dict[str, Any], text: str, prov
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -424,6 +460,8 @@ def _caption_hidden_tax_result(record: dict[str, Any], text: str, provenance_typ
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -552,6 +590,8 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "text_class",
         "provenance_type",
         "provenance_confidence",
+        "reaction_family",
+        "reaction_profile_name",
         "detected_taxes",
         "main_gain",
         "hidden_assumptions",

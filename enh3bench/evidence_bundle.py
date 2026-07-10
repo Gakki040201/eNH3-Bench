@@ -10,6 +10,7 @@ from typing import Any
 from enh3bench.boundary_schema import has_any_value
 from enh3bench.document_provenance import infer_provenance_for_record
 from enh3bench.ledger_router import load_jsonl
+from enh3bench.reaction_profiles import get_reaction_profile, infer_reaction_family_from_text, normalize_reaction_family
 
 
 LEDGER_FILENAMES = (
@@ -85,6 +86,7 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
     """Build one BoundaryLedger evidence bundle from a classified span record."""
 
     raw_record = dict(record)
+    record = _with_reaction_family(record)
     source_span_id = _first_text(record, "source_span_id", "span_id", "id")
     evidence_id = _first_text(record, "evidence_id") or _evidence_id(source_span_id)
     paper_id = _first_text(record, "paper_id")
@@ -111,6 +113,9 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
         "is_primary_admissible": bool(provenance_info.get("is_primary_admissible", False)),
         "is_secondary_or_context": bool(provenance_info.get("is_secondary_or_context", False)),
         "is_reject_or_low_trust": bool(provenance_info.get("is_reject_or_low_trust", False)),
+        "reaction_family": record["reaction_family"],
+        "reaction_profile_name": record["reaction_family"],
+        "reaction_profile": _reaction_profile_summary(record["reaction_family"]),
         "extracted_fields": _extracted_fields(record),
         "provenance": _provenance(record, provenance_info),
         "grounding_status": _grounding_status(source_text),
@@ -180,6 +185,26 @@ def export_evidence_bundles(
         "count": len(bundles),
         "jsonl": str(jsonl_path),
         "csv": str(csv_path),
+    }
+
+
+def _with_reaction_family(record: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(record)
+    family = _first_text(updated, "reaction_family")
+    if family:
+        updated["reaction_family"] = normalize_reaction_family(family)
+    else:
+        updated["reaction_family"] = infer_reaction_family_from_text(_source_text(updated))
+    return updated
+
+
+def _reaction_profile_summary(family: str) -> dict[str, Any]:
+    profile = get_reaction_profile(family)
+    return {
+        "reaction_family": profile["reaction_family"],
+        "nitrogen_source": profile["nitrogen_source"],
+        "product_admission_gates": profile["product_admission_gates"],
+        "experimental_demonstration_allowed": profile["experimental_demonstration_allowed"],
     }
 
 
@@ -308,6 +333,9 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "is_primary_admissible",
         "is_secondary_or_context",
         "is_reject_or_low_trust",
+        "reaction_family",
+        "reaction_profile_name",
+        "reaction_profile",
         "support_hint_boundary",
         "extracted_fields",
         "provenance",

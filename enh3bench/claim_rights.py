@@ -23,6 +23,11 @@ from enh3bench.provenance_rules import (
     is_secondary_or_context,
     normalize_provenance_type,
 )
+from enh3bench.reaction_profiles import (
+    get_reaction_profile,
+    infer_reaction_family_from_text,
+    normalize_reaction_family,
+)
 
 
 PRIMARY_CLASSES = {"primary_performance", "primary_performance_with_validation"}
@@ -37,6 +42,7 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
     _ensure_provenance_fields(merged)
     provenance_type = str(merged.get("provenance_type") or "unknown")
     source_text = _source_text(merged)
+    _ensure_reaction_profile(merged, source_text)
     fields = _boundary_field_presence(merged)
     present, missing = _present_missing_by_boundary(fields)
     validation_gates = _validation_gates(merged)
@@ -182,14 +188,16 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
     boundary, boundary_reasons, primary_risk_flags = _primary_boundary(merged, text_class, fields, validation_gates)
     risk_flags = _dedupe([*risk_flags, *primary_risk_flags])
     reasoning.extend(boundary_reasons)
-    admissibility_status = _admissibility_status(boundary, fields, validation_gates, source_text)
+    admissibility_status = _admissibility_status(merged, boundary, fields, validation_gates, source_text)
     if not source_text:
         admissibility_status = "weak_grounding"
         boundary = "unsupported_or_secondary"
         risk_flags.append("weak_source_grounding")
         reasoning.append("no source_text is available for source-grounded adjudication.")
 
-    missing_boundary_fields = _missing_boundary_fields(boundary, missing, fields, merged)
+    missing_boundary_fields = _dedupe(
+        [*_missing_boundary_fields(boundary, missing, fields, merged), *_reaction_family_missing_boundary_fields(merged)]
+    )
     recommended_experiment = _recommended_experiment(boundary, required_controls, missing_boundary_fields, risk_flags)
     return _result(
         merged,
@@ -266,6 +274,10 @@ def _result(
         "is_reject_or_low_trust": bool(record.get("is_reject_or_low_trust", False)),
         "provenance_constrained": bool(record.get("provenance_constrained", False)),
         "text_class_provenance_conflict": bool(record.get("text_class_provenance_conflict", False)),
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "nitrogen_source": str(record.get("nitrogen_source") or ""),
+        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
+        "reaction_profile": record.get("reaction_profile") or _reaction_profile_summary(get_reaction_profile(str(record.get("reaction_family") or "unclear"))),
         "claim_type": claim_type,
         "maximum_supported_boundary": maximum_supported_boundary,
         "admissibility_status": admissibility_status,
@@ -273,7 +285,7 @@ def _result(
         "paired_body_required": _truthy(record.get("paired_body_required")),
         "caption_context_only": _truthy(record.get("caption_context_only")),
         "paired_caption_context": _truthy(record.get("paired_caption_context")),
-        "missing_boundary_fields": _dedupe(missing_boundary_fields),
+        "missing_boundary_fields": _dedupe([*missing_boundary_fields, *_reaction_family_missing_boundary_fields(record)]),
         "validation_gates": validation_gates,
         "boundary_fields_present": boundary_fields_present,
         "boundary_fields_missing": boundary_fields_missing,
@@ -316,6 +328,29 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
     record["is_primary_admissible"] = bool(provenance.get("is_primary_admissible", False))
     record["is_secondary_or_context"] = bool(provenance.get("is_secondary_or_context", is_secondary_or_context(provenance_type)))
     record["is_reject_or_low_trust"] = bool(provenance.get("is_reject_or_low_trust", is_reject_or_low_trust(provenance_type)))
+
+
+def _ensure_reaction_profile(record: dict[str, Any], source_text: str) -> None:
+    family_value = str(record.get("reaction_family") or "").strip()
+    if family_value:
+        family = normalize_reaction_family(family_value)
+    else:
+        family = infer_reaction_family_from_text(source_text)
+    profile = get_reaction_profile(family)
+    record["reaction_family"] = family
+    record["reaction_profile_name"] = profile["reaction_family"]
+    record["reaction_profile"] = _reaction_profile_summary(profile)
+
+
+def _reaction_profile_summary(profile: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "reaction_family": profile["reaction_family"],
+        "nitrogen_source": profile["nitrogen_source"],
+        "product_admission_gates": profile["product_admission_gates"],
+        "family_hidden_taxes": profile["family_hidden_taxes"],
+        "family_route_types": profile["family_route_types"],
+        "experimental_demonstration_allowed": profile["experimental_demonstration_allowed"],
+    }
 
 
 def _provenance_risk_flags(text_class: str, provenance_type: str) -> list[str]:
@@ -728,11 +763,7 @@ def _primary_boundary(
     metric_core = fields["faradaic_efficiency"] and fields["nh3_yield"] and (
         fields["potential_or_voltage"] or fields["current_density"]
     )
-    validation_core = (
-        validation_gates["isotope_15N"] == "yes"
-        and validation_gates["blank_control"] == "yes"
-        and (validation_gates["nox_control"] == "yes" or validation_gates["contamination_control"] == "yes")
-    )
+    validation_core = _family_validation_core(record, validation_gates)
 
     if any(fields.get(name) for name in BOUNDARY_FIELDS["product_admissibility"]):
         candidates.append("product_admissibility")
@@ -743,7 +774,7 @@ def _primary_boundary(
         candidates.append("cell_metric")
         reasons.append("FE/yield and potential/current are paired with core validation gates.")
 
-    if _n2_claim(record) and validation_gates["isotope_15N"] != "yes":
+    if _requires_15n2(record) and validation_gates["isotope_15N"] != "yes":
         risk_flags.append("n2_claim_without_15n")
         reasons.append("N2-to-NH3 claims without explicit 15N cannot exceed cell_metric.")
 
@@ -806,6 +837,7 @@ def _claim_type(record: dict[str, Any], fields: dict[str, bool]) -> str:
 
 
 def _admissibility_status(
+    record: dict[str, Any],
     boundary: str,
     fields: dict[str, bool],
     validation_gates: dict[str, str],
@@ -820,9 +852,7 @@ def _admissibility_status(
     if boundary == "reactor_legibility":
         return "reactor_legible"
     if boundary == "cell_metric":
-        validation_missing = any(
-            validation_gates[gate] != "yes" for gate in ("isotope_15N", "blank_control", "nox_control")
-        )
+        validation_missing = not _family_validation_core(record, validation_gates)
         matrix_incomplete = fields["faradaic_efficiency"] and not (
             fields["nh3_yield"] and fields["charge_or_runtime"] and fields["potential_or_voltage"]
         )
@@ -858,8 +888,19 @@ def _required_controls(
     validation_gates: dict[str, str],
 ) -> list[str]:
     controls: list[str] = []
-    if _n2_claim(record) and validation_gates["isotope_15N"] != "yes":
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    if _requires_15n2(record) and validation_gates["isotope_15N"] != "yes":
         controls.append("15N2 isotope validation")
+    if family == "NO3RR":
+        controls.extend(["nitrate/nitrite source accounting", "nitrogen mass balance"])
+    elif family == "NO2RR":
+        controls.extend(["nitrate/nitrite source accounting", "nitrogen mass balance"])
+    elif family == "NORR":
+        controls.extend(["NO source purity", "NOx balance", "gas handling blank"])
+    elif family in {"mixed", "unclear"}:
+        controls.extend(["clarify nitrogen source"])
+        if family == "mixed":
+            controls.append("nitrogen-source accounting")
     if validation_gates["blank_control"] != "yes":
         controls.append("Ar/N2-free blank")
     if validation_gates["nox_control"] != "yes":
@@ -941,12 +982,47 @@ def _has_process_signal(fields: dict[str, bool]) -> bool:
     return any(fields.get(name) for name in BOUNDARY_FIELDS["process_partial"])
 
 
+def _family_validation_core(record: dict[str, Any], validation_gates: dict[str, str]) -> bool:
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    if family in {"NO3RR", "NO2RR", "NORR"}:
+        return (
+            validation_gates["blank_control"] == "yes"
+            and validation_gates["contamination_control"] == "yes"
+            and validation_gates["quantification_method"] == "yes"
+        )
+    if family in {"mixed", "unclear"}:
+        return False
+    return (
+        validation_gates["isotope_15N"] == "yes"
+        and validation_gates["blank_control"] == "yes"
+        and (validation_gates["nox_control"] == "yes" or validation_gates["contamination_control"] == "yes")
+    )
+
+
+def _reaction_family_missing_boundary_fields(record: dict[str, Any]) -> list[str]:
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    if family in {"mixed", "unclear"}:
+        return ["nitrogen_source_disambiguation"]
+    if family in {"NO3RR", "NO2RR"}:
+        return ["nitrogen_balance"]
+    if family == "NORR":
+        return ["NOx_balance"]
+    return []
+
+
+def _requires_15n2(record: dict[str, Any]) -> bool:
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    if family in {"NO3RR", "NO2RR", "NORR", "mixed", "unclear"}:
+        return False
+    return _n2_claim(record)
+
+
 def _n2_claim(record: dict[str, Any]) -> bool:
     text = _normalized_text(record)
-    family = str(record.get("reaction_family") or "").casefold()
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
     source = str(record.get("nitrogen_source") or "").casefold()
     return (
-        family in {"enrr", "linrr"}
+        family in {"eNRR", "LiNRR"}
         or source in {"n2", "15n2"}
         or _contains_any(text, ["n2 reduction", "nitrogen reduction", "dinitrogen", "n2-to-nh3", "n2 to nh3"])
         or ("n2" in text and "nh3" in text)
@@ -1061,6 +1137,10 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "is_reject_or_low_trust",
         "provenance_constrained",
         "text_class_provenance_conflict",
+        "reaction_family",
+        "nitrogen_source",
+        "reaction_profile_name",
+        "reaction_profile",
         "claim_type",
         "maximum_supported_boundary",
         "admissibility_status",

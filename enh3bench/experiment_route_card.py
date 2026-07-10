@@ -20,6 +20,9 @@ def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> s
         "## 1. Recommendation / 建议",
         "",
         f"Priority: `{route.get('priority_label')}` (score {route.get('priority_score')}).",
+        f"Reaction family: `{route.get('reaction_family') or 'unclear'}`.",
+        f"Lab demonstration allowed: `{bool(route.get('lab_demonstration_allowed'))}`.",
+        f"Reaction profile: {_reaction_profile_line(route.get('reaction_profile'))}",
         "",
         "## 2. Hypothesis / 假设",
         "",
@@ -110,6 +113,7 @@ def export_public_route_summary(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     priority_counts = Counter(str(route.get("priority_label") or "missing") for route in routes)
     route_type_counts = Counter(str(route.get("route_type") or "missing") for route in routes)
+    family_counts = Counter(str(route.get("reaction_family") or "unclear") for route in routes)
     lines = [
         f"# Experiment Route Summary: {run_name}",
         "",
@@ -125,7 +129,11 @@ def export_public_route_summary(
         "",
         _table(["Route type", "Routes"], route_type_counts.items()),
         "",
-        "## 4. Safety statement",
+        "## 4. Reaction families",
+        "",
+        _table(["Reaction family", "Routes"], family_counts.items()),
+        "",
+        "## 5. Safety statement",
         "",
         "These route cards are structured planning artifacts, not wet-lab SOPs. Local safety review and human scientific review remain mandatory.",
         "",
@@ -136,6 +144,15 @@ def export_public_route_summary(
 
 def load_ranked_routes(run_name: str, base_dir: str | Path = "data/experiment_routes") -> list[dict[str, Any]]:
     return load_jsonl(Path(base_dir) / run_name / "ranked_experiment_routes.jsonl")
+
+
+def _reaction_profile_line(value: Any) -> str:
+    if not isinstance(value, dict):
+        return "none"
+    family = str(value.get("reaction_family") or "unclear")
+    nitrogen_source = str(value.get("nitrogen_source") or "unknown nitrogen source")
+    allowed = bool(value.get("experimental_demonstration_allowed"))
+    return f"{family}; nitrogen_source={nitrogen_source}; lab_demo_default={allowed}"
 
 
 def _bullet_list(value: Any) -> str:

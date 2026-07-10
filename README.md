@@ -74,6 +74,19 @@ C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name fina
 
 Outputs are written under `data\boundary_ledger\{run_name}\` and `data\reports\boundary_ledger_report.{run_name}.md`. See `docs/boundary_ledger_concept.md`, `docs/claim_rights_schema.md`, and `docs/hidden_tax_rubric.md`.
 
+### Reaction-family profiles
+
+BoundaryLedger is eNH3-wide, with formal profiles for `eNRR`, `LiNRR`, `NO3RR`, `NO2RR`, `NORR`, `mixed`, and `unclear` records. LiNRR is the current USTC wet-lab demonstration track because it exposes the densest set of solvent, interphase, wetting, product-state, and HOR/H2 boundary burdens; it is not the only supported literature family.
+
+Reaction-family profiles normalize or infer `reaction_family`, attach profile summaries to evidence and claim-rights outputs, apply family-specific validation gates, and keep the experiment planner scoped to LiNRR lab-demo routes by default.
+
+```powershell
+C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name final_pilot --lab-profile data\lab_profiles\ustc_linnr_profile.yaml --reaction-family LiNRR
+C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name final_pilot --lab-profile data\lab_profiles\ustc_linnr_profile.yaml --include-families LiNRR,eNRR --no-lab-demo-only
+```
+
+See `docs/reaction_family_profiles.md`.
+
 ### Phase B: Docling provenance hardening
 
 Phase B marks source spans as primary body text, tables, review tables, captions, references, metadata/front matter, or supplementary context before claim-rights adjudication. Docling JSON is used when available, and older runs fall back to deterministic provenance inference.

@@ -24,6 +24,14 @@ from enh3bench.lab_profile import (
 )
 from enh3bench.ledger_router import load_jsonl
 from enh3bench.llm_clients.base import sanitize_model_name_for_path
+from enh3bench.reaction_profiles import (
+    experimental_demonstration_allowed,
+    get_reaction_profile,
+    infer_reaction_family_from_text,
+    normalize_reaction_family,
+    profile_hidden_taxes,
+    profile_route_types,
+)
 
 
 def load_boundary_inputs(run_name: str, model: str | None = None) -> dict[str, Any]:
@@ -61,6 +69,11 @@ def merge_planning_records(boundary_inputs: dict[str, Any]) -> list[dict[str, An
         hidden = hidden_by_key.get(key, {})
         llm = llm_by_key.get(key, {})
         human = human_by_key.get(key, {})
+        family = _record_reaction_family(row, hidden)
+        profile = get_reaction_profile(family)
+        row["reaction_family"] = family
+        row["reaction_profile_name"] = profile["reaction_family"]
+        row["reaction_profile"] = _reaction_profile_summary(profile)
         row["detected_taxes"] = hidden.get("detected_taxes") or row.get("detected_taxes") or row.get("hidden_tax") or []
         row["hidden_tax_record"] = hidden
         row["llm_record"] = llm
@@ -81,15 +94,11 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
     gaps: list[dict[str, Any]] = []
     for record in records:
         base = _gap_base(record)
+        family = str(base.get("reaction_family") or "unclear")
         gates = record.get("validation_gates") if isinstance(record.get("validation_gates"), dict) else {}
-        for gate, gap_type in (
-            ("isotope_15N", "missing isotope_15N"),
-            ("blank_control", "missing blank_control"),
-            ("nox_control", "missing nox_control"),
-            ("contamination_control", "missing contamination_control"),
-        ):
+        for gate, gap_type in _validation_gap_specs(family):
             if str(gates.get(gate) or "").casefold() not in {"yes", "explicit", "true", "present"}:
-                gaps.append({**base, "gap_type": gap_type, "route_type_hint": "validation_gap_closure"})
+                gaps.append({**base, "gap_type": gap_type, "route_type_hint": _profile_route_hint(family, "validation_gap_closure")})
 
         missing_fields = _list_values(record.get("missing_boundary_fields"))
         for missing in missing_fields:
@@ -99,11 +108,13 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
                 route_type = "product_state_accounting" if "product state" in normalized else "electrolyte_window"
             if "capture" in normalized:
                 route_type = "product_state_accounting"
-            gaps.append({**base, "gap_type": f"missing {missing}", "route_type_hint": route_type})
+            gaps.append({**base, "gap_type": f"missing {missing}", "route_type_hint": _profile_route_hint(family, route_type)})
 
         for tax in _list_values(record.get("detected_taxes")):
+            if family != "unclear" and tax not in profile_hidden_taxes(family):
+                continue
             route_type = _route_for_hidden_tax(tax)
-            gaps.append({**base, "gap_type": tax, "route_type_hint": route_type, "hidden_tax": tax})
+            gaps.append({**base, "gap_type": tax, "route_type_hint": _profile_route_hint(family, route_type), "hidden_tax": tax})
 
         flags = _list_values(record.get("overclaim_risk_flags")) + _list_values(record.get("llm_audit_flags"))
         if record.get("text_class_provenance_conflict") or "text_class_provenance_conflict" in flags:
@@ -111,26 +122,46 @@ def identify_actionable_gaps(records: list[dict[str, Any]]) -> list[dict[str, An
         if record.get("llm_more_permissive") or "llm_more_permissive_than_rule" in flags:
             gaps.append({**base, "gap_type": "LLM more permissive", "route_type_hint": "validation_gap_closure", "llm_disagreement": True})
         if any("overclaim" in flag or "plant_facing" in flag for flag in flags):
-            gaps.append({**base, "gap_type": "process/reaction boundary overclaim risk", "route_type_hint": "process_boundary_probe"})
+            gaps.append(
+                {
+                    **base,
+                    "gap_type": "process/reaction boundary overclaim risk",
+                    "route_type_hint": _profile_route_hint(family, "process_boundary_probe"),
+                }
+            )
 
         text = _record_text(record)
-        if _contains_any(text, ["sei", "interphase", "resistance", "impedance", "renewal"]):
+        if (family == "unclear" or "interphase_resistance" in profile_route_types(family)) and _contains_any(
+            text, ["sei", "interphase", "resistance", "impedance", "renewal"]
+        ):
             gaps.append({**base, "gap_type": "interphase/resistance term", "route_type_hint": "interphase_resistance"})
-        if _contains_any(text, ["flow", "gde", "ssc", "outlet", "wetting", "flooding"]):
+        if (family == "unclear" or "flow_wetting" in profile_route_types(family)) and _contains_any(
+            text, ["flow", "gde", "ssc", "outlet", "wetting", "flooding"]
+        ):
             gaps.append({**base, "gap_type": "flow/GDE/wetting term", "route_type_hint": "flow_wetting"})
-        if _contains_any(text, [" hor", "hydrogen oxidation", "h2", "proton economy"]):
+        if (family == "unclear" or "HOR_proton_economy" in profile_route_types(family)) and _contains_any(
+            text, [" hor", "hydrogen oxidation", "h2", "proton economy"]
+        ):
             gaps.append({**base, "gap_type": "HOR/proton economy term", "route_type_hint": "HOR_proton_economy"})
     return gaps
 
 
-def propose_rule_based_routes(actionable_gaps: list[dict[str, Any]], lab_profile: dict[str, Any], run_name: str) -> list[dict[str, Any]]:
+def propose_rule_based_routes(
+    actionable_gaps: list[dict[str, Any]],
+    lab_profile: dict[str, Any],
+    run_name: str,
+    reaction_family: str | None = None,
+    include_families: list[str] | None = None,
+    lab_demo_only: bool = False,
+) -> list[dict[str, Any]]:
     """Generate deterministic route cards from actionable gaps and lab profile."""
 
-    by_route: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for gap in actionable_gaps:
+    filtered_gaps = _filter_gaps_by_reaction_family(actionable_gaps, lab_profile, reaction_family, include_families, lab_demo_only)
+    by_route: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for gap in filtered_gaps:
         route_type = str(gap.get("route_type_hint") or "validation_gap_closure")
         if route_type in ROUTE_TYPES:
-            by_route[route_type].append(gap)
+            by_route[(str(gap.get("reaction_family") or "unclear"), route_type)].append(gap)
 
     routes: list[dict[str, Any]] = []
     route_specs = [
@@ -141,12 +172,16 @@ def propose_rule_based_routes(actionable_gaps: list[dict[str, Any]], lab_profile
         ("HOR_proton_economy", "HOR on/off proton-economy boundary test", "HOR_on_off", ["H2-off control", "HOR-off control", "voltage/current/runtime reporting"], ["full_cell_voltage", "anode_potential", "cathode_potential", "NH3_yield", "H2"], "hydrogen_logistics_tax"),
         ("product_state_accounting", "Gas/liquid ammonia accounting and capture boundary", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "water_content"], "product_state/capture gap"),
         ("contamination_control", "NOx/background ammonia contamination stress test", "control_experiment", ["NOx/nitrate/nitrite screening", "background NH3 control", "Ar blank", "N2-free blank", "electrolyte blank"], ["nitrate", "nitrite", "NOx", "liquid_NH4"], "contamination_tax"),
+        ("stability_failure", "Runtime stability and first-failure boundary test", "runtime", ["voltage/current/runtime reporting", "Ar blank"], ["runtime", "full_cell_voltage", "FE", "NH3_yield", "EIS", "failure_mode"], "stability/failure disclosure gap"),
+        ("process_boundary_probe", "Process-boundary accounting probe", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting", "voltage/current/runtime reporting"], ["product_state_split", "full_cell_voltage", "water_content", "gas_phase_NH3", "liquid_NH4"], "process boundary overclaim risk"),
     ]
-    for route_type, title, variable_type, controls, measurements, target in route_specs:
-        gaps = by_route.get(route_type, [])
-        if not gaps:
+    route_spec_by_type = {route_type: spec for route_type, *spec in route_specs}
+    for family, route_type in sorted(by_route):
+        spec = route_spec_by_type.get(route_type)
+        if not spec:
             continue
-        routes.append(_build_route(run_name, route_type, title, variable_type, controls, measurements, target, gaps, lab_profile))
+        title, variable_type, controls, measurements, target = spec
+        routes.append(_build_route(run_name, family, route_type, title, variable_type, controls, measurements, target, by_route[(family, route_type)], lab_profile))
     return rank_routes(routes)
 
 
@@ -186,6 +221,8 @@ def export_experiment_routes(
         "priority_routes": sum(1 for route in routes if route.get("priority_label") == "priority_experiment"),
         "deferred_routes": sum(1 for route in routes if route.get("priority_label") == "defer_until_capability_available"),
         "route_type_counts": dict(Counter(str(route.get("route_type") or "") for route in routes)),
+        "reaction_family_counts": dict(Counter(str(route.get("reaction_family") or "unclear") for route in routes)),
+        "lab_demonstration_allowed_routes": sum(1 for route in routes if bool(route.get("lab_demonstration_allowed"))),
         "jsonl": str(jsonl_path),
         "csv": str(csv_path),
     }
@@ -196,6 +233,7 @@ def export_experiment_routes(
 
 def _build_route(
     run_name: str,
+    reaction_family: str,
     route_type: str,
     title: str,
     variable_type: str,
@@ -205,6 +243,8 @@ def _build_route(
     gaps: list[dict[str, Any]],
     lab_profile: dict[str, Any],
 ) -> dict[str, Any]:
+    family = normalize_reaction_family(reaction_family)
+    profile = get_reaction_profile(family)
     source_ids = _dedupe(gap.get("source_basis_id") for gap in gaps)
     paper_ids = _dedupe(gap.get("paper_id") for gap in gaps)
     span_ids = _dedupe(gap.get("source_span_id") for gap in gaps)
@@ -218,13 +258,21 @@ def _build_route(
     score = _route_score(route_type, gaps, lab_profile, controls, missing_capabilities, primary_count, secondary_count)
     critical_missing = _critical_missing(route_type, missing_capabilities)
     priority_label = _priority_label(score, critical_missing, infeasible, primary_count, secondary_count, gaps)
+    lab_allowed = experimental_demonstration_allowed(family, lab_profile)
+    if not lab_allowed and family != "unclear":
+        priority_label = "defer_until_capability_available"
+        capability_warnings.append(f"reaction family not in current lab demonstration scope: {family}")
     human_review_required = priority_label == "needs_human_review" or any(gap.get("llm_disagreement") for gap in gaps)
     route = {
-        "route_id": f"ER_{_sanitize_id(run_name)}_{route_type}",
+        "route_id": f"ER_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{route_type}",
         "run_name": run_name,
         "source_basis_ids": source_ids,
         "linked_paper_ids": paper_ids,
         "linked_source_span_ids": span_ids,
+        "reaction_family": family,
+        "reaction_profile_name": profile["reaction_family"],
+        "reaction_profile": _reaction_profile_summary(profile),
+        "lab_demonstration_allowed": lab_allowed,
         "route_type": route_type,
         "priority_label": priority_label,
         "priority_score": score,
@@ -334,18 +382,87 @@ def _critical_missing(route_type: str, missing_capabilities: list[str]) -> bool:
     return bool(set(missing_capabilities) & critical_by_route.get(route_type, set()))
 
 
+def _filter_gaps_by_reaction_family(
+    gaps: list[dict[str, Any]],
+    lab_profile: dict[str, Any],
+    reaction_family: str | None,
+    include_families: list[str] | None,
+    lab_demo_only: bool,
+) -> list[dict[str, Any]]:
+    families = _family_filter(reaction_family, include_families)
+    filtered: list[dict[str, Any]] = []
+    for gap in gaps:
+        family = normalize_reaction_family(str(gap.get("reaction_family") or "unclear"))
+        if families and family not in families:
+            continue
+        if lab_demo_only and not experimental_demonstration_allowed(family, lab_profile):
+            continue
+        filtered.append(gap)
+    return filtered
+
+
+def _family_filter(reaction_family: str | None, include_families: list[str] | None) -> set[str]:
+    values = include_families if include_families is not None else ([reaction_family] if reaction_family else [])
+    return {normalize_reaction_family(str(value)) for value in values if str(value or "").strip()}
+
+
 def _gap_base(record: dict[str, Any]) -> dict[str, Any]:
     provenance_type = str(record.get("provenance_type") or "")
     primary = bool(record.get("is_primary_admissible")) and provenance_type not in {"review_table", "figure_caption", "scheme_caption"}
+    family = _record_reaction_family(record)
+    profile = get_reaction_profile(family)
     return {
         "source_basis_id": record.get("claim_id") or record.get("evidence_id") or record.get("source_span_id") or "",
         "paper_id": record.get("paper_id") or "",
         "source_span_id": record.get("source_span_id") or record.get("span_id") or "",
         "evidence_id": record.get("evidence_id") or "",
         "provenance_type": provenance_type,
+        "reaction_family": family,
+        "reaction_profile_name": profile["reaction_family"],
+        "lab_demonstration_allowed": experimental_demonstration_allowed(family),
         "primary_evidence": primary,
         "human_experiment_decision": record.get("human_experiment_decision") or "",
     }
+
+
+def _record_reaction_family(record: dict[str, Any], fallback_record: dict[str, Any] | None = None) -> str:
+    for candidate in (record, fallback_record or {}):
+        family = str(candidate.get("reaction_family") or "").strip()
+        if family:
+            return normalize_reaction_family(family)
+    return infer_reaction_family_from_text(_record_text(record) or _record_text(fallback_record or {}))
+
+
+def _reaction_profile_summary(profile: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "reaction_family": profile["reaction_family"],
+        "nitrogen_source": profile["nitrogen_source"],
+        "family_route_types": profile["family_route_types"],
+        "family_hidden_taxes": profile["family_hidden_taxes"],
+        "experimental_demonstration_allowed": profile["experimental_demonstration_allowed"],
+    }
+
+
+def _validation_gap_specs(family: str) -> tuple[tuple[str, str], ...]:
+    normalized = normalize_reaction_family(family)
+    common = (
+        ("blank_control", "missing blank_control"),
+        ("contamination_control", "missing contamination_control"),
+    )
+    if normalized in {"eNRR", "LiNRR"}:
+        return (("isotope_15N", "missing isotope_15N"), *common, ("nox_control", "missing nox_control"))
+    if normalized in {"NO3RR", "NO2RR", "NORR"}:
+        return common
+    return common
+
+
+def _profile_route_hint(family: str, route_type: str) -> str:
+    normalized = normalize_reaction_family(family)
+    if normalized == "unclear":
+        return route_type
+    if route_type in profile_route_types(normalized):
+        return route_type
+    return "validation_gap_closure"
 
 
 def _route_for_hidden_tax(tax: str) -> str:
@@ -535,6 +652,9 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
     preferred = [
         "route_id",
         "run_name",
+        "reaction_family",
+        "reaction_profile_name",
+        "lab_demonstration_allowed",
         "route_type",
         "priority_label",
         "priority_score",
