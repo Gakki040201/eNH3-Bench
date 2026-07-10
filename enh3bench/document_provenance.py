@@ -11,6 +11,7 @@ from typing import Any
 from enh3bench.ledger_router import load_jsonl
 from enh3bench.front_matter import strip_conversion_front_matter
 from enh3bench.provenance_rules import infer_provenance_from_text
+from enh3bench.section_context import attach_section_context_to_records
 
 
 def load_docling_json(path: str | Path) -> dict[str, Any]:
@@ -43,7 +44,16 @@ def extract_provenance_from_docling_json(
         section = _item_section(item)
         block_type = _item_block_type(item)
         page = _item_page(item)
-        raw = dict(item)
+        raw = attach_section_context_to_records(
+            [
+                {
+                    **dict(item),
+                    "source_text": text,
+                    "section": section,
+                    "block_type": block_type,
+                }
+            ]
+        )[0]
         if block_type:
             raw.setdefault("block_type", block_type)
         inferred = infer_provenance_from_text(text, section, raw)
@@ -58,10 +68,19 @@ def extract_provenance_from_docling_json(
                 "evidence_id": evidence_id,
                 "source_text": text,
                 "section": section,
+                "section_heading": raw.get("section_heading") or "",
+                "section_path": raw.get("section_path") or [],
+                "section_level": raw.get("section_level") or 0,
+                "section_type": raw.get("section_type") or "unknown",
+                "section_start_offset": raw.get("section_start_offset"),
+                "section_end_offset": raw.get("section_end_offset"),
+                "section_confidence": raw.get("section_confidence") or "low",
+                "section_signals": raw.get("section_signals") or [],
                 "page": page,
                 "block_type": block_type,
                 "provenance_type": inferred["provenance_type"],
                 "provenance_confidence": inferred["confidence"],
+                "provenance_confidence_rationale": inferred.get("provenance_confidence_rationale", []),
                 "provenance_signals": inferred["signals"],
                 "is_primary_admissible": inferred["is_primary_admissible"],
                 "is_secondary_or_context": inferred["is_secondary_or_context"],
@@ -76,14 +95,15 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
     """Return a ProvenanceRecord-like dict for a source span or evidence bundle."""
 
     source_text = _source_text(record)
-    section = _first_text(record, "source_section", "section")
+    section_record = attach_section_context_to_records([record])[0]
+    section = _first_text(section_record, "section_heading", "source_section", "section")
     isolation = strip_conversion_front_matter(source_text)
     inference_text = source_text
     metadata_isolation_signals: list[str] = []
     if (isolation.get("metadata_removed") or isolation.get("repository_cover_removed")) and str(isolation.get("body_text") or "").strip():
         inference_text = str(isolation.get("body_text") or "")
         metadata_isolation_signals = ["metadata_isolation_applied", *list(isolation.get("signals") or [])]
-    inferred = infer_provenance_from_text(inference_text, section, record)
+    inferred = infer_provenance_from_text(inference_text, section, section_record)
     source_span_id = _first_text(record, "source_span_id", "span_id", "id")
     evidence_id = _first_text(record, "evidence_id")
     return {
@@ -96,10 +116,19 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
         "source_text": inference_text,
         "raw_source_text": source_text if inference_text != source_text else "",
         "section": section,
+        "section_heading": section_record.get("section_heading") or "",
+        "section_path": section_record.get("section_path") or [],
+        "section_level": section_record.get("section_level") or 0,
+        "section_type": section_record.get("section_type") or "unknown",
+        "section_start_offset": section_record.get("section_start_offset"),
+        "section_end_offset": section_record.get("section_end_offset"),
+        "section_confidence": section_record.get("section_confidence") or "low",
+        "section_signals": section_record.get("section_signals") or [],
         "page": record.get("page") or record.get("page_no") or record.get("page_number"),
         "block_type": _first_text(record, "block_type", "label", "docling_label"),
         "provenance_type": inferred["provenance_type"],
         "provenance_confidence": inferred["confidence"],
+        "provenance_confidence_rationale": inferred.get("provenance_confidence_rationale", []),
         "provenance_signals": [*metadata_isolation_signals, *inferred["signals"]],
         "metadata_isolation_signals": metadata_isolation_signals,
         "metadata_removed": bool(isolation.get("metadata_removed")),
@@ -107,15 +136,19 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
         "is_primary_admissible": inferred["is_primary_admissible"],
         "is_secondary_or_context": inferred["is_secondary_or_context"],
         "is_reject_or_low_trust": inferred["is_reject_or_low_trust"],
-        "raw_record": dict(record),
+        "raw_record": dict(section_record),
     }
 
 
-def attach_provenance_to_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def attach_provenance_to_records(
+    records: list[dict[str, Any]],
+    markdown_by_document: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     """Attach provenance fields to each record, inferring missing provenance."""
 
     attached: list[dict[str, Any]] = []
-    for record in records:
+    sectioned = attach_section_context_to_records(records, markdown_by_document)
+    for record in sectioned:
         item = dict(record)
         provenance = infer_provenance_for_record(item)
         _copy_provenance_fields(item, provenance)
@@ -152,9 +185,27 @@ def summarize_provenance(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Return counts by provenance type and admissibility class."""
 
     types = Counter(str(record.get("provenance_type") or "unknown") for record in records)
+    section_types = Counter(str(record.get("section_type") or "unknown") for record in records)
+    body_confidence = Counter(
+        str(record.get("provenance_confidence") or "low")
+        for record in records
+        if str(record.get("provenance_type") or "unknown") == "body"
+    )
+    recognized_section_count = sum(1 for record in records if str(record.get("section_type") or "unknown") != "unknown")
+    unsectioned_body_count = sum(
+        1
+        for record in records
+        if str(record.get("provenance_type") or "unknown") == "body"
+        and str(record.get("section_type") or "unknown") == "unknown"
+    )
     return {
         "total": len(records),
         "provenance_type_counts": dict(sorted(types.items())),
+        "section_type_counts": dict(sorted(section_types.items())),
+        "body_confidence_counts": dict(sorted(body_confidence.items())),
+        "recognized_section_count": recognized_section_count,
+        "recognized_section_coverage": (recognized_section_count / len(records)) if records else 0.0,
+        "unsectioned_body_count": unsectioned_body_count,
         "primary_admissible_count": sum(1 for record in records if bool(record.get("is_primary_admissible"))),
         "secondary_or_context_count": sum(1 for record in records if bool(record.get("is_secondary_or_context"))),
         "reject_or_low_trust_count": sum(1 for record in records if bool(record.get("is_reject_or_low_trust"))),
@@ -280,7 +331,16 @@ def _copy_provenance_fields(target: dict[str, Any], provenance: dict[str, Any]) 
         "provenance_id",
         "provenance_type",
         "provenance_confidence",
+        "provenance_confidence_rationale",
         "provenance_signals",
+        "section_heading",
+        "section_path",
+        "section_level",
+        "section_type",
+        "section_start_offset",
+        "section_end_offset",
+        "section_confidence",
+        "section_signals",
         "is_primary_admissible",
         "is_secondary_or_context",
         "is_reject_or_low_trust",
@@ -361,10 +421,19 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "evidence_id",
         "source_text",
         "section",
+        "section_heading",
+        "section_path",
+        "section_level",
+        "section_type",
+        "section_start_offset",
+        "section_end_offset",
+        "section_confidence",
+        "section_signals",
         "page",
         "block_type",
         "provenance_type",
         "provenance_confidence",
+        "provenance_confidence_rationale",
         "provenance_signals",
         "is_primary_admissible",
         "is_secondary_or_context",

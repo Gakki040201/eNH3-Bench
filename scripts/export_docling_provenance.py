@@ -53,6 +53,11 @@ def main() -> int:
     print(f"Summary CSV: {run_dir / 'provenance_summary.csv'}")
     print(f"Report: {report_path}")
     print("Distribution: " + ", ".join(f"{key}={value}" for key, value in summary["provenance_type_counts"].items()))
+    print(
+        "Recognized section coverage: "
+        f"{summary['recognized_section_count']}/{summary['total']} "
+        f"({summary['recognized_section_coverage']:.1%})"
+    )
     return 0
 
 
@@ -89,6 +94,11 @@ def _write_summary_csv(records: list[dict[str, Any]], output_path: Path) -> None
             {
                 "provenance_type": provenance_type,
                 "count": count,
+                "section_type_distribution": json.dumps(summary["section_type_counts"], sort_keys=True),
+                "body_confidence_distribution": json.dumps(summary["body_confidence_counts"], sort_keys=True),
+                "recognized_section_count": summary["recognized_section_count"],
+                "recognized_section_coverage": f"{summary['recognized_section_coverage']:.6f}",
+                "unsectioned_body_count": summary["unsectioned_body_count"],
                 "is_primary_admissible": provenance_type in {"body", "abstract", "methods", "results", "discussion"},
                 "is_secondary_or_context": provenance_type in {"table", "review_table", "figure_caption", "scheme_caption", "supplementary"},
                 "is_reject_or_low_trust": provenance_type in {"reference", "bibliography", "front_matter", "metadata", "copyright_note"},
@@ -99,6 +109,11 @@ def _write_summary_csv(records: list[dict[str, Any]], output_path: Path) -> None
         fieldnames = [
             "provenance_type",
             "count",
+            "section_type_distribution",
+            "body_confidence_distribution",
+            "recognized_section_count",
+            "recognized_section_coverage",
+            "unsectioned_body_count",
             "is_primary_admissible",
             "is_secondary_or_context",
             "is_reject_or_low_trust",
@@ -145,27 +160,40 @@ def _render_report(run_name: str, records: list[dict[str, Any]], sources: list[s
         "",
         f"- {summary['primary_admissible_count']}",
         "",
-        "## 5. Secondary/context span count",
+        "## 5. Section type distribution",
+        "",
+        _counter_table(Counter({key: int(value) for key, value in summary["section_type_counts"].items()}), "Section type"),
+        "",
+        "## 6. Body confidence distribution",
+        "",
+        _counter_table(Counter({key: int(value) for key, value in summary["body_confidence_counts"].items()}), "Confidence"),
+        "",
+        "## 7. Recognized-section coverage",
+        "",
+        f"- Recognized section records: {summary['recognized_section_count']} / {summary['total']} ({summary['recognized_section_coverage']:.1%})",
+        f"- Unsectioned body records: {summary['unsectioned_body_count']}",
+        "",
+        "## 8. Secondary/context span count",
         "",
         f"- {summary['secondary_or_context_count']}",
         "",
-        "## 6. Reject/low-trust span count",
+        "## 9. Reject/low-trust span count",
         "",
         f"- {summary['reject_or_low_trust_count']}",
         "",
-        "## 7. Table/review-table examples",
+        "## 10. Table/review-table examples",
         "",
         _examples(records, {"table", "review_table"}),
         "",
-        "## 8. Figure caption examples",
+        "## 11. Figure caption examples",
         "",
         _examples(records, {"figure_caption", "scheme_caption"}),
         "",
-        "## 9. Reference/front-matter examples",
+        "## 12. Reference/front-matter examples",
         "",
         _examples(records, {"reference", "bibliography", "front_matter", "metadata", "copyright_note"}),
         "",
-        "## 10. Consequences for claim-rights adjudication",
+        "## 13. Consequences for claim-rights adjudication",
         "",
         (
             "Reference, bibliography, metadata, copyright, and front-matter spans are low trust for "

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.front_matter import make_front_matter_records, strip_conversion_front_matter
+from enh3bench.section_context import extract_markdown_section_blocks
 
 
 def load_markdown_documents(input_dir: str | Path) -> list[dict[str, Any]]:
@@ -25,6 +26,7 @@ def load_markdown_documents(input_dir: str | Path) -> list[dict[str, Any]]:
                 "document_id": document_id,
                 "path": str(path),
                 "text": isolation["body_text"],
+                "section_blocks": extract_markdown_section_blocks(isolation["body_text"]),
                 "raw_text": raw_text,
                 "front_matter_metadata_text": isolation["metadata_text"],
                 "repository_cover_text": isolation["repository_cover_text"],

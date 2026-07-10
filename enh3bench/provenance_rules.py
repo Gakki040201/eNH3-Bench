@@ -10,6 +10,7 @@ from enh3bench.front_matter import (
     split_yaml_front_matter,
     strip_conversion_front_matter,
 )
+from enh3bench.section_context import classify_section_heading, infer_section_confidence
 
 
 PROVENANCE_TYPES = (
@@ -157,13 +158,19 @@ def infer_provenance_from_text(
     raw_record = raw_record or {}
     source_text = str(text or "")
     normalized = _normalize(source_text)
-    section_text = _normalize(section or raw_record.get("source_section") or raw_record.get("section") or "")
+    section_text = _normalize(
+        section
+        or raw_record.get("section_heading")
+        or raw_record.get("source_section")
+        or raw_record.get("section")
+        or ""
+    )
     signals: list[str] = []
 
     explicit = _explicit_record_provenance(raw_record)
     if explicit:
         signals.append("explicit record provenance")
-        return _result(explicit, "high", signals)
+        return _result(explicit, "high", signals, ["explicit_record_provenance"])
 
     if contains_mixed_front_matter_and_body(source_text):
         stripped = strip_conversion_front_matter(source_text)
@@ -175,59 +182,69 @@ def infer_provenance_from_text(
 
     yaml_metadata, yaml_body = split_yaml_front_matter(source_text)
     if yaml_metadata is not None and not yaml_body.strip():
-        return _result("metadata", "high", ["isolated YAML/Docling metadata"])
+        return _result("metadata", "high", ["isolated YAML/Docling metadata"], ["isolated_metadata"])
 
     if is_repository_cover_page_text(source_text) and not strip_conversion_front_matter(source_text).get("body_text"):
-        return _result("front_matter", "high", ["isolated repository front matter"])
+        return _result("front_matter", "high", ["isolated repository front matter"], ["isolated_front_matter"])
 
     if _copyright_note(normalized, raw_record):
         signals.append("copyright or conversion-use note")
-        return _result("copyright_note", "high", signals)
+        return _result("copyright_note", "high", signals, ["copyright_or_conversion_note"])
 
     metadata_score, metadata_signals = _metadata_score(source_text, normalized, raw_record)
     if metadata_score >= 3:
         signals.extend(metadata_signals)
         provenance_type = "front_matter" if _near_beginning_or_front_matter(source_text, raw_record) else "metadata"
-        return _result(provenance_type, "high", signals)
+        return _result(provenance_type, "high", signals, ["metadata_score_high"])
     if metadata_score >= 1 and _near_beginning_or_front_matter(source_text, raw_record):
         signals.extend(metadata_signals)
-        return _result("front_matter", "medium", signals)
+        return _result("front_matter", "medium", signals, ["metadata_score_near_beginning"])
 
     reference_score, reference_signals = _reference_score(source_text, normalized, section_text)
     if reference_score >= 4:
         signals.extend(reference_signals)
         provenance_type = "bibliography" if "bibliography" in section_text or "literature cited" in section_text else "reference"
-        return _result(provenance_type, "high", signals)
+        return _result(provenance_type, "high", signals, ["reference_section_or_list_signal"])
     if reference_score >= 2 and "reference" in section_text:
         signals.extend(reference_signals)
-        return _result("reference", "high", signals)
+        return _result("reference", "high", signals, ["reference_section_label"])
 
     caption_type, caption_confidence, caption_signals = _caption_signal(source_text, normalized)
     if caption_type:
         signals.extend(caption_signals)
-        return _result(caption_type, caption_confidence, signals)
+        return _result(caption_type, caption_confidence, signals, ["caption_signal"])
 
     table_score, table_signals = _table_score(source_text, normalized)
     if table_score >= 2:
         signals.extend(table_signals)
         if _looks_like_review_table(source_text, normalized):
             signals.append("literature-comparison table")
-            return _result("review_table", "high", signals)
-        return _result("table", "high" if table_score >= 3 else "medium", signals)
+            return _result("review_table", "high", signals, ["review_table_signal"])
+        return _result("table", "high" if table_score >= 3 else "medium", signals, ["table_signal"])
 
     if _supplementary_signal(normalized, section_text):
         signals.append("supplementary or supporting-information signal")
-        return _result("supplementary", "medium", signals)
+        return _result("supplementary", "medium", signals, ["supplementary_signal"])
 
-    section_type = _section_provenance(section_text, normalized)
+    section_type = _section_provenance(section_text, normalized, raw_record)
     if section_type != "unknown":
         signals.append(f"section signal: {section_text or section_type}")
-        return _result(section_type, "medium", signals)
+        section_record = dict(raw_record)
+        section_record.setdefault("section_type", section_type)
+        if section and not section_record.get("section_heading"):
+            section_record["section_heading"] = section
+        section_record.setdefault("section_signals", [])
+        section_signals = list(section_record.get("section_signals") or [])
+        if section_text and "record_section_label" not in section_signals:
+            section_signals.append("record_section_label")
+        section_record["section_signals"] = section_signals
+        confidence, rationale = infer_section_confidence(section_record)
+        return _result(_provenance_from_section_type(section_type), confidence, signals + rationale, rationale)
 
     if source_text.strip():
         signals.append("non-empty text without table/caption/reference metadata signal")
-        return _result("body", "low", signals)
-    return _result("unknown", "low", ["empty source text"])
+        return _result("body", "low", signals, ["body_without_section_context"])
+    return _result("unknown", "low", ["empty source text"], ["empty_source_text"])
 
 
 def contains_mixed_front_matter_and_body(text: str) -> bool:
@@ -245,12 +262,18 @@ def contains_mixed_front_matter_and_body(text: str) -> bool:
     return _has_scientific_body_boundary(body_text)
 
 
-def _result(provenance_type: str, confidence: str, signals: list[str]) -> dict[str, Any]:
+def _result(
+    provenance_type: str,
+    confidence: str,
+    signals: list[str],
+    rationale: list[str] | None = None,
+) -> dict[str, Any]:
     normalized = normalize_provenance_type(provenance_type)
     return {
         "provenance_type": normalized,
         "confidence": confidence if confidence in {"low", "medium", "high"} else "low",
         "signals": signals,
+        "provenance_confidence_rationale": rationale or [],
         "is_primary_admissible": is_primary_admissible(normalized),
         "is_secondary_or_context": is_secondary_or_context(normalized),
         "is_reject_or_low_trust": is_reject_or_low_trust(normalized),
@@ -433,11 +456,36 @@ def _has_scientific_body_boundary(text: str) -> bool:
     return len(lines) >= 2 and len(lines[0]) >= 12
 
 
-def _section_provenance(section_text: str, normalized: str) -> str:
+def _section_provenance(section_text: str, normalized: str, raw_record: dict[str, Any]) -> str:
+    explicit_type = str(raw_record.get("section_type") or "").strip()
+    if explicit_type in {
+        "abstract",
+        "introduction",
+        "methods",
+        "experimental",
+        "results",
+        "discussion",
+        "results_and_discussion",
+        "conclusion",
+        "supplementary",
+        "references",
+    }:
+        return explicit_type
+    heading_type = classify_section_heading(
+        str(raw_record.get("section_heading") or raw_record.get("section") or raw_record.get("source_section") or section_text)
+    )
+    if heading_type != "unknown":
+        return heading_type
+    first_line = normalized.splitlines()[0] if "\n" in normalized else normalized[:120]
+    first_line_type = classify_section_heading(first_line)
+    if first_line_type != "unknown":
+        return first_line_type
     section_blob = f"{section_text} {normalized[:120]}"
     if "abstract" in section_blob:
         return "abstract"
-    if any(needle in section_blob for needle in ["results", "result and discussion"]):
+    if any(needle in section_blob for needle in ["results and discussion", "result and discussion"]):
+        return "results_and_discussion"
+    if "results" in section_blob:
         return "results"
     if "discussion" in section_blob:
         return "discussion"
@@ -446,6 +494,18 @@ def _section_provenance(section_text: str, normalized: str) -> str:
     if any(needle in section_blob for needle in ["introduction", "conclusion", "body"]):
         return "body"
     return "unknown"
+
+
+def _provenance_from_section_type(section_type: str) -> str:
+    if section_type == "results_and_discussion":
+        return "results"
+    if section_type in {"introduction", "conclusion", "title"}:
+        return "body"
+    if section_type == "references":
+        return "reference"
+    if section_type == "experimental":
+        return "methods"
+    return section_type
 
 
 def _normalize(value: Any) -> str:

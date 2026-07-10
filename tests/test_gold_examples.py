@@ -90,17 +90,20 @@ class GoldExampleTests(unittest.TestCase):
             self.assertIn(span["source_section"], SOURCE_SECTIONS)
             self.assertTrue(span["text"].strip())
 
+    @unittest.skipUnless(GOLD_PATH.exists(), "sample gold file is optional after data cleanup")
     def test_example_gold_records_validate(self) -> None:
         gold = [evidence_from_dict(row) for row in load_jsonl(GOLD_PATH)]
         self.assertEqual(len(gold), 3)
         for record in gold:
             self.assertEqual(validate_evidence_record(record), [])
 
+    @unittest.skipUnless(GOLD_PATH.exists(), "sample gold file is optional after data cleanup")
     def test_gold_records_are_grounded_in_spans(self) -> None:
         span_text = {span["text"] for span in load_jsonl(SPANS_PATH)}
         for record in [evidence_from_dict(row) for row in load_jsonl(GOLD_PATH)]:
             self.assertIn(record.source_span, span_text)
 
+    @unittest.skipUnless(GOLD_PATH.exists(), "sample gold file is optional after data cleanup")
     def test_lianrr_and_no3rr_examples_exist(self) -> None:
         families = {row["reaction_family"] for row in load_jsonl(GOLD_PATH)}
         self.assertIn("LiNRR", families)
