@@ -62,7 +62,8 @@ def main() -> int:
         print(
             f"{row['model']}: verified={row['records_verified']} failures={row['failures']} "
             f"needs_human_review={row['needs_human_review_count']} "
-            f"parse_errors={row['parse_error_count']} schema_errors={row['schema_error_count']}"
+            f"parse_errors={row['parse_error_count']} schema_errors={row['schema_error_count']} "
+            f"trusted_caps={row['trusted_boundary_capped_count']}"
         )
     return 0 if all(not row.get("unavailable_reason") for row in rows) else 2
 
@@ -90,6 +91,9 @@ def _comparison_row(
         "needs_human_review_count": sum(1 for result in results if bool(result.get("needs_human_review"))),
         "parse_error_count": _error_count(results, "json_parse_error:"),
         "schema_error_count": _error_count(results, "schema_invalid:"),
+        "low_trust_provenance_count": sum(1 for result in results if bool(result.get("low_trust_provenance"))),
+        "llm_overrode_low_trust_count": _flag_count(results, "llm_overrode_low_trust_provenance"),
+        "trusted_boundary_capped_count": _flag_count(results, "trusted_boundary_capped_by_provenance"),
         "unavailable_reason": "",
     }
 
@@ -108,6 +112,9 @@ def _unavailable_row(model: str, records: list[dict[str, Any]], max_records: int
         "needs_human_review_count": 0,
         "parse_error_count": 0,
         "schema_error_count": 0,
+        "low_trust_provenance_count": 0,
+        "llm_overrode_low_trust_count": 0,
+        "trusted_boundary_capped_count": 0,
         "unavailable_reason": reason,
     }
 
@@ -144,18 +151,37 @@ def _render_report(run_name: str, rows: list[dict[str, Any]], args: argparse.Nam
         "",
         _markdown_table(["Model", "Needs human review"], [[row["model"], row["needs_human_review_count"]] for row in rows]),
         "",
-        "## 6. Parse, schema, and API failures",
+        "## 6. Low-trust provenance constrained LLM upgrades",
+        "",
+        _markdown_table(
+            ["Model", "Low-trust records", "LLM overrode low-trust", "Trusted boundary capped"],
+            [
+                [
+                    row["model"],
+                    row["low_trust_provenance_count"],
+                    row["llm_overrode_low_trust_count"],
+                    row["trusted_boundary_capped_count"],
+                ]
+                for row in rows
+            ],
+        ),
+        "",
+        "## 7. Trusted LLM boundary after provenance cap",
+        "",
+        "When low-trust provenance attempts a more permissive boundary, the original LLM output is preserved while the trusted LLM boundary is capped to the rule/provenance-constrained boundary.",
+        "",
+        "## 8. Parse, schema, and API failures",
         "",
         _markdown_table(
             ["Model", "Failures", "Parse errors", "Schema errors", "Unavailable reason"],
             [[row["model"], row["failures"], row["parse_error_count"], row["schema_error_count"], row["unavailable_reason"]] for row in rows],
         ),
         "",
-        "## 7. Safety statement: LLM output is not gold",
+        "## 9. Safety statement: LLM output is not gold",
         "",
         "LLM output is only a verification and disagreement signal. Human review is required before any label can become gold evidence.",
         "",
-        "## 8. Recommended next audit actions",
+        "## 10. Recommended next audit actions",
         "",
         "- Review more-permissive LLM decisions first, especially low-trust provenance upgrades.",
         "- Review more-conservative LLM decisions to identify missing rule checks.",
@@ -179,6 +205,9 @@ def _write_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
         "needs_human_review_count",
         "parse_error_count",
         "schema_error_count",
+        "low_trust_provenance_count",
+        "llm_overrode_low_trust_count",
+        "trusted_boundary_capped_count",
         "unavailable_reason",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
@@ -202,6 +231,28 @@ def _rate(numerator: int, denominator: int) -> float:
 
 def _error_count(results: list[dict[str, Any]], prefix: str) -> int:
     return sum(1 for result in results if str(result.get("llm_parse_error") or "").startswith(prefix))
+
+
+def _flag_count(results: list[dict[str, Any]], flag: str) -> int:
+    return sum(1 for result in results if flag in _list_values(result.get("llm_audit_flags")))
+
+
+def _list_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str) and value.strip():
+        stripped = value.strip()
+        if stripped.startswith("["):
+            try:
+                import json
+
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = None
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        return [part.strip() for part in stripped.split(",") if part.strip()]
+    return []
 
 
 if __name__ == "__main__":

@@ -101,6 +101,8 @@ Phase C adds an optional ChatExtract-style verification layer using an OpenAI-co
 
 LLM responses are strictly schema-validated. A JSON object with missing required verification keys is treated as a verification failure and routed to human review.
 
+Low-trust provenance caps LLM verification and constrains hidden-tax detection. References, metadata, front matter, and copyright notes preserve the original LLM output as an audit signal, but trusted LLM boundaries cannot upgrade beyond the rule/provenance-constrained boundary, and hidden-tax detection avoids domain-tax cascades from low-trust text.
+
 Mock run with no network:
 
 ```powershell

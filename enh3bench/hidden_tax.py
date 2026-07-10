@@ -10,7 +10,13 @@ from typing import Any
 
 from enh3bench.boundary_schema import HIDDEN_TAX_TYPES, coerce_float, has_any_value
 from enh3bench.document_provenance import infer_provenance_for_record
-from enh3bench.provenance_rules import is_reject_or_low_trust, normalize_provenance_type
+from enh3bench.provenance_rules import (
+    is_low_trust_provenance,
+    is_primary_admissible,
+    is_reject_or_low_trust,
+    is_secondary_or_context,
+    normalize_provenance_type,
+)
 
 
 def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
@@ -25,6 +31,10 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     missing_measurements: list[str] = []
     required_controls: list[str] = []
     reasoning: list[str] = []
+
+    low_trust = _truthy(merged.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
+    if low_trust and not _domain_tax_allowed_under_low_trust(merged):
+        return _low_trust_hidden_tax_result(merged, text, provenance_type)
 
     if _contains_any(text, ["electrolyte", "solvent", "donor", "additive", "water", "li salt", "lithium salt", "thf"]):
         detected.append("solvent_management_tax")
@@ -165,6 +175,9 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
     if record.get("provenance_type"):
         record["provenance_type"] = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
         record.setdefault("provenance_confidence", "low")
+        record.setdefault("is_primary_admissible", is_primary_admissible(str(record.get("provenance_type") or "unknown")))
+        record.setdefault("is_secondary_or_context", is_secondary_or_context(str(record.get("provenance_type") or "unknown")))
+        record.setdefault("is_reject_or_low_trust", is_reject_or_low_trust(str(record.get("provenance_type") or "unknown")))
         return
     provenance = infer_provenance_for_record(record)
     record["provenance_type"] = provenance.get("provenance_type") or "unknown"
@@ -266,6 +279,86 @@ def _main_gain(record: dict[str, Any], text: str) -> str:
     return "unspecified claim gain"
 
 
+def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_type: str) -> dict[str, Any]:
+    detected: list[str] = []
+    hidden_assumptions = ["secondary_or_low_trust_text_cannot_establish_primary_boundary"]
+    missing_measurements = ["primary_body_text_required"]
+    required_controls: list[str] = []
+    reasoning = ["Low-trust provenance constrained domain-tax detection."]
+
+    if _performance_like(record, text):
+        detected.append("measurement_matrix_tax")
+        hidden_assumptions.append("Performance-like low-trust text cannot establish a complete metric matrix.")
+        missing_measurements.extend(_missing_measurement_matrix(record, text))
+
+    if _contamination_terms(text):
+        detected.append("contamination_tax")
+        hidden_assumptions.append("nitrogen-containing impurities and background ammonia do not explain the NH3 signal.")
+        missing_measurements.extend(["NOx/nitrate/nitrite screen", "background ammonia", "blank controls"])
+        required_controls.append("screen NOx/nitrate/nitrite and background ammonia with blanks")
+        reasoning.append("Contamination terms are explicit enough to retain contamination_tax under low-trust provenance.")
+
+    detected = _dedupe([tax for tax in detected if tax in HIDDEN_TAX_TYPES])
+    return {
+        "tax_record_id": _tax_record_id(record),
+        "paper_id": str(record.get("paper_id") or ""),
+        "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
+        "evidence_id": str(record.get("evidence_id") or ""),
+        "text_class": str(record.get("text_class") or "unknown"),
+        "provenance_type": provenance_type,
+        "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "detected_taxes": detected,
+        "main_gain": _main_gain(record, text),
+        "hidden_assumptions": _dedupe(hidden_assumptions),
+        "missing_measurements": _dedupe(missing_measurements),
+        "required_controls": _dedupe(required_controls),
+        "severity": _low_trust_severity(detected),
+        "reasoning": _dedupe(reasoning),
+        "source_text": _source_text(record),
+    }
+
+
+def _domain_tax_allowed_under_low_trust(record: dict[str, Any]) -> bool:
+    text_class = str(record.get("text_class") or "").strip()
+    return text_class in {"primary_performance", "primary_performance_with_validation"} and _truthy(record.get("is_primary_admissible"))
+
+
+def _performance_like(record: dict[str, Any], text: str) -> bool:
+    return (
+        _has_fe(record, text)
+        or _has_yield(record, text)
+        or _has_voltage(record, text)
+        or _has_current_density(record, text)
+        or _has_runtime(record, text)
+        or _contains_any(
+            text,
+            [
+                "faradaic",
+                "nh3",
+                "ammonia",
+                "yield",
+                "selectivity",
+                "energy efficiency",
+                "ma cm",
+                "ma/cm",
+                "%",
+            ],
+        )
+    )
+
+
+def _contamination_terms(text: str) -> bool:
+    return _contains_any(text, ["contamination", "nox", "nitrate", "nitrite", "background ammonia", "false positive", "impurity"])
+
+
+def _low_trust_severity(detected_taxes: list[str]) -> str:
+    if not detected_taxes:
+        return "low"
+    if "contamination_tax" in detected_taxes:
+        return "high"
+    return "medium"
+
+
 def _severity(detected_taxes: list[str], record: dict[str, Any], text: str) -> str:
     if not detected_taxes:
         return "low"
@@ -291,6 +384,12 @@ def _first_float(record: dict[str, Any], *keys: str) -> float | None:
 
 def _contains_any(text: str, needles: list[str]) -> bool:
     return any(needle in text for needle in needles)
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}
 
 
 def _dedupe(items: list[str]) -> list[str]:

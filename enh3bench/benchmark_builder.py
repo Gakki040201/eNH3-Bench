@@ -316,6 +316,7 @@ def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any])
         "llm_model": str(record.get("llm_model") or ""),
         "llm_text_class": str(record.get("llm_text_class") or ""),
         "llm_maximum_supported_boundary": str(record.get("llm_maximum_supported_boundary") or ""),
+        "trusted_llm_maximum_supported_boundary": str(record.get("trusted_llm_maximum_supported_boundary") or ""),
         "llm_more_permissive": bool(record.get("llm_more_permissive")),
         "llm_more_conservative": bool(record.get("llm_more_conservative")),
         "needs_human_review": bool(record.get("needs_human_review")),

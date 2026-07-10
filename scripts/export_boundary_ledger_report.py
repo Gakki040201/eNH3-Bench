@@ -108,7 +108,11 @@ def render_report(
         "",
         _high_risk_examples(claims, taxes),
         "",
-        "## 14. Why this is not generic literature extraction",
+        "## 14. Hidden-tax records constrained by low-trust provenance",
+        "",
+        _low_trust_hidden_tax_examples(taxes),
+        "",
+        "## 15. Why this is not generic literature extraction",
         "",
         (
             "Generic extraction asks what values are present in text. BoundaryLedger "
@@ -242,11 +246,41 @@ def _low_trust_examples(claims: list[dict[str, Any]], limit: int = 12) -> str:
     return _markdown_table(["Claim", "Paper", "Provenance", "Status", "Source preview"], rows)
 
 
+def _low_trust_hidden_tax_examples(taxes: list[dict[str, Any]], limit: int = 12) -> str:
+    selected = [
+        tax
+        for tax in taxes
+        if "Low-trust provenance constrained domain-tax detection." in _list_values(tax.get("reasoning"))
+    ]
+    if not selected:
+        return "No hidden-tax records were constrained by low-trust provenance in this run."
+    rows = [
+        [
+            tax.get("tax_record_id") or "",
+            tax.get("paper_id") or "",
+            tax.get("provenance_type") or "",
+            "; ".join(str(item) for item in (tax.get("detected_taxes") or [])[:4]),
+            tax.get("severity") or "",
+            _preview(tax.get("source_text") or ""),
+        ]
+        for tax in selected[:limit]
+    ]
+    return _markdown_table(["Tax record", "Paper", "Provenance", "Detected taxes", "Severity", "Source preview"], rows)
+
+
 def _preview(value: Any, limit: int = 160) -> str:
     text = " ".join(str(value).split())
     if len(text) <= limit:
         return text
     return text[: limit - 3] + "..."
+
+
+def _list_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str) and value.strip():
+        return [part.strip() for part in value.split(",") if part.strip()]
+    return []
 
 
 def _markdown_table(headers: list[str], rows: list[list[Any]]) -> str:

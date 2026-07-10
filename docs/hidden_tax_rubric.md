@@ -26,4 +26,10 @@ Triggered by contamination, NOx, nitrate, nitrite, background ammonia, false-pos
 
 Triggered when FE is reported without the broader matrix needed for boundary comparison: NH3 yield, energy efficiency, voltage or potential, current density, runtime or stability, and product state.
 
+## Hidden tax under low-trust provenance
+
+Reference, bibliography, front-matter, metadata, and copyright-note text should not trigger full domain-tax cascades from glued keywords or literature titles. Under low-trust provenance, performance-like text can still receive `measurement_matrix_tax`, and explicit contamination/background-ammonia language can still receive `contamination_tax`.
+
+Domain-specific taxes such as `solvent_management_tax`, `resistance_or_renewal_tax`, `wetting_outlet_capture_tax`, and `hydrogen_logistics_tax` require primary body/results/methods evidence or an explicitly primary-admissible record. Primary body text is required before low-trust text can establish reactor, solvent, hydrogen, or process-boundary hidden taxes.
+
 Severity is low, medium, or high. High severity is used for multiple hidden taxes, high-FE incomplete metric claims, or contamination paired with incomplete metric disclosure.

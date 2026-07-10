@@ -12,7 +12,7 @@ from typing import Any
 from enh3bench.boundary_schema import boundary_rank
 from enh3bench.ledger_router import load_jsonl
 from enh3bench.llm_clients.base import BaseLLMClient, LLMClientError, sanitize_model_name_for_path
-from enh3bench.provenance_rules import is_reject_or_low_trust, normalize_provenance_type
+from enh3bench.provenance_rules import is_low_trust_provenance, low_trust_reason, normalize_provenance_type
 
 
 REQUIRED_LLM_TOP_LEVEL_KEYS = [
@@ -202,6 +202,10 @@ def verify_record_with_llm(
     verified["llm_raw_response"] = raw_response
     verified["llm_parse_error"] = parse_error
     verified["verification_timestamp_utc"] = _utc_now()
+    low_trust = _low_trust_provenance(record)
+    rule_boundary = _rule_boundary(record)
+    verified["low_trust_provenance"] = low_trust
+    verified["low_trust_provenance_reason"] = low_trust_reason(str(record.get("provenance_type") or "unknown")) if low_trust else ""
 
     if parsed is None:
         verified.update(
@@ -214,6 +218,8 @@ def verify_record_with_llm(
                 "required_control_disagreement": [],
                 "needs_human_review": True,
                 "llm_audit_flags": ["llm_parse_or_schema_error"],
+                "trusted_llm_maximum_supported_boundary": rule_boundary,
+                "trusted_llm_boundary_reason": "LLM response could not be parsed or schema-validated.",
             }
         )
         return verified
@@ -297,10 +303,18 @@ def compare_rule_and_llm(record: dict[str, Any], llm_result: dict[str, Any]) -> 
         flags.append("required_control_disagreement")
 
     provenance_type = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
-    low_trust = bool(record.get("is_reject_or_low_trust")) or is_reject_or_low_trust(provenance_type)
+    low_trust = _low_trust_provenance(record)
+    low_trust_provenance_reason = low_trust_reason(provenance_type) if low_trust else ""
+    trusted_boundary = llm_boundary
+    trusted_boundary_reason = "No low-trust provenance cap applied."
     if low_trust and llm_rank > rule_rank:
         needs_human_review = True
         flags.append("llm_overrode_low_trust_provenance")
+        flags.append("trusted_boundary_capped_by_provenance")
+        trusted_boundary = rule_boundary
+        trusted_boundary_reason = "LLM output was more permissive than a low-trust provenance-constrained rule boundary."
+    elif low_trust:
+        trusted_boundary_reason = "LLM output did not exceed low-trust provenance constraint."
 
     field_support = llm_result.get("field_support") if isinstance(llm_result.get("field_support"), dict) else {}
     isotope_support = str(field_support.get("isotope_15N") or "").casefold()
@@ -321,6 +335,10 @@ def compare_rule_and_llm(record: dict[str, Any], llm_result: dict[str, Any]) -> 
         "required_control_disagreement": required_disagreement,
         "needs_human_review": needs_human_review,
         "llm_audit_flags": _dedupe(flags),
+        "trusted_llm_maximum_supported_boundary": trusted_boundary,
+        "trusted_llm_boundary_reason": trusted_boundary_reason,
+        "low_trust_provenance": low_trust,
+        "low_trust_provenance_reason": low_trust_provenance_reason,
     }
 
 
@@ -391,6 +409,21 @@ def _parse_or_schema_error_type(error: str) -> str:
     return "llm_parse_or_schema_error"
 
 
+def _rule_boundary(record: dict[str, Any]) -> str:
+    return str(record.get("maximum_supported_boundary") or "unsupported_or_secondary")
+
+
+def _low_trust_provenance(record: dict[str, Any]) -> bool:
+    provenance_type = str(record.get("provenance_type") or "unknown")
+    return _truthy(record.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}
+
+
 def _symmetric_difference(left: list[Any], right: list[Any]) -> list[str]:
     left_set = {str(item) for item in left}
     right_set = {str(item) for item in right}
@@ -449,6 +482,10 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "llm_verification",
         "llm_raw_response",
         "llm_parse_error",
+        "trusted_llm_maximum_supported_boundary",
+        "trusted_llm_boundary_reason",
+        "low_trust_provenance",
+        "low_trust_provenance_reason",
         "boundary_agreement",
         "text_class_agreement",
         "llm_more_permissive",

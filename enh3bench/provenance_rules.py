@@ -102,8 +102,49 @@ def is_secondary_or_context(provenance_type: str) -> bool:
     return normalize_provenance_type(provenance_type) in SECONDARY_OR_CONTEXT_PROVENANCE
 
 
+def is_low_trust_provenance(provenance_type: str) -> bool:
+    """Return True when provenance cannot establish primary evidence by itself."""
+
+    normalized = normalize_provenance_type(provenance_type)
+    if normalized in REJECT_OR_LOW_TRUST_PROVENANCE:
+        return True
+    if normalized != "unknown":
+        return False
+    raw = str(provenance_type or "").casefold()
+    return any(
+        signal in raw
+        for signal in (
+            "reference",
+            "bibliography",
+            "front_matter",
+            "front matter",
+            "metadata",
+            "copyright",
+        )
+    )
+
+
+def low_trust_reason(provenance_type: str) -> str:
+    """Explain why a provenance type is constrained as low trust."""
+
+    if not is_low_trust_provenance(provenance_type):
+        return ""
+    normalized = normalize_provenance_type(provenance_type)
+    if normalized == "reference":
+        return "Reference-list text cannot establish a primary experimental boundary."
+    if normalized == "bibliography":
+        return "Bibliography text cannot establish a primary experimental boundary."
+    if normalized == "front_matter":
+        return "Front-matter text cannot establish a primary experimental boundary."
+    if normalized == "metadata":
+        return "Metadata text cannot establish a primary experimental boundary."
+    if normalized == "copyright_note":
+        return "Copyright or conversion-note text cannot establish a primary experimental boundary."
+    return "Explicit low-trust provenance signal cannot establish a primary experimental boundary."
+
+
 def is_reject_or_low_trust(provenance_type: str) -> bool:
-    return normalize_provenance_type(provenance_type) in REJECT_OR_LOW_TRUST_PROVENANCE
+    return is_low_trust_provenance(provenance_type)
 
 
 def infer_provenance_from_text(

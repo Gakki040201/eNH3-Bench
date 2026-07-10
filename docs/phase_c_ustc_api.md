@@ -72,6 +72,12 @@ Valid JSON is not enough for a successful LLM verification. The response must co
 
 Schema-invalid outputs, such as `{"text": "..."}`, are treated as verification failures. They are preserved with the raw LLM response in `llm_failures.jsonl`, marked with `llm_parse_error`, and routed to human review. LLM output remains an audit signal, not gold.
 
+## Low-trust provenance cap
+
+Original LLM output is preserved even when it disagrees with BoundaryLedger. For low-trust provenance such as `reference`, `front_matter`, `metadata`, or `copyright_note`, a more permissive LLM boundary is not trusted as a boundary upgrade. The verifier writes `trusted_llm_maximum_supported_boundary` capped to the rule/provenance-constrained boundary and marks the row for human review with `llm_overrode_low_trust_provenance` and `trusted_boundary_capped_by_provenance`.
+
+This cap does not overwrite `llm_verification.maximum_supported_boundary`; it only provides a constrained audit interpretation for downstream review.
+
 ## Safety notes
 
 - Do not commit `.env` or API keys.

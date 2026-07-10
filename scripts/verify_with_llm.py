@@ -65,6 +65,9 @@ def main() -> int:
     print(f"parse_error_count: {counts['parse_error']}")
     print(f"schema_error_count: {counts['schema_error']}")
     print(f"parse_or_schema_error_count: {counts['parse_or_schema_error']}")
+    print(f"low_trust_provenance_count: {counts['low_trust_provenance']}")
+    print(f"llm_overrode_low_trust_count: {counts['llm_overrode_low_trust']}")
+    print(f"trusted_boundary_capped_count: {counts['trusted_boundary_capped']}")
     print(f"JSONL: {outputs['jsonl']}")
     print(f"CSV: {outputs['csv']}")
     print(f"Failures: {outputs['failures_jsonl']}")
@@ -117,7 +120,32 @@ def _counts(results: list[dict[str, Any]], failures: list[dict[str, Any]]) -> Co
             counts["parse_error"] += 1
         if error.startswith("schema_invalid:"):
             counts["schema_error"] += 1
+        flags = _list_values(result.get("llm_audit_flags"))
+        if bool(result.get("low_trust_provenance")):
+            counts["low_trust_provenance"] += 1
+        if "llm_overrode_low_trust_provenance" in flags:
+            counts["llm_overrode_low_trust"] += 1
+        if "trusted_boundary_capped_by_provenance" in flags:
+            counts["trusted_boundary_capped"] += 1
     return counts
+
+
+def _list_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str) and value.strip():
+        stripped = value.strip()
+        if stripped.startswith("["):
+            try:
+                import json
+
+                parsed = json.loads(stripped)
+            except json.JSONDecodeError:
+                parsed = None
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        return [part.strip() for part in stripped.split(",") if part.strip()]
+    return []
 
 
 if __name__ == "__main__":

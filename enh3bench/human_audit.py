@@ -48,6 +48,10 @@ AUDIT_FIELD_ORDER = [
     "llm_required_controls",
     "llm_hidden_tax",
     "llm_overclaim_risk",
+    "trusted_llm_maximum_supported_boundary",
+    "trusted_llm_boundary_reason",
+    "low_trust_provenance",
+    "low_trust_provenance_reason",
     "boundary_agreement",
     "llm_more_permissive",
     "llm_more_conservative",
@@ -156,12 +160,18 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
         add(5, "llm_more_permissive")
     if _truthy(record.get("llm_more_conservative")):
         add(3, "llm_more_conservative")
+    if "llm_overrode_low_trust_provenance" in flags:
+        add(6, "llm_overrode_low_trust_provenance")
+    if "trusted_boundary_capped_by_provenance" in flags:
+        add(5, "trusted_boundary_capped_by_provenance")
     if _truthy(record.get("provenance_constrained")):
         add(3, "provenance_constrained")
     if _truthy(record.get("text_class_provenance_conflict")) or "text_class_provenance_conflict" in flags:
         add(3, "text_class_provenance_conflict")
     if _truthy(record.get("is_reject_or_low_trust")) or is_reject_or_low_trust(provenance_type) or "low_trust_provenance" in flags:
         add(4, "low_trust_provenance")
+    if (_truthy(record.get("low_trust_provenance")) or is_reject_or_low_trust(provenance_type)) and _llm_boundary_differs_from_rule(record):
+        add(4, "low_trust_llm_boundary_differs_from_rule")
     if provenance_type == "review_table" or str(record.get("text_class") or "") == "review_table" or "review_table_not_primary" in flags:
         add(2, "review_table_not_primary")
     if status == "context_only_caption" or provenance_type in {"figure_caption", "scheme_caption"}:
@@ -380,6 +390,10 @@ def _attach_llm_fields(record: dict[str, Any], llm: dict[str, Any]) -> None:
     record.setdefault("llm_required_controls", [])
     record.setdefault("llm_hidden_tax", [])
     record.setdefault("llm_overclaim_risk", [])
+    record.setdefault("trusted_llm_maximum_supported_boundary", "")
+    record.setdefault("trusted_llm_boundary_reason", "")
+    record.setdefault("low_trust_provenance", False)
+    record.setdefault("low_trust_provenance_reason", "")
     record.setdefault("boundary_agreement", "")
     record.setdefault("llm_more_permissive", False)
     record.setdefault("llm_more_conservative", False)
@@ -396,6 +410,10 @@ def _attach_llm_fields(record: dict[str, Any], llm: dict[str, Any]) -> None:
     record["llm_required_controls"] = verification.get("required_controls") or []
     record["llm_hidden_tax"] = verification.get("hidden_tax") or []
     record["llm_overclaim_risk"] = verification.get("overclaim_risk") or []
+    record["trusted_llm_maximum_supported_boundary"] = llm.get("trusted_llm_maximum_supported_boundary") or ""
+    record["trusted_llm_boundary_reason"] = llm.get("trusted_llm_boundary_reason") or ""
+    record["low_trust_provenance"] = bool(llm.get("low_trust_provenance"))
+    record["low_trust_provenance_reason"] = llm.get("low_trust_provenance_reason") or ""
     record["boundary_agreement"] = llm.get("boundary_agreement")
     record["llm_more_permissive"] = bool(llm.get("llm_more_permissive"))
     record["llm_more_conservative"] = bool(llm.get("llm_more_conservative"))
@@ -535,6 +553,12 @@ def _n2_to_nh3_claim(record: dict[str, Any]) -> bool:
         or "dinitrogen" in text
         or ("n2" in text and "nh3" in text)
     )
+
+
+def _llm_boundary_differs_from_rule(record: dict[str, Any]) -> bool:
+    rule_boundary = str(record.get("maximum_supported_boundary") or record.get("rule_maximum_supported_boundary") or "")
+    llm_boundary = str(record.get("llm_maximum_supported_boundary") or "")
+    return bool(rule_boundary and llm_boundary and rule_boundary != llm_boundary)
 
 
 def _list_counter(records: list[dict[str, Any]], key: str) -> Counter[str]:
