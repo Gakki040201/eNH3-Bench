@@ -92,31 +92,35 @@ def render_report(
         "",
         _counter_table(_counter(_records_with_provenance(bundles, claims), "provenance_type"), "Provenance type"),
         "",
-        "## 10. Caption support hints",
+        "## 10. Reaction-family diagnostics",
+        "",
+        _reaction_family_section(_records_with_provenance(bundles, claims)),
+        "",
+        "## 11. Caption support hints",
         "",
         _caption_support_hint_section(claims),
         "",
-        "## 11. Claim-rights decisions changed by provenance",
+        "## 12. Claim-rights decisions changed by provenance",
         "",
         _provenance_constrained_examples(claims),
         "",
-        "## 12. Text-class/provenance conflicts",
+        "## 13. Text-class/provenance conflicts",
         "",
         _conflict_examples(claims),
         "",
-        "## 13. Low-trust provenance warnings",
+        "## 14. Low-trust provenance warnings",
         "",
         _low_trust_examples(claims),
         "",
-        "## 14. High-risk overclaim examples",
+        "## 15. High-risk overclaim examples",
         "",
         _high_risk_examples(claims, taxes),
         "",
-        "## 15. Hidden-tax records constrained by low-trust provenance",
+        "## 16. Hidden-tax records constrained by low-trust provenance",
         "",
         _low_trust_hidden_tax_examples(taxes),
         "",
-        "## 16. Why this is not generic literature extraction",
+        "## 17. Why this is not generic literature extraction",
         "",
         (
             "Generic extraction asks what values are present in text. BoundaryLedger "
@@ -161,6 +165,30 @@ def _counter_table(counter: Counter[str], label: str) -> str:
         return "No records."
     rows = [[key, count] for key, count in sorted(counter.items(), key=lambda item: (-item[1], item[0]))]
     return _markdown_table([label, "Records"], rows)
+
+
+def _reaction_family_section(records: list[dict[str, Any]]) -> str:
+    if not records:
+        return "No records."
+    lines = [
+        "### Family Distribution",
+        "",
+        _counter_table(_counter(records, "reaction_family"), "Reaction family"),
+        "",
+        "### Confidence Distribution",
+        "",
+        _counter_table(_counter(records, "reaction_family_confidence"), "Confidence"),
+        "",
+        "### Assignment Scope Distribution",
+        "",
+        _counter_table(_counter(records, "reaction_family_scope"), "Scope"),
+        "",
+        f"- Unclear records: {sum(1 for record in records if str(record.get('reaction_family') or 'unclear') == 'unclear')}",
+        f"- Conflict records: {sum(1 for record in records if bool(record.get('reaction_family_conflict')))}",
+        f"- Paper-consensus assignments: {sum(1 for record in records if str(record.get('reaction_family_scope') or '') == 'paper_consensus')}",
+        f"- Explicit-span assignments: {sum(1 for record in records if str(record.get('reaction_family_scope') or '') == 'explicit_span')}",
+    ]
+    return "\n".join(lines)
 
 
 def _high_risk_examples(claims: list[dict[str, Any]], taxes: list[dict[str, Any]], limit: int = 10) -> str:

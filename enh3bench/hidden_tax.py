@@ -19,9 +19,10 @@ from enh3bench.provenance_rules import (
 )
 from enh3bench.reaction_profiles import (
     get_reaction_profile,
-    infer_reaction_family_from_text,
+    infer_reaction_family_detailed,
     normalize_reaction_family,
     profile_hidden_taxes,
+    propagate_paper_family_to_unclear_spans,
 )
 
 
@@ -144,8 +145,7 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
         "text_class": str(merged.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(merged.get("provenance_confidence") or "low"),
-        "reaction_family": str(merged.get("reaction_family") or "unclear"),
-        "reaction_profile_name": str(merged.get("reaction_profile_name") or merged.get("reaction_family") or "unclear"),
+        **_reaction_family_export_fields(merged),
         "detected_taxes": detected,
         "main_gain": _main_gain(merged, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -160,7 +160,7 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
 def detect_hidden_taxes_many(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Detect hidden taxes for many records."""
 
-    return [detect_hidden_taxes(record) for record in records]
+    return [detect_hidden_taxes(record) for record in propagate_paper_family_to_unclear_spans(records)]
 
 
 def export_hidden_tax_ledger(
@@ -233,10 +233,22 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
 
 
 def _ensure_reaction_profile(record: dict[str, Any], text: str) -> None:
-    family_value = str(record.get("reaction_family") or "").strip()
-    family = normalize_reaction_family(family_value) if family_value else infer_reaction_family_from_text(text)
+    detailed = infer_reaction_family_detailed(
+        text=text,
+        section_type=str(record.get("section_type") or record.get("provenance_type") or record.get("source_section") or ""),
+        title=str(record.get("title") or record.get("paper_title") or ""),
+        abstract=str(record.get("abstract") or record.get("paper_abstract") or ""),
+        record=record,
+    )
+    family = normalize_reaction_family(str(detailed.get("reaction_family") or "unclear"))
     profile = get_reaction_profile(family)
     record["reaction_family"] = family
+    record["reaction_family_confidence"] = detailed.get("reaction_family_confidence") or "unclear"
+    record["reaction_family_scores"] = detailed.get("reaction_family_scores") or {}
+    record["reaction_family_signals"] = detailed.get("reaction_family_signals") or []
+    record["reaction_family_scope"] = detailed.get("reaction_family_scope") or "fallback"
+    record["paper_level_reaction_family"] = record.get("paper_level_reaction_family") or "unclear"
+    record["reaction_family_conflict"] = bool(detailed.get("reaction_family_conflict"))
     record["reaction_profile_name"] = profile["reaction_family"]
 
 
@@ -245,6 +257,19 @@ def _family_allows_tax(record: dict[str, Any], tax: str) -> bool:
     if family == "unclear":
         return True
     return str(tax) in profile_hidden_taxes(family)
+
+
+def _reaction_family_export_fields(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_family_confidence": str(record.get("reaction_family_confidence") or "unclear"),
+        "reaction_family_scores": record.get("reaction_family_scores") or {},
+        "reaction_family_signals": record.get("reaction_family_signals") or [],
+        "reaction_family_scope": str(record.get("reaction_family_scope") or "fallback"),
+        "paper_level_reaction_family": str(record.get("paper_level_reaction_family") or "unclear"),
+        "reaction_family_conflict": bool(record.get("reaction_family_conflict")),
+        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
+    }
 
 
 def _normalize_hidden_tax_provenance_type(provenance_type: str) -> str:
@@ -377,8 +402,7 @@ def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_t
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
-        "reaction_family": str(record.get("reaction_family") or "unclear"),
-        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
+        **_reaction_family_export_fields(record),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -419,8 +443,7 @@ def _secondary_context_hidden_tax_result(record: dict[str, Any], text: str, prov
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
-        "reaction_family": str(record.get("reaction_family") or "unclear"),
-        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
+        **_reaction_family_export_fields(record),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -460,8 +483,7 @@ def _caption_hidden_tax_result(record: dict[str, Any], text: str, provenance_typ
         "text_class": str(record.get("text_class") or "unknown"),
         "provenance_type": provenance_type,
         "provenance_confidence": str(record.get("provenance_confidence") or "low"),
-        "reaction_family": str(record.get("reaction_family") or "unclear"),
-        "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
+        **_reaction_family_export_fields(record),
         "detected_taxes": detected,
         "main_gain": _main_gain(record, text),
         "hidden_assumptions": _dedupe(hidden_assumptions),
@@ -591,6 +613,12 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "provenance_type",
         "provenance_confidence",
         "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scope",
+        "paper_level_reaction_family",
+        "reaction_family_conflict",
+        "reaction_family_signals",
+        "reaction_family_scores",
         "reaction_profile_name",
         "detected_taxes",
         "main_gain",

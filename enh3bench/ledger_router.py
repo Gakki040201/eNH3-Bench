@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from enh3bench.reaction_profiles import propagate_paper_family_to_unclear_spans
 from enh3bench.source_span_classifier import classify_span_record
 
 
@@ -25,7 +26,8 @@ CLASSIFIED_SPANS_BASENAME = "classified_spans"
 def classify_spans(spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Attach classification fields to each span record."""
 
-    return [classify_span_record(span) for span in spans]
+    classified = [classify_span_record(span) for span in spans]
+    return propagate_paper_family_to_unclear_spans(classified)
 
 
 def write_classified_spans(
@@ -140,6 +142,13 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "text",
         "source_text",
         "source_span",
+        "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scope",
+        "paper_level_reaction_family",
+        "reaction_family_conflict",
+        "reaction_family_signals",
+        "reaction_family_scores",
         "text_class",
         "confidence",
         "recommended_ledger",

@@ -10,7 +10,12 @@ from typing import Any
 from enh3bench.boundary_schema import has_any_value
 from enh3bench.document_provenance import infer_provenance_for_record
 from enh3bench.ledger_router import load_jsonl
-from enh3bench.reaction_profiles import get_reaction_profile, infer_reaction_family_from_text, normalize_reaction_family
+from enh3bench.reaction_profiles import (
+    get_reaction_profile,
+    infer_reaction_family_detailed,
+    normalize_reaction_family,
+    propagate_paper_family_to_unclear_spans,
+)
 
 
 LEDGER_FILENAMES = (
@@ -23,6 +28,12 @@ LEDGER_FILENAMES = (
 
 EXTRACTED_FIELD_NAMES = (
     "reaction_family",
+    "reaction_family_confidence",
+    "reaction_family_scores",
+    "reaction_family_signals",
+    "reaction_family_scope",
+    "paper_level_reaction_family",
+    "reaction_family_conflict",
     "nitrogen_source",
     "catalyst",
     "catalyst_class",
@@ -114,6 +125,12 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
         "is_secondary_or_context": bool(provenance_info.get("is_secondary_or_context", False)),
         "is_reject_or_low_trust": bool(provenance_info.get("is_reject_or_low_trust", False)),
         "reaction_family": record["reaction_family"],
+        "reaction_family_confidence": record.get("reaction_family_confidence") or "unclear",
+        "reaction_family_scores": record.get("reaction_family_scores") or {},
+        "reaction_family_signals": record.get("reaction_family_signals") or [],
+        "reaction_family_scope": record.get("reaction_family_scope") or "fallback",
+        "paper_level_reaction_family": record.get("paper_level_reaction_family") or "unclear",
+        "reaction_family_conflict": bool(record.get("reaction_family_conflict")),
         "reaction_profile_name": record["reaction_family"],
         "reaction_profile": _reaction_profile_summary(record["reaction_family"]),
         "extracted_fields": _extracted_fields(record),
@@ -134,7 +151,7 @@ def build_evidence_bundle(record: dict[str, Any]) -> dict[str, Any]:
 def build_evidence_bundles(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Build evidence bundles from many classified or ledger records."""
 
-    return [build_evidence_bundle(record) for record in records]
+    return [build_evidence_bundle(record) for record in propagate_paper_family_to_unclear_spans(records)]
 
 
 def load_records_from_ledgers(run_name: str, base_dir: str | Path = "data/ledgers") -> list[dict[str, Any]]:
@@ -190,11 +207,20 @@ def export_evidence_bundles(
 
 def _with_reaction_family(record: dict[str, Any]) -> dict[str, Any]:
     updated = dict(record)
-    family = _first_text(updated, "reaction_family")
-    if family:
-        updated["reaction_family"] = normalize_reaction_family(family)
-    else:
-        updated["reaction_family"] = infer_reaction_family_from_text(_source_text(updated))
+    detailed = infer_reaction_family_detailed(
+        text=_source_text(updated),
+        section_type=_first_text(updated, "section_type", "provenance_type", "source_section"),
+        title=_first_text(updated, "title", "paper_title"),
+        abstract=_first_text(updated, "abstract", "paper_abstract"),
+        record=updated,
+    )
+    updated["reaction_family"] = normalize_reaction_family(str(detailed.get("reaction_family") or "unclear"))
+    updated["reaction_family_confidence"] = detailed.get("reaction_family_confidence") or "unclear"
+    updated["reaction_family_scores"] = detailed.get("reaction_family_scores") or {}
+    updated["reaction_family_signals"] = detailed.get("reaction_family_signals") or []
+    updated["reaction_family_scope"] = detailed.get("reaction_family_scope") or "fallback"
+    updated["paper_level_reaction_family"] = updated.get("paper_level_reaction_family") or "unclear"
+    updated["reaction_family_conflict"] = bool(detailed.get("reaction_family_conflict"))
     return updated
 
 
@@ -334,6 +360,12 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "is_secondary_or_context",
         "is_reject_or_low_trust",
         "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scope",
+        "paper_level_reaction_family",
+        "reaction_family_conflict",
+        "reaction_family_signals",
+        "reaction_family_scores",
         "reaction_profile_name",
         "reaction_profile",
         "support_hint_boundary",

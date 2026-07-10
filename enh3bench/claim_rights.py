@@ -25,8 +25,9 @@ from enh3bench.provenance_rules import (
 )
 from enh3bench.reaction_profiles import (
     get_reaction_profile,
-    infer_reaction_family_from_text,
+    infer_reaction_family_detailed,
     normalize_reaction_family,
+    propagate_paper_family_to_unclear_spans,
 )
 
 
@@ -220,7 +221,7 @@ def classify_claim_rights(record: dict[str, Any]) -> dict[str, Any]:
 def classify_claim_rights_many(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Classify claim rights for many records."""
 
-    return [classify_claim_rights(record) for record in records]
+    return [classify_claim_rights(record) for record in propagate_paper_family_to_unclear_spans(records)]
 
 
 def export_claim_rights_ledger(
@@ -275,6 +276,12 @@ def _result(
         "provenance_constrained": bool(record.get("provenance_constrained", False)),
         "text_class_provenance_conflict": bool(record.get("text_class_provenance_conflict", False)),
         "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_family_confidence": str(record.get("reaction_family_confidence") or "unclear"),
+        "reaction_family_scores": record.get("reaction_family_scores") or {},
+        "reaction_family_signals": record.get("reaction_family_signals") or [],
+        "reaction_family_scope": str(record.get("reaction_family_scope") or "fallback"),
+        "paper_level_reaction_family": str(record.get("paper_level_reaction_family") or "unclear"),
+        "reaction_family_conflict": bool(record.get("reaction_family_conflict")),
         "nitrogen_source": str(record.get("nitrogen_source") or ""),
         "reaction_profile_name": str(record.get("reaction_profile_name") or record.get("reaction_family") or "unclear"),
         "reaction_profile": record.get("reaction_profile") or _reaction_profile_summary(get_reaction_profile(str(record.get("reaction_family") or "unclear"))),
@@ -331,13 +338,22 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
 
 
 def _ensure_reaction_profile(record: dict[str, Any], source_text: str) -> None:
-    family_value = str(record.get("reaction_family") or "").strip()
-    if family_value:
-        family = normalize_reaction_family(family_value)
-    else:
-        family = infer_reaction_family_from_text(source_text)
+    detailed = infer_reaction_family_detailed(
+        text=source_text,
+        section_type=str(record.get("section_type") or record.get("provenance_type") or record.get("source_section") or ""),
+        title=str(record.get("title") or record.get("paper_title") or ""),
+        abstract=str(record.get("abstract") or record.get("paper_abstract") or ""),
+        record=record,
+    )
+    family = normalize_reaction_family(str(detailed.get("reaction_family") or "unclear"))
     profile = get_reaction_profile(family)
     record["reaction_family"] = family
+    record["reaction_family_confidence"] = detailed.get("reaction_family_confidence") or "unclear"
+    record["reaction_family_scores"] = detailed.get("reaction_family_scores") or {}
+    record["reaction_family_signals"] = detailed.get("reaction_family_signals") or []
+    record["reaction_family_scope"] = detailed.get("reaction_family_scope") or "fallback"
+    record["paper_level_reaction_family"] = record.get("paper_level_reaction_family") or "unclear"
+    record["reaction_family_conflict"] = bool(detailed.get("reaction_family_conflict"))
     record["reaction_profile_name"] = profile["reaction_family"]
     record["reaction_profile"] = _reaction_profile_summary(profile)
 
@@ -1138,6 +1154,12 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "provenance_constrained",
         "text_class_provenance_conflict",
         "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scope",
+        "paper_level_reaction_family",
+        "reaction_family_conflict",
+        "reaction_family_signals",
+        "reaction_family_scores",
         "nitrogen_source",
         "reaction_profile_name",
         "reaction_profile",

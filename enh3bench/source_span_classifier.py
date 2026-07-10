@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from enh3bench.reaction_profiles import infer_reaction_family_detailed
+
 
 TEXT_CLASSES = {
     "primary_performance",
@@ -157,6 +159,15 @@ def classify_span_record(span: dict[str, Any]) -> dict[str, Any]:
     record.update(classification)
     if "source_text" not in record:
         record["source_text"] = text
+    reaction = infer_reaction_family_detailed(
+        text=text,
+        section_type=str(record.get("section_type") or record.get("source_section") or ""),
+        title=str(record.get("title") or record.get("paper_title") or ""),
+        abstract=str(record.get("abstract") or record.get("paper_abstract") or ""),
+        record=record,
+    )
+    record.update(reaction)
+    record.setdefault("paper_level_reaction_family", "unclear")
     return record
 
 

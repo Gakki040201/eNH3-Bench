@@ -27,7 +27,7 @@ from enh3bench.llm_clients.base import sanitize_model_name_for_path
 from enh3bench.reaction_profiles import (
     experimental_demonstration_allowed,
     get_reaction_profile,
-    infer_reaction_family_from_text,
+    infer_reaction_family_detailed,
     normalize_reaction_family,
     profile_hidden_taxes,
     profile_route_types,
@@ -84,7 +84,9 @@ def merge_planning_records(boundary_inputs: dict[str, Any]) -> list[dict[str, An
         human = human_by_key.get(key, {})
         family = _record_reaction_family(row, hidden)
         profile = get_reaction_profile(family)
+        family_meta = _reaction_family_metadata(row, hidden)
         row["reaction_family"] = family
+        row.update(family_meta)
         row["reaction_profile_name"] = profile["reaction_family"]
         row["reaction_profile"] = _reaction_profile_summary(profile)
         row["detected_taxes"] = hidden.get("detected_taxes") or row.get("detected_taxes") or row.get("hidden_tax") or []
@@ -296,6 +298,7 @@ def _build_route(
 ) -> dict[str, Any]:
     family = normalize_reaction_family(reaction_family)
     profile = get_reaction_profile(family)
+    family_meta = _route_reaction_family_metadata(gaps)
     source_ids = _dedupe(gap.get("source_basis_id") for gap in gaps)
     paper_ids = _dedupe(gap.get("paper_id") for gap in gaps)
     span_ids = _dedupe(gap.get("source_span_id") for gap in gaps)
@@ -321,6 +324,7 @@ def _build_route(
         "linked_paper_ids": paper_ids,
         "linked_source_span_ids": span_ids,
         "reaction_family": family,
+        **family_meta,
         "reaction_profile_name": profile["reaction_family"],
         "reaction_profile": _reaction_profile_summary(profile),
         "lab_demonstration_allowed": lab_allowed,
@@ -523,6 +527,7 @@ def _gap_base(record: dict[str, Any]) -> dict[str, Any]:
     primary = bool(record.get("is_primary_admissible")) and provenance_type not in {"review_table", "figure_caption", "scheme_caption"}
     family = _record_reaction_family(record)
     profile = get_reaction_profile(family)
+    family_meta = _reaction_family_metadata(record)
     return {
         "source_basis_id": record.get("claim_id") or record.get("evidence_id") or record.get("source_span_id") or "",
         "paper_id": record.get("paper_id") or "",
@@ -530,6 +535,7 @@ def _gap_base(record: dict[str, Any]) -> dict[str, Any]:
         "evidence_id": record.get("evidence_id") or "",
         "provenance_type": provenance_type,
         "reaction_family": family,
+        **family_meta,
         "reaction_profile_name": profile["reaction_family"],
         "lab_demonstration_allowed": experimental_demonstration_allowed(family),
         "primary_evidence": primary,
@@ -542,7 +548,55 @@ def _record_reaction_family(record: dict[str, Any], fallback_record: dict[str, A
         family = str(candidate.get("reaction_family") or "").strip()
         if family:
             return normalize_reaction_family(family)
-    return infer_reaction_family_from_text(_record_text(record) or _record_text(fallback_record or {}))
+    return infer_reaction_family_detailed(text=_record_text(record) or _record_text(fallback_record or {}))["reaction_family"]
+
+
+def _reaction_family_metadata(record: dict[str, Any], fallback_record: dict[str, Any] | None = None) -> dict[str, Any]:
+    source = record if record.get("reaction_family_confidence") or record.get("reaction_family_scope") else fallback_record or {}
+    if not source:
+        detailed = infer_reaction_family_detailed(text=_record_text(record) or _record_text(fallback_record or {}))
+        return {
+            "reaction_family_confidence": detailed["reaction_family_confidence"],
+            "reaction_family_scores": detailed["reaction_family_scores"],
+            "reaction_family_signals": detailed["reaction_family_signals"],
+            "reaction_family_scope": detailed["reaction_family_scope"],
+            "paper_level_reaction_family": "unclear",
+            "reaction_family_conflict": detailed["reaction_family_conflict"],
+        }
+    return {
+        "reaction_family_confidence": str(source.get("reaction_family_confidence") or "unclear"),
+        "reaction_family_scores": source.get("reaction_family_scores") or {},
+        "reaction_family_signals": source.get("reaction_family_signals") or [],
+        "reaction_family_scope": str(source.get("reaction_family_scope") or "fallback"),
+        "paper_level_reaction_family": str(source.get("paper_level_reaction_family") or "unclear"),
+        "reaction_family_conflict": bool(source.get("reaction_family_conflict")),
+    }
+
+
+def _route_reaction_family_metadata(gaps: list[dict[str, Any]]) -> dict[str, Any]:
+    confidences = [str(gap.get("reaction_family_confidence") or "") for gap in gaps]
+    confidence = "high" if "high" in confidences else "medium" if "medium" in confidences else "low" if "low" in confidences else "unclear"
+    scopes = _dedupe(gap.get("reaction_family_scope") for gap in gaps)
+    paper_families = _dedupe(gap.get("paper_level_reaction_family") for gap in gaps)
+    signals: list[str] = []
+    scores: dict[str, int] = {}
+    for gap in gaps:
+        signals.extend(_list_values(gap.get("reaction_family_signals")))
+        gap_scores = gap.get("reaction_family_scores")
+        if isinstance(gap_scores, dict):
+            for key, value in gap_scores.items():
+                try:
+                    scores[str(key)] = max(scores.get(str(key), 0), int(value))
+                except (TypeError, ValueError):
+                    continue
+    return {
+        "reaction_family_confidence": confidence,
+        "reaction_family_scores": scores,
+        "reaction_family_signals": _dedupe(signals),
+        "reaction_family_scope": ";".join(scopes) if scopes else "fallback",
+        "paper_level_reaction_family": paper_families[0] if len(paper_families) == 1 else "mixed" if len(paper_families) > 1 else "unclear",
+        "reaction_family_conflict": any(bool(gap.get("reaction_family_conflict")) for gap in gaps),
+    }
 
 
 def _reaction_profile_summary(profile: dict[str, Any]) -> dict[str, Any]:
@@ -849,6 +903,12 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "route_id",
         "run_name",
         "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scope",
+        "paper_level_reaction_family",
+        "reaction_family_conflict",
+        "reaction_family_signals",
+        "reaction_family_scores",
         "reaction_profile_name",
         "lab_demonstration_allowed",
         "route_type",

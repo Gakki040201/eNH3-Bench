@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from enh3bench.reaction_profiles import infer_reaction_family_detailed
+
 
 _NUMBER = r"[-+]?\d+(?:\.\d+)?"
 
@@ -12,18 +14,7 @@ _NUMBER = r"[-+]?\d+(?:\.\d+)?"
 def classify_reaction_family(text: str) -> str:
     """Classify a source span into a benchmark reaction family."""
 
-    normalized = _normalize(text)
-    if _contains_any(normalized, ["lithium-mediated", "li-mediated", "li+", "thf", "li salt"]):
-        return "LiNRR"
-    if _contains_any(normalized, ["nitrate", "no3-", "no3rr", "nitrate reduction"]):
-        return "NO3RR"
-    if _contains_any(normalized, ["nitrite", "no2-", "no2rr"]):
-        return "NO2RR"
-    if _contains_any(normalized, ["nitric oxide", "no reduction", "norr"]):
-        return "NORR"
-    if _contains_any(normalized, ["n2 reduction", "nitrogen reduction", "nrr"]):
-        return "eNRR"
-    return "unclear"
+    return infer_reaction_family_detailed(text=text)["reaction_family"]
 
 
 def detect_nitrogen_source(text: str) -> str:
@@ -137,12 +128,23 @@ def run_rule_extraction(span_record: dict[str, Any]) -> dict[str, Any]:
     source_section = str(span_record.get("source_section", "unknown")).strip() or "unknown"
     fe_percent = extract_fe_percent(text)
     nh3_yield_value, nh3_yield_unit = extract_nh3_yield(text)
+    reaction = infer_reaction_family_detailed(
+        text=text,
+        section_type=str(span_record.get("section_type") or source_section),
+        record=span_record,
+    )
     return {
         "evidence_id": _evidence_id(span_record),
         "paper_id": str(span_record.get("paper_id", "")).strip(),
         "source_span": text,
         "source_section": source_section,
-        "reaction_family": classify_reaction_family(text),
+        "reaction_family": reaction["reaction_family"],
+        "reaction_family_confidence": reaction["reaction_family_confidence"],
+        "reaction_family_scores": reaction["reaction_family_scores"],
+        "reaction_family_signals": reaction["reaction_family_signals"],
+        "reaction_family_scope": reaction["reaction_family_scope"],
+        "paper_level_reaction_family": str(span_record.get("paper_level_reaction_family") or "unclear"),
+        "reaction_family_conflict": reaction["reaction_family_conflict"],
         "nitrogen_source": detect_nitrogen_source(text),
         "catalyst": _detect_catalyst(text),
         "catalyst_class": None,

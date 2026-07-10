@@ -248,6 +248,8 @@ def normalize_reaction_family(value: str) -> str:
 def infer_reaction_family_from_text(text: str, default: str = "unclear") -> str:
     """Infer a conservative reaction-family label from source text."""
 
+    return infer_reaction_family_detailed(text=text, default=default)["reaction_family"]
+
     normalized_default = normalize_reaction_family(default)
     source = re.sub(r"\s+", " ", str(text or "").casefold()).strip()
     if not source:
@@ -306,6 +308,169 @@ def infer_reaction_family_from_text(text: str, default: str = "unclear") -> str:
     return normalized_default
 
 
+def score_reaction_families(
+    text: str,
+    section_type: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+) -> dict[str, int]:
+    """Score reaction-family evidence without selecting a final label."""
+
+    scores, _signals, _context = _score_reaction_context(text, section_type=section_type, title=title, abstract=abstract)
+    return scores
+
+
+def infer_reaction_family_detailed(
+    text: str | None = None,
+    section_type: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+    record: dict[str, Any] | None = None,
+    default: str = "unclear",
+) -> dict[str, Any]:
+    """Infer a conservative reaction-family label with scores and evidence signals."""
+
+    record = record or {}
+    source_text = str(text if text is not None else _record_text(record))
+    resolved_section_type = str(section_type or record.get("section_type") or record.get("provenance_type") or record.get("source_section") or "")
+    resolved_title = title if title is not None else _first_text(record, "title", "paper_title")
+    resolved_abstract = abstract if abstract is not None else _first_text(record, "abstract", "paper_abstract")
+    scores, signals, context = _score_reaction_context(
+        source_text,
+        section_type=resolved_section_type,
+        title=resolved_title,
+        abstract=resolved_abstract,
+    )
+    normalized_default = normalize_reaction_family(default)
+    existing_family = normalize_reaction_family(str(record.get("reaction_family") or ""))
+    existing_scope = str(record.get("reaction_family_scope") or "").strip()
+    existing_confidence = str(record.get("reaction_family_confidence") or "").strip()
+    confidence_values = {"high", "medium", "low", "unclear"}
+    scope_values = {"explicit_span", "section_context", "paper_consensus", "fallback"}
+
+    if existing_family != "unclear":
+        if existing_scope != "paper_consensus":
+            scores[existing_family] = max(scores.get(existing_family, 0), 8)
+            signals.append(f"explicit_record_reaction_family:{existing_family}")
+        top_text_family, top_text_score = _top_family(scores)
+        conflict = bool(record.get("reaction_family_conflict"))
+        if top_text_family not in {"unclear", existing_family} and top_text_score >= 6:
+            conflict = True
+            signals.append(f"reaction_family_conflict:{existing_family}_vs_{top_text_family}")
+        return _reaction_result(
+            existing_family,
+            existing_confidence if existing_confidence in confidence_values else "high",
+            scores,
+            signals,
+            existing_scope if existing_scope in scope_values else "explicit_span",
+            conflict,
+        )
+
+    top_family, top_score = _top_family(scores)
+    second_family, second_score = _second_family(scores, top_family)
+    if top_score >= 6 and second_score >= 6 and top_family != second_family and abs(top_score - second_score) <= 3:
+        signals.append(f"reaction_family_conflict:{top_family}_vs_{second_family}")
+        return _reaction_result("mixed", "medium", scores, signals, _scope_from_context(context, explicit=True), True)
+    if top_score >= 6:
+        return _reaction_result(top_family, "high", scores, signals, _scope_from_context(context, explicit=True), False)
+    if top_score >= 4:
+        return _reaction_result(top_family, "medium", scores, signals, _scope_from_context(context, explicit=False), False)
+    if normalized_default != "unclear":
+        return _reaction_result(normalized_default, "low", scores, [*signals, "fallback_default_reaction_family"], "fallback", False)
+    return _reaction_result("unclear", "unclear", scores, signals or ["no_reaction_family_signal"], "fallback", False)
+
+
+def aggregate_paper_reaction_family(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate a conservative paper-level reaction-family consensus."""
+
+    aggregate_scores = _empty_scores()
+    signals: list[str] = []
+    used_records = 0
+    for record in records:
+        if not _eligible_for_paper_consensus(record):
+            continue
+        detailed = infer_reaction_family_detailed(record=record)
+        family = str(detailed.get("reaction_family") or "unclear")
+        confidence = str(detailed.get("reaction_family_confidence") or "unclear")
+        if family in {"unclear", "mixed"} or confidence not in {"high", "medium"}:
+            continue
+        weight = _paper_record_weight(record, detailed)
+        score = int((detailed.get("reaction_family_scores") or {}).get(family, 0))
+        aggregate_scores[family] += max(score, 4) + weight
+        used_records += 1
+        span_id = str(record.get("source_span_id") or record.get("span_id") or record.get("evidence_id") or used_records)
+        signals.append(f"paper_consensus_record:{span_id}:{family}:{confidence}")
+
+    top_family, top_score = _top_family(aggregate_scores)
+    second_family, second_score = _second_family(aggregate_scores, top_family)
+    if not used_records or top_score < 6:
+        return _reaction_result("unclear", "unclear", aggregate_scores, signals or ["no_primary_family_consensus"], "fallback", False)
+    if second_score >= 6 and top_family != second_family and top_score - second_score <= 3:
+        signals.append(f"paper_reaction_family_conflict:{top_family}_vs_{second_family}")
+        result = _reaction_result("mixed", "medium", aggregate_scores, signals, "paper_consensus", True)
+        result["paper_consensus_record_count"] = used_records
+        return result
+    confidence = "high" if top_score >= 10 and top_score - second_score >= 4 else "medium"
+    result = _reaction_result(top_family, confidence, aggregate_scores, signals, "paper_consensus", False)
+    result["paper_consensus_record_count"] = used_records
+    return result
+
+
+def propagate_paper_family_to_unclear_spans(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach paper-level consensus and fill only unclear low-information spans."""
+
+    by_paper: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        paper_id = str(record.get("paper_id") or "").strip()
+        if paper_id:
+            by_paper.setdefault(paper_id, []).append(record)
+
+    paper_consensus = {paper_id: aggregate_paper_reaction_family(items) for paper_id, items in by_paper.items()}
+    propagated: list[dict[str, Any]] = []
+    for record in records:
+        item = dict(record)
+        detailed = _existing_or_inferred_family(item)
+        paper_id = str(item.get("paper_id") or "").strip()
+        consensus = paper_consensus.get(paper_id, _reaction_result("unclear", "unclear", _empty_scores(), [], "fallback", False))
+        consensus_family = str(consensus.get("reaction_family") or "unclear")
+        item["paper_level_reaction_family"] = consensus_family
+
+        current_family = str(detailed.get("reaction_family") or "unclear")
+        current_confidence = str(detailed.get("reaction_family_confidence") or "unclear")
+        can_propagate = (
+            consensus_family not in {"unclear", "mixed"}
+            and str(consensus.get("reaction_family_confidence") or "") in {"high", "medium"}
+            and current_family == "unclear"
+            and current_confidence in {"unclear", "low"}
+            and _low_information_family_record(item, detailed)
+            and not _low_trust_family_context(item)
+        )
+        if can_propagate:
+            detailed = _reaction_result(
+                consensus_family,
+                "medium" if consensus.get("reaction_family_confidence") == "high" else "low",
+                detailed.get("reaction_family_scores") or _empty_scores(),
+                _dedupe([*(detailed.get("reaction_family_signals") or []), f"paper_consensus:{consensus_family}"]),
+                "paper_consensus",
+                False,
+            )
+        elif (
+            consensus_family not in {"unclear", "mixed", current_family}
+            and current_family not in {"unclear", "mixed"}
+            and current_confidence in {"high", "medium"}
+            and str(consensus.get("reaction_family_confidence") or "") in {"high", "medium"}
+        ):
+            detailed["reaction_family_conflict"] = True
+            detailed["reaction_family_signals"] = _dedupe(
+                [*(detailed.get("reaction_family_signals") or []), f"paper_consensus_conflict:{current_family}_vs_{consensus_family}"]
+            )
+
+        _copy_reaction_fields(item, detailed)
+        item["paper_level_reaction_family"] = consensus_family
+        propagated.append(item)
+    return propagated
+
+
 def get_reaction_profile(family: str) -> dict[str, Any]:
     """Return a copy of the reaction-family profile."""
 
@@ -339,6 +504,379 @@ def experimental_demonstration_allowed(family: str, lab_profile: dict[str, Any] 
     if isinstance(allowed_families, list) and allowed_families:
         return normalized in {normalize_reaction_family(str(item)) for item in allowed_families}
     return profile_allowed
+
+
+def _score_reaction_context(
+    text: str,
+    section_type: str | None = None,
+    title: str | None = None,
+    abstract: str | None = None,
+) -> tuple[dict[str, int], list[str], dict[str, bool]]:
+    scores = _empty_scores()
+    signals: list[str] = []
+    context = {"span_explicit": False, "context_only": False}
+    _score_text_fragment(str(text or ""), "span", scores, signals, multiplier=1, context=context)
+    if title:
+        context["context_only"] = True
+        _score_text_fragment(str(title), "title", scores, signals, multiplier=1, context=context)
+    if abstract:
+        context["context_only"] = True
+        _score_text_fragment(str(abstract), "abstract", scores, signals, multiplier=2, context=context)
+    if str(section_type or "").casefold() == "abstract" and any(scores[family] for family in ("eNRR", "LiNRR", "NO3RR", "NO2RR", "NORR")):
+        signals.append("abstract_section_context")
+    if scores["LiNRR"] >= 6 and scores["eNRR"] >= 6:
+        scores["eNRR"] = min(scores["eNRR"], 3)
+        signals.append("generic_n2_signal_subsumed_by_lithium_mediated_mechanism")
+    return scores, _dedupe(signals), context
+
+
+def _score_text_fragment(
+    text: str,
+    label: str,
+    scores: dict[str, int],
+    signals: list[str],
+    multiplier: int,
+    context: dict[str, bool],
+) -> None:
+    source = _normalize_text(text)
+    if not source:
+        return
+
+    nitrate_context = _negative_nitrate_context(source)
+    nitrite_context = _negative_nitrite_context(source)
+    if nitrate_context:
+        signals.append(f"{label}:nitrate_context_not_feed")
+    if nitrite_context:
+        signals.append(f"{label}:nitrite_context_not_feed")
+
+    def add(family: str, points: int, signal: str, explicit: bool = True) -> None:
+        scores[family] += points * multiplier
+        signals.append(f"{label}:{signal}")
+        if label == "span" and explicit:
+            context["span_explicit"] = True
+
+    if _contains_any(source, ["mixed nitrogen source", "multiple nitrogen sources", "nitrate and n2", "nitrite and n2"]):
+        add("mixed", 8, "mixed_nitrogen_source")
+
+    if _contains_any(source, ["linrr", "li-nrr", "li nrr", "lithium-mediated nitrogen reduction", "lithium mediated nitrogen reduction", "li-mediated nrr", "li mediated nrr"]):
+        add("LiNRR", 9, "explicit_linnr_or_lithium_mediated_nrr")
+    if _contains_any(source, ["lithium-mediated", "lithium mediated", "li-mediated", "li mediated"]) and _contains_any(
+        source, ["n2", "nitrogen reduction", "nrr", "dinitrogen", "ammonia", "nh3"]
+    ):
+        add("LiNRR", 8, "lithium_mediated_n2_reduction")
+    if _contains_any(source, ["li plating", "lithium plating", "li deposition", "lithium deposition"]) and _contains_any(
+        source, ["nitridation", "protonation", "lithium nitride", "li3n"]
+    ):
+        add("LiNRR", 8, "li_plating_nitridation_protonation")
+    if _n2_reaction_signal(source) and _li_salt_signal(source) and _nonaqueous_or_interphase_signal(source):
+        add("LiNRR", 7, "n2_li_salt_nonaqueous_interphase_reaction")
+    if _li_salt_signal(source):
+        add("LiNRR", 1, "li_salt_context", explicit=False)
+    if _contains_any(source, ["tetrahydrofuran", " thf ", " thf.", " thf,", " thf)"]):
+        add("LiNRR", 1, "thf_context", explicit=False)
+    if _nonaqueous_or_interphase_signal(source):
+        add("LiNRR", 1, "nonaqueous_or_interphase_context", explicit=False)
+
+    if _contains_any(source, ["enrr", "e-nrr", "electrochemical nrr"]):
+        add("eNRR", 8, "explicit_enrr")
+    if _contains_any(source, ["n2-to-nh3", "n2 to nh3", "dinitrogen to ammonia", "dinitrogen-to-ammonia"]):
+        add("eNRR", 8, "n2_to_ammonia")
+    if _contains_any(source, ["n2 feed", "n2 gas feed", "nitrogen gas feed", "n2 as nitrogen source", "n2 as the nitrogen source"]):
+        add("eNRR", 7, "n2_feed_or_source")
+    if _contains_any(source, ["electrochemical nitrogen reduction under n2", "nitrogen reduction under n2"]):
+        add("eNRR", 7, "nitrogen_reduction_under_n2")
+    if _contains_any(source, ["15n2", "15 n2"]):
+        add("eNRR", 7, "15n2_nitrogen_source")
+    if _n2_reaction_signal(source):
+        add("eNRR", 6, "n2_reduction_reaction")
+    if re.search(r"\bnrr\b", source) and scores["LiNRR"] < 6:
+        add("eNRR", 6, "nrr_without_lithium_mediation")
+
+    if not nitrate_context:
+        if re.search(r"\bno3rr\b|\bno3\s*rr\b", source):
+            add("NO3RR", 9, "explicit_no3rr")
+        if _contains_any(source, ["nitrate-to-ammonia", "nitrate to ammonia", "no3- to nh3", "no3 to nh3"]):
+            add("NO3RR", 8, "nitrate_to_ammonia")
+        if _contains_any(source, ["nitrate reduction reaction", "nitrate electroreduction", "nitrate reduction to ammonia"]):
+            add("NO3RR", 8, "nitrate_reduction_reaction")
+        if _feed_source_signal(source, "nitrate", "no3"):
+            add("NO3RR", 7, "nitrate_feed_or_source")
+
+    if not nitrite_context:
+        if re.search(r"\bno2rr\b|\bno2\s*rr\b", source):
+            add("NO2RR", 9, "explicit_no2rr")
+        if _contains_any(source, ["nitrite-to-ammonia", "nitrite to ammonia", "no2- to nh3", "no2 to nh3"]):
+            add("NO2RR", 8, "nitrite_to_ammonia")
+        if re.search(r"\bno2\s*-?\s+reduction\s+to\s+(?:ammonia|nh3)\b", source):
+            add("NO2RR", 8, "no2_reduction_to_ammonia")
+        if _contains_any(source, ["nitrite reduction reaction", "nitrite electroreduction", "nitrite reduction to ammonia"]):
+            add("NO2RR", 8, "nitrite_reduction_reaction")
+        if _feed_source_signal(source, "nitrite", "no2"):
+            add("NO2RR", 7, "nitrite_feed_or_source")
+
+    if re.search(r"\bnorr\b|\bno\s*rr\b", source):
+        add("NORR", 9, "explicit_norr")
+    if _contains_any(source, ["nitric oxide reduction", "nitric oxide electroreduction", "no-to-ammonia", "no to ammonia", "no-to-nh3", "no to nh3"]):
+        add("NORR", 8, "no_to_ammonia_or_reduction")
+    if re.search(r"\bno\s+reduction\s+to\s+(?:ammonia|nh3)\b", source):
+        add("NORR", 8, "no_reduction_to_ammonia")
+    if _no_feed_source_signal(source):
+        add("NORR", 7, "no_feed_or_source")
+
+
+def _reaction_result(
+    family: str,
+    confidence: str,
+    scores: dict[str, int],
+    signals: list[str],
+    scope: str,
+    conflict: bool,
+) -> dict[str, Any]:
+    normalized = normalize_reaction_family(family)
+    return {
+        "reaction_family": normalized,
+        "reaction_family_confidence": confidence if confidence in {"high", "medium", "low", "unclear"} else "unclear",
+        "reaction_family_scores": {key: int(scores.get(key, 0)) for key in REACTION_FAMILIES},
+        "reaction_family_signals": _dedupe(signals),
+        "reaction_family_scope": scope if scope in {"explicit_span", "section_context", "paper_consensus", "fallback"} else "fallback",
+        "reaction_family_conflict": bool(conflict),
+    }
+
+
+def _existing_or_inferred_family(record: dict[str, Any]) -> dict[str, Any]:
+    if record.get("reaction_family") and record.get("reaction_family_confidence") and record.get("reaction_family_scope"):
+        scores = record.get("reaction_family_scores") if isinstance(record.get("reaction_family_scores"), dict) else _empty_scores()
+        return _reaction_result(
+            str(record.get("reaction_family") or "unclear"),
+            str(record.get("reaction_family_confidence") or "unclear"),
+            scores,
+            _list_values(record.get("reaction_family_signals")),
+            str(record.get("reaction_family_scope") or "fallback"),
+            bool(record.get("reaction_family_conflict")),
+        )
+    return infer_reaction_family_detailed(record=record)
+
+
+def _copy_reaction_fields(record: dict[str, Any], detailed: dict[str, Any]) -> None:
+    for key in (
+        "reaction_family",
+        "reaction_family_confidence",
+        "reaction_family_scores",
+        "reaction_family_signals",
+        "reaction_family_scope",
+        "reaction_family_conflict",
+    ):
+        record[key] = detailed.get(key)
+
+
+def _eligible_for_paper_consensus(record: dict[str, Any]) -> bool:
+    provenance_type = str(record.get("provenance_type") or record.get("source_section") or record.get("section_type") or "").strip()
+    provenance = re.sub(r"[^a-z0-9]+", "_", provenance_type.casefold()).strip("_")
+    if provenance in {"reference", "references", "bibliography", "front_matter", "metadata", "copyright_note"}:
+        return False
+    if provenance in {"review_table", "table", "figure_caption", "scheme_caption", "secondary_review", "supplementary"}:
+        return False
+    text_class = str(record.get("text_class") or "").strip()
+    if text_class in {"reference_list", "review_table", "figure_caption"}:
+        return False
+    if record.get("is_reject_or_low_trust"):
+        return False
+    if record.get("is_primary_admissible") is True:
+        return True
+    return provenance in {"abstract", "results", "methods", "discussion", "body", "introduction", ""}
+
+
+def _paper_record_weight(record: dict[str, Any], detailed: dict[str, Any]) -> int:
+    provenance = str(record.get("provenance_type") or record.get("section_type") or record.get("source_section") or "").casefold()
+    weight = 0
+    if provenance == "abstract":
+        weight += 4
+    elif provenance in {"results", "methods", "discussion", "body"}:
+        weight += 2
+    if detailed.get("reaction_family_scope") == "explicit_span":
+        weight += 3
+    if detailed.get("reaction_family_confidence") == "high":
+        weight += 2
+    return weight
+
+
+def _low_information_family_record(record: dict[str, Any], detailed: dict[str, Any]) -> bool:
+    scores = detailed.get("reaction_family_scores") or {}
+    max_score = max([int(value) for value in scores.values()] or [0])
+    if max_score >= 4:
+        return False
+    text = _normalize_text(_record_text(record))
+    if not text:
+        return True
+    return not any(token in text for token in ["n2", "nitrate", "nitrite", "no3", "no2", "nitric oxide", "nrr", "linrr", "enrr"])
+
+
+def _low_trust_family_context(record: dict[str, Any]) -> bool:
+    provenance = re.sub(r"[^a-z0-9]+", "_", str(record.get("provenance_type") or record.get("source_section") or "").casefold()).strip("_")
+    return provenance in {"reference", "references", "bibliography", "front_matter", "metadata", "copyright_note"}
+
+
+def _scope_from_context(context: dict[str, bool], explicit: bool) -> str:
+    if explicit and context.get("span_explicit"):
+        return "explicit_span"
+    if context.get("context_only"):
+        return "section_context"
+    return "explicit_span" if explicit else "section_context"
+
+
+def _top_family(scores: dict[str, int]) -> tuple[str, int]:
+    candidates = [(family, int(scores.get(family, 0))) for family in REACTION_FAMILIES if family != "unclear"]
+    if not candidates:
+        return "unclear", 0
+    family, score = max(candidates, key=lambda item: (item[1], -REACTION_FAMILIES.index(item[0])))
+    return (family, score) if score > 0 else ("unclear", 0)
+
+
+def _second_family(scores: dict[str, int], top_family: str) -> tuple[str, int]:
+    candidates = [(family, int(scores.get(family, 0))) for family in REACTION_FAMILIES if family not in {"unclear", top_family}]
+    if not candidates:
+        return "unclear", 0
+    family, score = max(candidates, key=lambda item: (item[1], -REACTION_FAMILIES.index(item[0])))
+    return (family, score) if score > 0 else ("unclear", 0)
+
+
+def _empty_scores() -> dict[str, int]:
+    return {family: 0 for family in REACTION_FAMILIES}
+
+
+def _negative_nitrate_context(text: str) -> bool:
+    if _feed_source_signal(text, "nitrate", "no3") or _contains_any(text, ["nitrate-to-ammonia", "nitrate to ammonia", "no3rr"]):
+        return False
+    return _contains_any(
+        text,
+        [
+            "nitrate screening",
+            "screening nitrate",
+            "nitrate impurity",
+            "nitrate contamination",
+            "exclude nitrate",
+            "excluded nitrate",
+            "background nitrate",
+            "nox contamination",
+            "background nox",
+        ],
+    )
+
+
+def _negative_nitrite_context(text: str) -> bool:
+    if _feed_source_signal(text, "nitrite", "no2") or _contains_any(text, ["nitrite-to-ammonia", "nitrite to ammonia", "no2rr"]):
+        return False
+    return _contains_any(
+        text,
+        [
+            "nitrite screening",
+            "screening nitrite",
+            "nitrite impurity",
+            "nitrite contamination",
+            "exclude nitrite",
+            "excluded nitrite",
+            "background nitrite",
+            "nox contamination",
+            "background nox",
+        ],
+    )
+
+
+def _n2_reaction_signal(text: str) -> bool:
+    return _contains_any(
+        text,
+        [
+            "n2 reduction",
+            "nitrogen reduction",
+            "dinitrogen reduction",
+            "n2-to-nh3",
+            "n2 to nh3",
+            "nitrogen-to-ammonia",
+            "nitrogen to ammonia",
+        ],
+    )
+
+
+def _li_salt_signal(text: str) -> bool:
+    return _contains_any(text, ["li salt", "lithium salt", "liclo4", "litfsi", "lipf6", "liotf", "li triflate", "li+"])
+
+
+def _nonaqueous_or_interphase_signal(text: str) -> bool:
+    return _contains_any(
+        text,
+        [
+            "nonaqueous",
+            "non-aqueous",
+            "tetrahydrofuran",
+            " thf ",
+            "diglyme",
+            "glyme",
+            "ether",
+            "solid electrolyte interphase",
+            " sei ",
+            "interphase",
+        ],
+    )
+
+
+def _feed_source_signal(text: str, word: str, formula: str) -> bool:
+    return bool(
+        re.search(rf"\b{word}\b.{0,45}\b(?:feed|reactant|substrate|nitrogen source|source)\b", text)
+        or re.search(rf"\b(?:feed|reactant|substrate|nitrogen source|source)\b.{0,45}\b{word}\b", text)
+        or re.search(rf"\b{formula}\s*-?\b.{0,45}\b(?:feed|reactant|substrate|source)\b", text)
+        or re.search(rf"\b(?:feed|reactant|substrate|source)\b.{0,45}\b{formula}\s*-?\b", text)
+    )
+
+
+def _no_feed_source_signal(text: str) -> bool:
+    return bool(
+        re.search(r"\b(?:no|nitric oxide)\b.{0,45}\b(?:feed|reactant|substrate|nitrogen source|source)\b", text)
+        or re.search(r"\b(?:feed|reactant|substrate|nitrogen source|source)\b.{0,45}\b(?:no|nitric oxide)\b", text)
+    ) and "nox" not in text
+
+
+def _record_text(record: dict[str, Any]) -> str:
+    for key in ("source_text", "source_span", "text"):
+        value = record.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""
+
+
+def _first_text(record: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = record.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text
+    return ""
+
+
+def _normalize_text(text: str) -> str:
+    normalized = re.sub(r"\s+", " ", str(text or "").casefold()).strip()
+    return f" {normalized} " if normalized else ""
+
+
+def _list_values(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value]
+    return []
+
+
+def _dedupe(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        output.append(text)
+    return output
 
 
 def _contains_any(text: str, needles: list[str]) -> bool:
