@@ -66,6 +66,12 @@ C:\Python314\python.exe scripts\compare_llm_models.py --run-name final_pilot --m
 - `data/model_runs/{run_name}/llm_model_comparison_table.csv`
 - `data/reports/llm_model_comparison_report.{run_name}.md`
 
+## Strict JSON schema validation
+
+Valid JSON is not enough for a successful LLM verification. The response must contain the required verification schema: `text_class`, `field_support`, `maximum_supported_boundary`, `missing_boundary_fields`, `hidden_tax`, `required_controls`, `overclaim_risk`, `recommended_experiment`, and `reasoning`.
+
+Schema-invalid outputs, such as `{"text": "..."}`, are treated as verification failures. They are preserved with the raw LLM response in `llm_failures.jsonl`, marked with `llm_parse_error`, and routed to human review. LLM output remains an audit signal, not gold.
+
 ## Safety notes
 
 - Do not commit `.env` or API keys.

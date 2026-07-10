@@ -12,6 +12,9 @@ from enh3bench.llm_clients.base import BaseLLMClient
 class MockLLMClient(BaseLLMClient):
     """Return strict JSON without making network calls."""
 
+    def __init__(self, force_invalid_schema: bool = False) -> None:
+        self.force_invalid_schema = force_invalid_schema
+
     def chat(
         self,
         messages: list[dict[str, Any]],
@@ -22,6 +25,9 @@ class MockLLMClient(BaseLLMClient):
         timeout: int = 60,
     ) -> str:
         user_text = _last_user_message(messages)
+        if self.force_invalid_schema or "FORCE_INVALID_SCHEMA_FOR_TEST" in user_text:
+            return json.dumps({"text": "invalid schema"}, ensure_ascii=True, sort_keys=True)
+
         source_text, provenance_type, text_class = _extract_prompt_context(user_text)
         normalized = source_text.casefold()
         provenance = provenance_type.casefold()

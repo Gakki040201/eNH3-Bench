@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,14 +16,14 @@ from enh3bench.llm_verifier import (
 
 class LLMVerifierTests(unittest.TestCase):
     def test_markdown_fenced_json_parsing(self) -> None:
-        parsed, error = parse_llm_json_response('```json\n{"maximum_supported_boundary":"cell_metric"}\n```')
+        parsed, error = parse_llm_json_response(f"```json\n{json.dumps(_valid_llm_response())}\n```")
         self.assertIsNone(error)
         self.assertEqual(parsed["maximum_supported_boundary"], "cell_metric")
 
     def test_invalid_json_parsing_failure(self) -> None:
         parsed, error = parse_llm_json_response("not json")
         self.assertIsNone(parsed)
-        self.assertIn("invalid JSON", str(error))
+        self.assertIn("json_parse_error", str(error))
 
     def test_verification_output_includes_needs_human_review(self) -> None:
         record = {
@@ -136,6 +137,37 @@ class LLMVerifierTests(unittest.TestCase):
             self.assertTrue(Path(outputs["jsonl"]).exists())
             self.assertTrue(Path(outputs["csv"]).exists())
             self.assertTrue(Path(outputs["failures_jsonl"]).exists())
+
+
+def _valid_llm_response() -> dict[str, object]:
+    field_support = {
+        "FE": "explicit",
+        "NH3_yield": "missing",
+        "EE": "missing",
+        "current_density": "missing",
+        "potential_or_voltage": "missing",
+        "runtime": "missing",
+        "isotope_15N": "explicit",
+        "blank_control": "missing",
+        "NOx_control": "missing",
+        "reactor_type": "explicit",
+        "HOR": "missing",
+        "product_state": "missing",
+        "capture_route": "missing",
+        "solvent_inventory": "missing",
+        "failure_mode": "missing",
+    }
+    return {
+        "text_class": "primary_performance",
+        "field_support": field_support,
+        "maximum_supported_boundary": "cell_metric",
+        "missing_boundary_fields": [],
+        "hidden_tax": [],
+        "required_controls": [],
+        "overclaim_risk": [],
+        "recommended_experiment": "Run source-grounded follow-up checks.",
+        "reasoning": "The source explicitly supports FE and isotope evidence.",
+    }
 
 
 if __name__ == "__main__":

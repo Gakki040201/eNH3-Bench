@@ -61,7 +61,8 @@ def main() -> int:
     for row in rows:
         print(
             f"{row['model']}: verified={row['records_verified']} failures={row['failures']} "
-            f"needs_human_review={row['needs_human_review_count']}"
+            f"needs_human_review={row['needs_human_review_count']} "
+            f"parse_errors={row['parse_error_count']} schema_errors={row['schema_error_count']}"
         )
     return 0 if all(not row.get("unavailable_reason") for row in rows) else 2
 
@@ -87,7 +88,8 @@ def _comparison_row(
         "llm_more_permissive_count": sum(1 for result in results if bool(result.get("llm_more_permissive"))),
         "llm_more_conservative_count": sum(1 for result in results if bool(result.get("llm_more_conservative"))),
         "needs_human_review_count": sum(1 for result in results if bool(result.get("needs_human_review"))),
-        "parse_error_count": sum(1 for result in results if result.get("llm_parse_error")),
+        "parse_error_count": _error_count(results, "json_parse_error:"),
+        "schema_error_count": _error_count(results, "schema_invalid:"),
         "unavailable_reason": "",
     }
 
@@ -105,6 +107,7 @@ def _unavailable_row(model: str, records: list[dict[str, Any]], max_records: int
         "llm_more_conservative_count": 0,
         "needs_human_review_count": 0,
         "parse_error_count": 0,
+        "schema_error_count": 0,
         "unavailable_reason": reason,
     }
 
@@ -141,9 +144,12 @@ def _render_report(run_name: str, rows: list[dict[str, Any]], args: argparse.Nam
         "",
         _markdown_table(["Model", "Needs human review"], [[row["model"], row["needs_human_review_count"]] for row in rows]),
         "",
-        "## 6. Parse failures / API failures",
+        "## 6. Parse, schema, and API failures",
         "",
-        _markdown_table(["Model", "Failures", "Parse errors", "Unavailable reason"], [[row["model"], row["failures"], row["parse_error_count"], row["unavailable_reason"]] for row in rows]),
+        _markdown_table(
+            ["Model", "Failures", "Parse errors", "Schema errors", "Unavailable reason"],
+            [[row["model"], row["failures"], row["parse_error_count"], row["schema_error_count"], row["unavailable_reason"]] for row in rows],
+        ),
         "",
         "## 7. Safety statement: LLM output is not gold",
         "",
@@ -172,6 +178,7 @@ def _write_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
         "llm_more_conservative_count",
         "needs_human_review_count",
         "parse_error_count",
+        "schema_error_count",
         "unavailable_reason",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
@@ -191,6 +198,10 @@ def _rate(numerator: int, denominator: int) -> float:
     if denominator <= 0:
         return 0.0
     return round(numerator / denominator, 3)
+
+
+def _error_count(results: list[dict[str, Any]], prefix: str) -> int:
+    return sum(1 for result in results if str(result.get("llm_parse_error") or "").startswith(prefix))
 
 
 if __name__ == "__main__":

@@ -99,6 +99,8 @@ See `docs/docling_provenance_hardening.md`.
 
 Phase C adds an optional ChatExtract-style verification layer using an OpenAI-compatible chat completions API. It verifies BoundaryLedger rule outputs against source spans and writes audit/disagreement records for human review. It does not replace the rule system and does not create gold labels.
 
+LLM responses are strictly schema-validated. A JSON object with missing required verification keys is treated as a verification failure and routed to human review.
+
 Mock run with no network:
 
 ```powershell

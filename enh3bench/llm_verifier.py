@@ -15,7 +15,19 @@ from enh3bench.llm_clients.base import BaseLLMClient, LLMClientError, sanitize_m
 from enh3bench.provenance_rules import is_reject_or_low_trust, normalize_provenance_type
 
 
-FIELD_SUPPORT_KEYS = (
+REQUIRED_LLM_TOP_LEVEL_KEYS = [
+    "text_class",
+    "field_support",
+    "maximum_supported_boundary",
+    "missing_boundary_fields",
+    "hidden_tax",
+    "required_controls",
+    "overclaim_risk",
+    "recommended_experiment",
+    "reasoning",
+]
+
+REQUIRED_FIELD_SUPPORT_KEYS = [
     "FE",
     "NH3_yield",
     "EE",
@@ -31,7 +43,25 @@ FIELD_SUPPORT_KEYS = (
     "capture_route",
     "solvent_inventory",
     "failure_mode",
-)
+]
+
+ALLOWED_FIELD_SUPPORT_VALUES = [
+    "explicit",
+    "missing",
+    "unclear",
+    "secondary_only",
+]
+
+ALLOWED_LLM_BOUNDARIES = [
+    "unsupported_or_secondary",
+    "product_admissibility",
+    "cell_metric",
+    "reactor_legibility",
+    "process_partial",
+    "plant_facing_insufficient",
+]
+
+FIELD_SUPPORT_KEYS = tuple(REQUIRED_FIELD_SUPPORT_KEYS)
 
 
 def load_claim_rights_records(run_name: str, base_dir: str | Path = "data/boundary_ledger") -> list[dict[str, Any]]:
@@ -101,10 +131,52 @@ def parse_llm_json_response(text: str) -> tuple[dict[str, Any] | None, str | Non
     try:
         parsed = json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        return None, f"invalid JSON response: {exc.msg}"
-    if not isinstance(parsed, dict):
-        return None, "JSON response must be an object"
+        return None, f"json_parse_error: {exc.msg}"
+    valid, schema_messages = validate_llm_verification_schema(parsed)
+    if not valid:
+        return None, f"schema_invalid: {'; '.join(schema_messages)}"
     return parsed, None
+
+
+def validate_llm_verification_schema(obj: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Validate the strict LLM verification response schema."""
+
+    messages: list[str] = []
+    if not isinstance(obj, dict):
+        return False, ["object_must_be_dict"]
+
+    missing_top_level = [key for key in REQUIRED_LLM_TOP_LEVEL_KEYS if key not in obj]
+    messages.extend(f"missing_top_level_key:{key}" for key in missing_top_level)
+
+    field_support = obj.get("field_support")
+    if not isinstance(field_support, dict):
+        messages.append("field_support_must_be_dict")
+    else:
+        missing_field_keys = [key for key in REQUIRED_FIELD_SUPPORT_KEYS if key not in field_support]
+        messages.extend(f"missing_field_support_key:{key}" for key in missing_field_keys)
+        for key, value in field_support.items():
+            if key in REQUIRED_FIELD_SUPPORT_KEYS and value not in ALLOWED_FIELD_SUPPORT_VALUES:
+                messages.append(f"invalid_field_support_value:{key}={value}")
+
+    boundary = obj.get("maximum_supported_boundary")
+    if boundary not in ALLOWED_LLM_BOUNDARIES:
+        messages.append(f"invalid_maximum_supported_boundary:{boundary}")
+
+    for key in ("missing_boundary_fields", "hidden_tax", "required_controls", "overclaim_risk"):
+        if key in obj and not isinstance(obj.get(key), list):
+            messages.append(f"{key}_must_be_list")
+
+    for key in ("recommended_experiment", "reasoning"):
+        if key in obj and not isinstance(obj.get(key), str):
+            messages.append(f"{key}_must_be_string")
+
+    warnings: list[str] = []
+    reasoning = obj.get("reasoning")
+    if isinstance(reasoning, str) and len(re.findall(r"\S+", reasoning)) > 150:
+        warnings.append("reasoning_too_long")
+
+    invalid_messages = [message for message in messages if message != "reasoning_too_long"]
+    return not invalid_messages, invalid_messages or warnings
 
 
 def verify_record_with_llm(
@@ -141,7 +213,7 @@ def verify_record_with_llm(
                 "missing_field_disagreement": [],
                 "required_control_disagreement": [],
                 "needs_human_review": True,
-                "llm_audit_flags": ["llm_parse_error"],
+                "llm_audit_flags": ["llm_parse_or_schema_error"],
             }
         )
         return verified
@@ -156,6 +228,7 @@ def verify_records_with_llm(
     client: BaseLLMClient,
     model: str | None = None,
     max_records: int | None = None,
+    fail_fast: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Verify records and return successful result rows plus failure rows."""
 
@@ -166,11 +239,31 @@ def verify_records_with_llm(
         try:
             verified = verify_record_with_llm(record, client, model=model)
         except LLMClientError as exc:
-            failures.append(_failure_record(record, model or getattr(client, "model", None), str(exc)))
+            failures.append(
+                _failure_record(
+                    record,
+                    model or getattr(client, "model", None),
+                    str(exc),
+                    error_type="llm_client_error",
+                )
+            )
+            if fail_fast:
+                break
             continue
         results.append(verified)
         if verified.get("llm_parse_error"):
-            failures.append(_failure_record(record, verified.get("llm_model"), str(verified.get("llm_parse_error"))))
+            error_message = str(verified.get("llm_parse_error"))
+            failures.append(
+                _failure_record(
+                    record,
+                    verified.get("llm_model"),
+                    error_message,
+                    error_type=_parse_or_schema_error_type(error_message),
+                    llm_raw_response=str(verified.get("llm_raw_response") or ""),
+                )
+            )
+            if fail_fast:
+                break
     return results, failures
 
 
@@ -269,16 +362,33 @@ def load_llm_verification_results(
     return load_jsonl(path)
 
 
-def _failure_record(record: dict[str, Any], model: str | None, error: str) -> dict[str, Any]:
+def _failure_record(
+    record: dict[str, Any],
+    model: str | None,
+    error: str,
+    error_type: str = "llm_error",
+    llm_raw_response: str = "",
+) -> dict[str, Any]:
     return {
         "llm_model": model or "unknown",
         "claim_id": record.get("claim_id") or "",
         "paper_id": record.get("paper_id") or "",
         "source_span_id": record.get("source_span_id") or record.get("span_id") or "",
         "evidence_id": record.get("evidence_id") or "",
+        "error_type": error_type,
+        "error_message": error,
         "error": error,
+        "llm_raw_response": llm_raw_response,
         "verification_timestamp_utc": _utc_now(),
     }
+
+
+def _parse_or_schema_error_type(error: str) -> str:
+    if error.startswith("schema_invalid:"):
+        return "schema_invalid"
+    if error.startswith("json_parse_error:"):
+        return "json_parse_error"
+    return "llm_parse_or_schema_error"
 
 
 def _symmetric_difference(left: list[Any], right: list[Any]) -> list[str]:

@@ -16,7 +16,6 @@ from enh3bench.llm_clients import MockLLMClient, OpenAICompatibleClient  # noqa:
 from enh3bench.llm_verifier import (  # noqa: E402
     export_llm_verification_results,
     load_claim_rights_records,
-    verify_record_with_llm,
     verify_records_with_llm,
 )
 
@@ -52,10 +51,7 @@ def main() -> int:
         print("Set LLM_API_KEY/USTC_API_KEY, LLM_BASE_URL/USTC_BASE_URL, and LLM_MODEL/USTC_MODEL, or use --mock.")
         return 2
 
-    if args.fail_fast:
-        results, failures = _verify_fail_fast(records, client, model, args.max_records)
-    else:
-        results, failures = verify_records_with_llm(records, client, model=model, max_records=args.max_records)
+    results, failures = verify_records_with_llm(records, client, model=model, max_records=args.max_records, fail_fast=args.fail_fast)
     outputs = export_llm_verification_results(results, failures, args.run_name, model)
     counts = _counts(results, failures)
 
@@ -66,6 +62,9 @@ def main() -> int:
     print(f"boundary_agreement_count: {counts['boundary_agreement']}")
     print(f"llm_more_permissive_count: {counts['llm_more_permissive']}")
     print(f"llm_more_conservative_count: {counts['llm_more_conservative']}")
+    print(f"parse_error_count: {counts['parse_error']}")
+    print(f"schema_error_count: {counts['schema_error']}")
+    print(f"parse_or_schema_error_count: {counts['parse_or_schema_error']}")
     print(f"JSONL: {outputs['jsonl']}")
     print(f"CSV: {outputs['csv']}")
     print(f"Failures: {outputs['failures_jsonl']}")
@@ -86,23 +85,6 @@ def _set_client_defaults(client: Any, args: argparse.Namespace) -> None:
     client.temperature = args.temperature
     client.max_tokens = args.max_tokens
     client.timeout = args.timeout
-
-
-def _verify_fail_fast(records: list[dict[str, Any]], client: Any, model: str, max_records: int | None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    selected = records[:max_records] if max_records is not None else records
-    results: list[dict[str, Any]] = []
-    failures: list[dict[str, Any]] = []
-    for record in selected:
-        try:
-            verified = verify_record_with_llm(record, client, model=model)
-        except Exception as exc:
-            failures.append({"claim_id": record.get("claim_id") or "", "error": str(exc), "llm_model": model})
-            break
-        results.append(verified)
-        if verified.get("llm_parse_error"):
-            failures.append({"claim_id": record.get("claim_id") or "", "error": verified.get("llm_parse_error"), "llm_model": model})
-            break
-    return results, failures
 
 
 def _review_priority(record: dict[str, Any]) -> int:
@@ -128,6 +110,13 @@ def _counts(results: list[dict[str, Any]], failures: list[dict[str, Any]]) -> Co
         for key in ("needs_human_review", "boundary_agreement", "llm_more_permissive", "llm_more_conservative"):
             if bool(result.get(key)):
                 counts[key] += 1
+        error = str(result.get("llm_parse_error") or "")
+        if error:
+            counts["parse_or_schema_error"] += 1
+        if error.startswith("json_parse_error:"):
+            counts["parse_error"] += 1
+        if error.startswith("schema_invalid:"):
+            counts["schema_error"] += 1
     return counts
 
 
