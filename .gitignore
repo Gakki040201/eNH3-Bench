@@ -41,6 +41,13 @@ data/model_runs/*
 !data/model_runs/.gitkeep
 data/training/*
 !data/training/.gitkeep
+data/lab_profiles/*.local.yaml
+data/experiment_routes/*
+!data/experiment_routes/.gitkeep
+data/experiment_results/*
+!data/experiment_results/.gitkeep
+data/closed_loop/*
+!data/closed_loop/.gitkeep
 models/*
 !models/.gitkeep
 

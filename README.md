@@ -163,6 +163,21 @@ C:\Python314\python.exe scripts\export_benchmark_datacard.py --run-name final_pi
 
 The builder uses `data\gold\{run_name}\human_gold_claim_rights.jsonl` when present, otherwise validated `data\human_audit\{run_name}\reviewed_audit_records.jsonl`. Unreviewed records are excluded. See `docs/boundary_benchmark_tasks.md`.
 
+### Phase F0: Lab-constrained closed-loop experiment planner
+
+Phase F0 converts BoundaryLedger gaps, hidden taxes, provenance constraints, optional LLM disagreements, human audit records, lab capabilities, and imported experiment results into structured experiment route cards. It is rule-based by default and does not call APIs.
+
+```powershell
+C:\Python314\python.exe scripts\init_lab_profile.py --output data\lab_profiles\ustc_linnr_profile.yaml
+C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name pilot_existing_02 --lab-profile data\lab_profiles\ustc_linnr_profile.yaml
+C:\Python314\python.exe scripts\export_experiment_route_cards.py --run-name pilot_existing_02
+C:\Python314\python.exe scripts\export_experiment_result_template.py --run-name pilot_existing_02
+C:\Python314\python.exe scripts\import_experiment_results.py --run-name pilot_existing_02 --input data\experiment_results\pilot_existing_02\experiment_results.reviewed.csv
+C:\Python314\python.exe scripts\evaluate_experiment_loop.py --run-name pilot_existing_02
+```
+
+See `docs/lab_constrained_experiment_planner.md` and `docs/closed_loop_workflow.md`.
+
 ## What The Benchmark Evaluates
 
 eNH3-Bench evaluates:
