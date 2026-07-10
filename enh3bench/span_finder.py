@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from enh3bench.document_loader import split_into_paragraphs
+from enh3bench.front_matter import strip_conversion_front_matter
 
 
 KEYWORDS = [
@@ -44,8 +45,11 @@ def find_candidate_spans(
     document_id = str(document.get("document_id", "")).strip()
     resolved_paper_id = paper_id or document_id
     candidates: list[dict[str, Any]] = []
+    text = str(document.get("text", ""))
+    isolation = strip_conversion_front_matter(text)
+    source_text = isolation["body_text"]
 
-    for paragraph_index, paragraph in enumerate(split_into_paragraphs(str(document.get("text", ""))), start=1):
+    for paragraph_index, paragraph in enumerate(split_into_paragraphs(source_text), start=1):
         matched_keywords = _matched_keywords(paragraph)
         if not matched_keywords:
             continue

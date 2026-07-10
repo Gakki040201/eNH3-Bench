@@ -87,6 +87,12 @@ C:\Python314\python.exe scripts\detect_hidden_taxes.py --run-name final_pilot
 C:\Python314\python.exe scripts\export_boundary_ledger_report.py --run-name final_pilot
 ```
 
+Check that conversion metadata and repository cover pages are isolated before span extraction:
+
+```powershell
+C:\Python314\python.exe scripts\check_front_matter_isolation.py --markdown-dir input_markdown --run-name pilot_existing_02
+```
+
 See `docs/docling_provenance_hardening.md`.
 
 ### Phase C: Optional USTC/OpenAI-compatible LLM verification

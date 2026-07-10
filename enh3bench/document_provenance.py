@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.ledger_router import load_jsonl
+from enh3bench.front_matter import strip_conversion_front_matter
 from enh3bench.provenance_rules import infer_provenance_from_text
 
 
@@ -76,7 +77,13 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
 
     source_text = _source_text(record)
     section = _first_text(record, "source_section", "section")
-    inferred = infer_provenance_from_text(source_text, section, record)
+    isolation = strip_conversion_front_matter(source_text)
+    inference_text = source_text
+    metadata_isolation_signals: list[str] = []
+    if (isolation.get("metadata_removed") or isolation.get("repository_cover_removed")) and str(isolation.get("body_text") or "").strip():
+        inference_text = str(isolation.get("body_text") or "")
+        metadata_isolation_signals = ["metadata_isolation_applied", *list(isolation.get("signals") or [])]
+    inferred = infer_provenance_from_text(inference_text, section, record)
     source_span_id = _first_text(record, "source_span_id", "span_id", "id")
     evidence_id = _first_text(record, "evidence_id")
     return {
@@ -86,13 +93,17 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
         "document_id": _first_text(record, "document_id"),
         "source_span_id": source_span_id,
         "evidence_id": evidence_id,
-        "source_text": source_text,
+        "source_text": inference_text,
+        "raw_source_text": source_text if inference_text != source_text else "",
         "section": section,
         "page": record.get("page") or record.get("page_no") or record.get("page_number"),
         "block_type": _first_text(record, "block_type", "label", "docling_label"),
         "provenance_type": inferred["provenance_type"],
         "provenance_confidence": inferred["confidence"],
-        "provenance_signals": inferred["signals"],
+        "provenance_signals": [*metadata_isolation_signals, *inferred["signals"]],
+        "metadata_isolation_signals": metadata_isolation_signals,
+        "metadata_removed": bool(isolation.get("metadata_removed")),
+        "repository_cover_removed": bool(isolation.get("repository_cover_removed")),
         "is_primary_admissible": inferred["is_primary_admissible"],
         "is_secondary_or_context": inferred["is_secondary_or_context"],
         "is_reject_or_low_trust": inferred["is_reject_or_low_trust"],
@@ -275,6 +286,9 @@ def _copy_provenance_fields(target: dict[str, Any], provenance: dict[str, Any]) 
         "is_reject_or_low_trust",
         "page",
         "block_type",
+        "metadata_isolation_signals",
+        "metadata_removed",
+        "repository_cover_removed",
     ):
         if key in provenance:
             target[key] = provenance[key]

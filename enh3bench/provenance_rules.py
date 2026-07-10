@@ -5,6 +5,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from enh3bench.front_matter import (
+    is_repository_cover_page_text,
+    split_yaml_front_matter,
+    strip_conversion_front_matter,
+)
+
 
 PROVENANCE_TYPES = (
     "body",
@@ -118,6 +124,21 @@ def infer_provenance_from_text(
         signals.append("explicit record provenance")
         return _result(explicit, "high", signals)
 
+    if contains_mixed_front_matter_and_body(source_text):
+        stripped = strip_conversion_front_matter(source_text)
+        body_text = str(stripped.get("body_text") or "").strip()
+        if body_text:
+            body_result = infer_provenance_from_text(body_text, section, {key: value for key, value in raw_record.items() if key != "provenance_type"})
+            body_result["signals"] = ["mixed_front_matter_body_detected", *body_result.get("signals", [])]
+            return body_result
+
+    yaml_metadata, yaml_body = split_yaml_front_matter(source_text)
+    if yaml_metadata is not None and not yaml_body.strip():
+        return _result("metadata", "high", ["isolated YAML/Docling metadata"])
+
+    if is_repository_cover_page_text(source_text) and not strip_conversion_front_matter(source_text).get("body_text"):
+        return _result("front_matter", "high", ["isolated repository front matter"])
+
     if _copyright_note(normalized, raw_record):
         signals.append("copyright or conversion-use note")
         return _result("copyright_note", "high", signals)
@@ -166,6 +187,21 @@ def infer_provenance_from_text(
         signals.append("non-empty text without table/caption/reference metadata signal")
         return _result("body", "low", signals)
     return _result("unknown", "low", ["empty source text"])
+
+
+def contains_mixed_front_matter_and_body(text: str) -> bool:
+    """Return True when conversion front matter is glued to scientific body text."""
+
+    stripped = strip_conversion_front_matter(text)
+    if not (stripped.get("metadata_removed") or stripped.get("repository_cover_removed")):
+        return False
+    body_text = str(stripped.get("body_text") or "").strip()
+    if not body_text:
+        return False
+    metadata_text = str(stripped.get("metadata_text") or stripped.get("repository_cover_text") or "")
+    if not metadata_text.strip():
+        return False
+    return _has_scientific_body_boundary(body_text)
 
 
 def _result(provenance_type: str, confidence: str, signals: list[str]) -> dict[str, Any]:
@@ -332,6 +368,28 @@ def _supplementary_signal(normalized: str, section_text: str) -> bool:
         needle in f"{section_text} {normalized[:300]}"
         for needle in ["supplementary", "supporting information", "supplementary table", "supplementary fig", " si "]
     )
+
+
+def _has_scientific_body_boundary(text: str) -> bool:
+    normalized = _normalize(text[:2000])
+    if any(
+        needle in normalized
+        for needle in [
+            "abstract",
+            "a b s t r a c t",
+            "introduction",
+            "keywords",
+            "article history",
+            "results",
+            "experimental",
+            "nh3",
+            "ammonia",
+            "faradaic",
+        ]
+    ):
+        return True
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return len(lines) >= 2 and len(lines[0]) >= 12
 
 
 def _section_provenance(section_text: str, normalized: str) -> str:
