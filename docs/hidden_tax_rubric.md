@@ -32,4 +32,12 @@ Reference, bibliography, front-matter, metadata, and copyright-note text should 
 
 Domain-specific taxes such as `solvent_management_tax`, `resistance_or_renewal_tax`, `wetting_outlet_capture_tax`, and `hydrogen_logistics_tax` require primary body/results/methods evidence or an explicitly primary-admissible record. Primary body text is required before low-trust text can establish reactor, solvent, hydrogen, or process-boundary hidden taxes.
 
+## Secondary-context hidden tax constraints
+
+Review tables, ordinary tables, and secondary summaries are context records. They can flag audit needs, but they cannot establish primary hidden-tax burdens without paired primary body evidence.
+
+For `review_table`, `table`, and `secondary_review` provenance, keyword-only domain cascades are constrained. Electrolyte, solvent, SEI, resistance, flow, GDE, outlet, capture, HOR, or H2 terms do not by themselves trigger `solvent_management_tax`, `resistance_or_renewal_tax`, `wetting_outlet_capture_tax`, or `hydrogen_logistics_tax`. Performance-like table context can retain `measurement_matrix_tax` as an audit hint, and explicit contamination, NOx, nitrate, nitrite, or background-ammonia language can retain `contamination_tax`.
+
+These records must carry `primary_body_text_pairing_required` and should be paired with body/results/methods text before any domain-specific hidden tax is treated as established evidence.
+
 Severity is low, medium, or high. High severity is used for multiple hidden taxes, high-FE incomplete metric claims, or contamination paired with incomplete metric disclosure.

@@ -19,6 +19,23 @@ from enh3bench.provenance_rules import (
 )
 
 
+SECONDARY_CONTEXT_HIDDEN_TAX_PROVENANCE = {
+    "review_table",
+    "table",
+    "secondary_review",
+    "figure_caption",
+    "scheme_caption",
+}
+
+
+def is_secondary_context_provenance(provenance_type: str) -> bool:
+    """Return True for provenance that requires primary body pairing."""
+
+    raw = _provenance_label(provenance_type)
+    normalized = normalize_provenance_type(provenance_type)
+    return raw in SECONDARY_CONTEXT_HIDDEN_TAX_PROVENANCE or normalized in SECONDARY_CONTEXT_HIDDEN_TAX_PROVENANCE
+
+
 def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
     """Detect process and measurement burdens hidden behind a claim."""
 
@@ -34,6 +51,9 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
 
     if provenance_type in {"figure_caption", "scheme_caption"}:
         return _caption_hidden_tax_result(merged, text, provenance_type)
+
+    if provenance_type in {"review_table", "table", "secondary_review"}:
+        return _secondary_context_hidden_tax_result(merged, text, provenance_type)
 
     low_trust = _truthy(merged.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
     if low_trust and not _domain_tax_allowed_under_low_trust(merged):
@@ -176,10 +196,14 @@ def _tax_record_id(record: dict[str, Any]) -> str:
 
 def _ensure_provenance_fields(record: dict[str, Any]) -> None:
     if record.get("provenance_type"):
-        record["provenance_type"] = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
+        record["provenance_type"] = _normalize_hidden_tax_provenance_type(str(record.get("provenance_type") or "unknown"))
         record.setdefault("provenance_confidence", "low")
         record.setdefault("is_primary_admissible", is_primary_admissible(str(record.get("provenance_type") or "unknown")))
-        record.setdefault("is_secondary_or_context", is_secondary_or_context(str(record.get("provenance_type") or "unknown")))
+        record.setdefault(
+            "is_secondary_or_context",
+            is_secondary_context_provenance(str(record.get("provenance_type") or "unknown"))
+            or is_secondary_or_context(str(record.get("provenance_type") or "unknown")),
+        )
         record.setdefault("is_reject_or_low_trust", is_reject_or_low_trust(str(record.get("provenance_type") or "unknown")))
         return
     provenance = infer_provenance_for_record(record)
@@ -189,6 +213,17 @@ def _ensure_provenance_fields(record: dict[str, Any]) -> None:
     record["is_primary_admissible"] = provenance.get("is_primary_admissible", False)
     record["is_secondary_or_context"] = provenance.get("is_secondary_or_context", False)
     record["is_reject_or_low_trust"] = provenance.get("is_reject_or_low_trust", False)
+
+
+def _normalize_hidden_tax_provenance_type(provenance_type: str) -> str:
+    raw = _provenance_label(provenance_type)
+    if raw == "secondary_review":
+        return "secondary_review"
+    return normalize_provenance_type(provenance_type)
+
+
+def _provenance_label(provenance_type: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(provenance_type or "").casefold()).strip("_")
 
 
 def _source_text(record: dict[str, Any]) -> str:
@@ -321,6 +356,46 @@ def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_t
     }
 
 
+def _secondary_context_hidden_tax_result(record: dict[str, Any], text: str, provenance_type: str) -> dict[str, Any]:
+    detected: list[str] = []
+    hidden_assumptions = [
+        "secondary_summary_cannot_establish_primary_hidden_tax",
+        "primary_body_text_pairing_required_for_domain_tax",
+    ]
+    missing_measurements = ["primary_body_text_pairing_required"]
+    required_controls = ["pair context/table/caption evidence with primary body text"]
+    reasoning = ["Review/table context was constrained to audit-level hidden-tax hints."]
+
+    if _performance_like(record, text):
+        detected.append("measurement_matrix_tax")
+        missing_measurements.extend(_missing_measurement_matrix(record, text))
+
+    if _secondary_context_contamination_terms(text):
+        detected.append("contamination_tax")
+        hidden_assumptions.append("nitrogen-containing impurities and background ammonia do not explain the NH3 signal.")
+        missing_measurements.extend(["NOx/nitrate/nitrite screen", "background ammonia", "blank controls"])
+        required_controls.append("screen NOx/nitrate/nitrite and background ammonia with blanks")
+
+    detected = _dedupe([tax for tax in detected if tax in HIDDEN_TAX_TYPES])
+    return {
+        "tax_record_id": _tax_record_id(record),
+        "paper_id": str(record.get("paper_id") or ""),
+        "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
+        "evidence_id": str(record.get("evidence_id") or ""),
+        "text_class": str(record.get("text_class") or "unknown"),
+        "provenance_type": provenance_type,
+        "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        "detected_taxes": detected,
+        "main_gain": _main_gain(record, text),
+        "hidden_assumptions": _dedupe(hidden_assumptions),
+        "missing_measurements": _dedupe(missing_measurements),
+        "required_controls": _dedupe(required_controls),
+        "severity": _low_trust_severity(detected),
+        "reasoning": _dedupe(reasoning),
+        "source_text": _source_text(record),
+    }
+
+
 def _caption_hidden_tax_result(record: dict[str, Any], text: str, provenance_type: str) -> dict[str, Any]:
     detected: list[str] = []
     hidden_assumptions = ["caption_requires_primary_body_pairing"]
@@ -391,6 +466,10 @@ def _performance_like(record: dict[str, Any], text: str) -> bool:
 
 def _contamination_terms(text: str) -> bool:
     return _contains_any(text, ["contamination", "nox", "nitrate", "nitrite", "background ammonia", "false positive", "impurity"])
+
+
+def _secondary_context_contamination_terms(text: str) -> bool:
+    return _contains_any(text, ["contamination", "nox", "nitrate", "nitrite", "background ammonia"])
 
 
 def _low_trust_severity(detected_taxes: list[str]) -> str:
