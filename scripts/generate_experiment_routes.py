@@ -31,6 +31,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lab-demo-only", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--require-baseline-first", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--include-sop-fields", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--respect-stage-gates", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--include-blocked-routes", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--only-actionable-routes", action="store_true")
     parser.add_argument("--llm-model")
     parser.add_argument("--use-llm", action="store_true")
     parser.add_argument("--max-routes", type=int)
@@ -61,8 +64,15 @@ def main() -> int:
         lab_demo_only=args.lab_demo_only,
         require_baseline_first=args.require_baseline_first,
         include_sop_fields=args.include_sop_fields,
+        respect_stage_gates=args.respect_stage_gates,
     )
-    routes = filter_routes(routes, min_score=args.min_score, priority_only=args.priority_only)
+    routes = filter_routes(
+        routes,
+        min_score=args.min_score,
+        priority_only=args.priority_only,
+        include_blocked_routes=args.include_blocked_routes,
+        only_actionable_routes=args.only_actionable_routes,
+    )
     if args.max_routes is not None:
         routes = routes[: max(0, args.max_routes)]
     llm_failures = []
@@ -82,6 +92,9 @@ def main() -> int:
     print(f"lab_demo_only: {args.lab_demo_only}")
     print(f"require_baseline_first: {args.require_baseline_first}")
     print(f"include_sop_fields: {args.include_sop_fields}")
+    print(f"respect_stage_gates: {args.respect_stage_gates}")
+    print(f"include_blocked_routes: {args.include_blocked_routes}")
+    print(f"only_actionable_routes: {args.only_actionable_routes}")
     print(f"routes_generated: {len(routes)}")
     print(f"priority_routes: {outputs['priority_routes']}")
     print(f"deferred_routes: {outputs['deferred_routes']}")

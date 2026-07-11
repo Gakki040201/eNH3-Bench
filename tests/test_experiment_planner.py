@@ -14,7 +14,8 @@ class ExperimentPlannerTests(unittest.TestCase):
 
     def test_solvent_management_tax_generates_electrolyte_window(self) -> None:
         routes = propose_rule_based_routes([_gap("solvent_management_tax", "electrolyte_window", hidden_tax="solvent_management_tax")], _capable_profile(), "run1")
-        self.assertEqual(routes[0]["route_type"], "electrolyte_window")
+        parent = next(route for route in routes if route["route_type"] == "electrolyte_window")
+        self.assertTrue(parent["is_route_group"])
 
     def test_wetting_tax_generates_flow_route(self) -> None:
         routes = propose_rule_based_routes([_gap("wetting_outlet_capture_tax", "flow_wetting", hidden_tax="wetting_outlet_capture_tax")], _capable_profile(), "run1")

@@ -143,6 +143,44 @@ RESULT_STATUS_LABELS = ("success", "partial", "failed", "invalid", "inconclusive
 EXPERIMENT_SCHEMA_VERSION = "1.1"
 EXECUTION_UNIT = "route_condition_replicate"
 
+EXECUTION_STAGES = (
+    "baseline_establishment",
+    "admission_and_contamination",
+    "electrolyte_operating_window",
+    "interphase_flow_product_state",
+    "hor_and_process_probe",
+    "failure_triggered_postmortem",
+)
+
+STAGE_GATE_STATUSES = (
+    "pending",
+    "actionable",
+    "blocked",
+    "waived",
+    "completed",
+    "event_triggered",
+    "non_executable",
+)
+
+ROUTE_STAGE_MAP = {
+    "baseline_repeatability": 0,
+    "validation_gap_closure": 1,
+    "contamination_control": 1,
+    "electrolyte_window": 2,
+    "water_content_window": 2,
+    "proton_donor_window": 2,
+    "salt_solvent_window": 2,
+    "operating_field_matrix": 2,
+    "interphase_resistance": 3,
+    "flow_wetting": 3,
+    "outlet_product_split": 3,
+    "product_state_accounting": 3,
+    "stability_failure": 3,
+    "HOR_proton_economy": 4,
+    "process_boundary_probe": 4,
+    "postmortem_failure_analysis": 5,
+}
+
 RESULT_IDENTITY_FIELDS = (
     "execution_id",
     "condition_id",
@@ -170,6 +208,19 @@ ROUTE_REQUIRED_FIELDS = (
     "reaction_profile",
     "lab_demonstration_allowed",
     "route_type",
+    "execution_stage",
+    "stage_rank",
+    "within_stage_score",
+    "stage_gate_status",
+    "prerequisite_route_ids",
+    "blocked_by_route_ids",
+    "route_family_id",
+    "parent_route_id",
+    "child_route_ids",
+    "is_route_group",
+    "mutually_exclusive_route_ids",
+    "shared_evidence_group",
+    "execution_order_reason",
     "default_replicate_count",
     "minimum_valid_replicates",
     "replicate_type",
@@ -273,6 +324,24 @@ def validate_experiment_route(route: dict[str, Any]) -> tuple[bool, list[str]]:
             errors.append(f"missing field: {field}")
     if str(route.get("route_type") or "") not in ROUTE_TYPES:
         errors.append(f"invalid route_type: {route.get('route_type')}")
+    stage_rank = route.get("stage_rank")
+    try:
+        stage_rank = int(stage_rank)
+    except (TypeError, ValueError):
+        errors.append("stage_rank must be an integer")
+        stage_rank = -1
+    if stage_rank not in range(len(EXECUTION_STAGES)):
+        errors.append(f"invalid stage_rank: {route.get('stage_rank')}")
+    elif str(route.get("execution_stage") or "") != EXECUTION_STAGES[stage_rank]:
+        errors.append("execution_stage does not match stage_rank")
+    if str(route.get("stage_gate_status") or "") not in STAGE_GATE_STATUSES:
+        errors.append(f"invalid stage_gate_status: {route.get('stage_gate_status')}")
+    try:
+        float(route.get("within_stage_score"))
+    except (TypeError, ValueError):
+        errors.append("within_stage_score must be numeric")
+    if not isinstance(route.get("is_route_group"), bool):
+        errors.append("is_route_group must be bool")
     if str(route.get("priority_label") or "") not in ROUTE_PRIORITY_LABELS:
         errors.append(f"invalid priority_label: {route.get('priority_label')}")
     try:
@@ -302,6 +371,10 @@ def validate_experiment_route(route: dict[str, Any]) -> tuple[bool, list[str]]:
         "linked_paper_ids",
         "linked_source_span_ids",
         "required_controls",
+        "prerequisite_route_ids",
+        "blocked_by_route_ids",
+        "child_route_ids",
+        "mutually_exclusive_route_ids",
         "mandatory_measurements",
         "optional_measurements",
         "feasible_measurements",
@@ -449,6 +522,8 @@ def expand_routes_to_result_rows(
     ordered = sorted(routes, key=lambda route: str(route.get("route_type") or "") != "baseline_repeatability")
     rows: list[dict[str, Any]] = []
     for route in ordered:
+        if bool(route.get("is_route_group")) or str(route.get("stage_gate_status") or "") == "non_executable":
+            continue
         rows.extend(
             expand_route_execution_rows(
                 route,

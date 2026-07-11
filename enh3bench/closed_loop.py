@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.experiment_result_importer import load_experiment_routes
+from enh3bench.experiment_planner import apply_stage_gates, next_actionable_route, rank_routes
 from enh3bench.ledger_router import load_jsonl
 
 
@@ -38,6 +39,10 @@ def evaluate_route_prediction(route: dict[str, Any], results: list[dict[str, Any
         "route_id": route_id,
         "route_type": route.get("route_type") or "",
         "priority_label": route.get("priority_label") or "",
+        "execution_stage": route.get("execution_stage") or "",
+        "stage_rank": route.get("stage_rank"),
+        "stage_gate_status": route.get("stage_gate_status") or "",
+        "blocked_by_route_ids": route.get("blocked_by_route_ids") or [],
         "results_count": len(matched),
         "success_count": statuses.get("success", 0),
         "partial_count": statuses.get("partial", 0),
@@ -56,6 +61,18 @@ def evaluate_closed_loop(run_name: str, output_dir: str | Path = "data/closed_lo
     routes, results = load_routes_and_results(run_name)
     if not results:
         raise ValueError(NO_RESULTS_MESSAGE)
+    completed_route_ids = _completed_route_ids(routes, results)
+    documented_failure = any(str(result.get("success_status") or "") in {"failed", "invalid"} for result in results)
+    routes = rank_routes(
+        apply_stage_gates(
+            routes,
+            {
+                "completed_route_ids": completed_route_ids,
+                "documented_failure": documented_failure,
+            },
+        )
+    )
+    next_route = next_actionable_route(routes)
     route_evaluations = [evaluate_route_prediction(route, results) for route in routes]
     status_counts = Counter(str(result.get("success_status") or "missing") for result in results)
     executed_route_ids = {str(result.get("route_id") or "") for result in results if str(result.get("route_id") or "")}
@@ -77,6 +94,8 @@ def evaluate_closed_loop(run_name: str, output_dir: str | Path = "data/closed_lo
         "prediction_hit_rate": round(hit_count / len(executed_evaluations), 3) if executed_evaluations else 0.0,
         "invalid_due_to_controls_count": sum(1 for result in results if result.get("success_status") == "invalid" and _list_values(result.get("controls_failed"))),
         "route_revision_recommendations": _revision_recommendations(route_evaluations),
+        "completed_route_ids": completed_route_ids,
+        "next_actionable_route": next_route or {},
         "next_round_suggestions": propose_next_round_adjustments({"route_evaluations": route_evaluations}),
         "route_evaluations": route_evaluations,
     }
@@ -142,6 +161,8 @@ def export_closed_loop_report(
         "",
         _bullet_list(item.get("recommendation") if isinstance(item, dict) else item for item in evaluation.get("next_round_suggestions") or []),
         "",
+        f"Next actionable route: {(evaluation.get('next_actionable_route') or {}).get('route_id') or 'none'}",
+        "",
         "## 10. Limitations",
         "",
         "Closed-loop evaluation reflects imported result fields only. It does not infer scientific conclusions beyond provided measurements and controls.",
@@ -174,6 +195,20 @@ def _revision_recommendations(route_evaluations: list[dict[str, Any]]) -> list[s
         if route.get("failed_count"):
             recommendations.append(f"{route.get('route_id')}: failure should update route variable selection.")
     return recommendations
+
+
+def _completed_route_ids(routes: list[dict[str, Any]], results: list[dict[str, Any]]) -> list[str]:
+    completed: list[str] = []
+    for route in routes:
+        route_id = str(route.get("route_id") or "")
+        matched = [result for result in results if str(result.get("route_id") or "") == route_id]
+        valid_outcomes = [
+            result for result in matched if str(result.get("success_status") or "") in {"success", "partial"}
+        ]
+        minimum = max(1, int(route.get("minimum_valid_replicates") or 1))
+        if len(valid_outcomes) >= minimum:
+            completed.append(route_id)
+    return completed
 
 
 def _list_values(value: Any) -> list[str]:

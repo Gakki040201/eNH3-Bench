@@ -11,7 +11,9 @@ from typing import Any
 
 from enh3bench.experiment_schema import (
     CONTROL_LABELS,
+    EXECUTION_STAGES,
     MEASUREMENT_LABELS,
+    ROUTE_STAGE_MAP,
     ROUTE_TYPES,
     validate_experiment_route,
     EXPERIMENT_SCHEMA_VERSION,
@@ -204,6 +206,7 @@ def propose_rule_based_routes(
     lab_demo_only: bool = False,
     require_baseline_first: bool = False,
     include_sop_fields: bool = True,
+    respect_stage_gates: bool = True,
 ) -> list[dict[str, Any]]:
     """Generate deterministic route cards from actionable gaps and lab profile."""
 
@@ -219,6 +222,7 @@ def propose_rule_based_routes(
         route_type = str(gap.get("route_type_hint") or "validation_gap_closure")
         if route_type in ROUTE_TYPES:
             by_route[(str(gap.get("reaction_family") or "unclear"), route_type)].append(gap)
+    _expand_electrolyte_route_hierarchy(by_route)
 
     routes: list[dict[str, Any]] = []
     route_specs = [
@@ -260,24 +264,353 @@ def propose_rule_based_routes(
                 include_sop_fields=include_sop_fields,
             )
         )
+    routes = _finalize_route_hierarchy(routes)
+    routes = apply_stage_gates(routes, _gate_context_from_records(filtered_gaps), respect_stage_gates=respect_stage_gates)
     return rank_routes(routes)
 
 
 def rank_routes(routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Sort routes by score and stable route id."""
+    """Sort routes by gate status, stage, priority band, and within-stage score."""
 
-    return sorted(routes, key=lambda route: (-int(route.get("priority_score") or 0), str(route.get("route_id") or "")))
+    return sorted(routes, key=_route_sort_key)
 
 
-def filter_routes(routes: list[dict[str, Any]], min_score: int | None = None, priority_only: bool = False) -> list[dict[str, Any]]:
+def filter_routes(
+    routes: list[dict[str, Any]],
+    min_score: int | None = None,
+    priority_only: bool = False,
+    include_blocked_routes: bool = True,
+    only_actionable_routes: bool = False,
+) -> list[dict[str, Any]]:
     """Filter route list for CLI output."""
 
     filtered = list(routes)
     if min_score is not None:
         filtered = [route for route in filtered if int(route.get("priority_score") or 0) >= min_score]
     if priority_only:
-        filtered = [route for route in filtered if route.get("priority_label") in {"priority_experiment", "control_required"}]
+        filtered = [
+            route
+            for route in filtered
+            if not route.get("is_route_group")
+            and route.get("priority_label") in {"priority_experiment", "control_required"}
+        ]
+    if only_actionable_routes:
+        filtered = [route for route in filtered if _is_actionable_route(route)]
+    elif not include_blocked_routes:
+        filtered = [route for route in filtered if str(route.get("stage_gate_status") or "") != "blocked"]
     return filtered
+
+
+def apply_stage_gates(
+    routes: list[dict[str, Any]],
+    gate_context: dict[str, Any] | None = None,
+    respect_stage_gates: bool = True,
+) -> list[dict[str, Any]]:
+    """Attach prerequisites and current stage-gate status to each route."""
+
+    context = dict(gate_context or {})
+    completed = set(_list_values(context.get("completed_route_ids")))
+    waived_ranks = {int(value) for value in context.get("waived_stage_ranks") or [] if str(value).isdigit()}
+    waive_all = bool(context.get("human_stage_gate_waiver"))
+    documented_failure = bool(context.get("documented_failure"))
+    route_types = _route_ids_by_type(routes)
+
+    if context.get("baseline_satisfied"):
+        completed.update(route_types.get("baseline_repeatability") or _expected_ids(routes, "baseline_repeatability"))
+    if context.get("admission_controls_satisfied"):
+        for route_type in ("validation_gap_closure", "contamination_control"):
+            completed.update(route_types.get(route_type) or _expected_ids(routes, route_type))
+    if context.get("stage_2_satisfied"):
+        for route_type in (
+            "water_content_window",
+            "proton_donor_window",
+            "salt_solvent_window",
+            "operating_field_matrix",
+        ):
+            completed.update(route_types.get(route_type) or [])
+    if context.get("product_accounting_satisfied"):
+        completed.update(route_types.get("product_state_accounting") or _expected_ids(routes, "product_state_accounting"))
+
+    output: list[dict[str, Any]] = []
+    for original in routes:
+        route = dict(original)
+        stage_rank = int(route.get("stage_rank") if route.get("stage_rank") is not None else ROUTE_STAGE_MAP.get(str(route.get("route_type") or ""), 5))
+        route["stage_rank"] = stage_rank
+        route["execution_stage"] = EXECUTION_STAGES[stage_rank]
+        prerequisites = _route_prerequisites(route, routes)
+        route["prerequisite_route_ids"] = prerequisites
+        unresolved = [route_id for route_id in prerequisites if route_id not in completed]
+        route_id = str(route.get("route_id") or "")
+        capability_blocked = str(route.get("priority_label") or "") == "defer_until_capability_available"
+
+        if bool(route.get("is_route_group")):
+            route["stage_gate_status"] = "non_executable"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = "Summary parent route; execute one or more child routes instead."
+        elif route_id in completed:
+            route["stage_gate_status"] = "completed"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = "Route gate is satisfied by a completed execution record."
+        elif capability_blocked:
+            route["stage_gate_status"] = "blocked"
+            route["blocked_by_route_ids"] = unresolved
+            route["execution_order_reason"] = "Blocked by unavailable mandatory controls or measurements."
+        elif stage_rank == 5 and documented_failure:
+            route["stage_gate_status"] = "event_triggered"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = "Documented failure triggered immediate postmortem eligibility."
+        elif not respect_stage_gates:
+            route["stage_gate_status"] = "actionable"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = "Stage prerequisites were not enforced by request."
+        elif stage_rank == 5:
+            route["stage_gate_status"] = "blocked"
+            route["blocked_by_route_ids"] = unresolved
+            route["execution_order_reason"] = "Postmortem route requires a documented failure trigger."
+        elif unresolved and not (waive_all or stage_rank in waived_ranks):
+            route["stage_gate_status"] = "blocked"
+            route["blocked_by_route_ids"] = unresolved
+            route["execution_order_reason"] = f"Stage {stage_rank} waits for prerequisite routes."
+        elif unresolved:
+            route["stage_gate_status"] = "waived"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = "Prerequisite gate explicitly waived by human review."
+        else:
+            route["stage_gate_status"] = "actionable"
+            route["blocked_by_route_ids"] = []
+            route["execution_order_reason"] = f"Stage {stage_rank} prerequisites are satisfied."
+        output.append(route)
+    return output
+
+
+def next_actionable_route(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Return the first executable route under stage-aware ordering."""
+
+    return next((route for route in rank_routes(routes) if _is_actionable_route(route)), None)
+
+
+def _expand_electrolyte_route_hierarchy(
+    by_route: dict[tuple[str, str], list[dict[str, Any]]]
+) -> None:
+    child_types = ("water_content_window", "proton_donor_window", "salt_solvent_window")
+    families = {family for family, route_type in by_route if route_type in {"electrolyte_window", *child_types}}
+    for family in families:
+        generic = list(by_route.get((family, "electrolyte_window"), []))
+        existing_children = [gap for route_type in child_types for gap in by_route.get((family, route_type), [])]
+        if not generic and not existing_children:
+            continue
+        parent_gaps = _dedupe_gap_records([*generic, *existing_children])
+        by_route[(family, "electrolyte_window")] = parent_gaps
+        if generic:
+            for route_type in child_types:
+                by_route[(family, route_type)] = _dedupe_gap_records(
+                    [*by_route.get((family, route_type), []), *generic]
+                )
+
+
+def _finalize_route_hierarchy(routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    route_by_id = {str(route.get("route_id") or ""): route for route in routes}
+    group_members: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for route in routes:
+        group_members[str(route.get("shared_evidence_group") or "")].append(route)
+
+    for route in routes:
+        if route.get("is_route_group"):
+            child_order = {route_type: index for index, route_type in enumerate(
+                ("water_content_window", "proton_donor_window", "salt_solvent_window")
+            )}
+            children = [
+                candidate
+                for candidate in routes
+                if str(candidate.get("parent_route_id") or "") == str(route.get("route_id") or "")
+            ]
+            route["child_route_ids"] = [
+                str(candidate.get("route_id") or "")
+                for candidate in sorted(children, key=lambda item: child_order.get(str(item.get("route_type") or ""), 99))
+            ]
+            route["within_stage_score"] = 0
+            route["execution_order_reason"] = "Non-executable electrolyte summary parent."
+        elif route.get("parent_route_id") and str(route.get("parent_route_id")) not in route_by_id:
+            route["parent_route_id"] = ""
+
+    for members in group_members.values():
+        children = [member for member in members if member.get("parent_route_id")]
+        if len(children) <= 1:
+            continue
+        divisor = len(children)
+        for child in children:
+            child["within_stage_score"] = round(int(child.get("priority_score") or 0) / divisor, 3)
+            child["execution_order_reason"] = (
+                "Within-stage score shares a common evidence bonus across electrolyte child routes."
+            )
+    return routes
+
+
+def _route_prerequisites(
+    route: dict[str, Any],
+    all_routes: list[dict[str, Any]],
+) -> list[str]:
+    stage_rank = int(route.get("stage_rank") or 0)
+    baseline = _matching_route_ids(all_routes, route, "baseline_repeatability") or [
+        _expected_route_id(route, "baseline_repeatability")
+    ]
+    if stage_rank == 0:
+        return []
+    if stage_rank == 1:
+        return _dedupe(baseline)
+    if stage_rank == 2:
+        admission = [
+            *(
+                _matching_route_ids(all_routes, route, "validation_gap_closure")
+                or [_expected_route_id(route, "validation_gap_closure")]
+            ),
+            *(
+                _matching_route_ids(all_routes, route, "contamination_control")
+                or [_expected_route_id(route, "contamination_control")]
+            ),
+        ]
+        return _dedupe([*baseline, *admission])
+    if stage_rank == 3:
+        stage_two = [
+            route_id
+            for candidate in all_routes
+            if int(candidate.get("stage_rank") or -1) == 2
+            and not candidate.get("is_route_group")
+            and _same_route_scope(candidate, route)
+            for route_id in [str(candidate.get("route_id") or "")]
+        ]
+        return _dedupe([*baseline, *stage_two])
+    if stage_rank == 4:
+        product = _matching_route_ids(all_routes, route, "product_state_accounting") or [
+            _expected_route_id(route, "product_state_accounting")
+        ]
+        return _dedupe([*baseline, *product])
+    stability = _matching_route_ids(all_routes, route, "stability_failure") or [
+        _expected_route_id(route, "stability_failure")
+    ]
+    return _dedupe(stability)
+
+
+def _gate_context_from_records(records: list[dict[str, Any]]) -> dict[str, Any]:
+    completed = _dedupe(
+        route_id
+        for record in records
+        for route_id in _list_values(record.get("completed_route_ids"))
+    )
+    return {
+        "completed_route_ids": completed,
+        "baseline_satisfied": any(
+            _truthy(record.get("baseline_complete"))
+            or _truthy(record.get("baseline_gate_satisfied"))
+            or _truthy(record.get("baseline_gate_waived_by_human"))
+            for record in records
+        ),
+        "admission_controls_satisfied": any(_truthy(record.get("admission_controls_satisfied")) for record in records),
+        "stage_2_satisfied": any(_truthy(record.get("stage_2_satisfied")) for record in records),
+        "product_accounting_satisfied": any(_truthy(record.get("product_accounting_satisfied")) for record in records),
+        "documented_failure": any(
+            _truthy(record.get("documented_failure"))
+            or _truthy(record.get("failure_triggered"))
+            or str(record.get("success_status") or "") in {"failed", "invalid"}
+            for record in records
+        ),
+        "human_stage_gate_waiver": any(
+            _truthy(record.get("human_stage_gate_waiver")) or _truthy(record.get("stage_gate_waived"))
+            for record in records
+        ),
+        "waived_stage_ranks": _dedupe(
+            rank
+            for record in records
+            for rank in _list_values(record.get("waived_stage_ranks"))
+        ),
+    }
+
+
+def _route_ids_by_type(routes: list[dict[str, Any]]) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = defaultdict(list)
+    for route in routes:
+        result[str(route.get("route_type") or "")].append(str(route.get("route_id") or ""))
+    return result
+
+
+def _matching_route_ids(
+    routes: list[dict[str, Any]], route: dict[str, Any], route_type: str
+) -> list[str]:
+    return [
+        str(candidate.get("route_id") or "")
+        for candidate in routes
+        if str(candidate.get("route_type") or "") == route_type and _same_route_scope(candidate, route)
+    ]
+
+
+def _same_route_scope(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    return (
+        str(left.get("run_name") or "") == str(right.get("run_name") or "")
+        and str(left.get("reaction_family") or "unclear") == str(right.get("reaction_family") or "unclear")
+    )
+
+
+def _expected_ids(routes: list[dict[str, Any]], route_type: str) -> list[str]:
+    identities = {
+        (str(route.get("run_name") or "run"), str(route.get("reaction_family") or "unclear"))
+        for route in routes
+    }
+    return [_route_id(run_name, family, route_type) for run_name, family in sorted(identities)]
+
+
+def _expected_route_id(route: dict[str, Any], route_type: str) -> str:
+    return _route_id(
+        str(route.get("run_name") or "run"),
+        str(route.get("reaction_family") or "unclear"),
+        route_type,
+    )
+
+
+def _route_sort_key(route: dict[str, Any]) -> tuple[Any, ...]:
+    status_rank = {
+        "actionable": 0,
+        "event_triggered": 0,
+        "waived": 0,
+        "completed": 1,
+        "blocked": 2,
+        "pending": 2,
+        "non_executable": 3,
+    }.get(str(route.get("stage_gate_status") or "pending"), 2)
+    priority_rank = {
+        "priority_experiment": 0,
+        "control_required": 1,
+        "do_after_controls": 2,
+        "needs_human_review": 3,
+        "defer_until_capability_available": 4,
+        "insufficient_evidence": 5,
+        "discard_as_secondary": 6,
+    }.get(str(route.get("priority_label") or ""), 7)
+    stage_rank = int(route.get("stage_rank") if route.get("stage_rank") is not None else ROUTE_STAGE_MAP.get(str(route.get("route_type") or ""), 5))
+    within_stage_score = float(route.get("within_stage_score") if route.get("within_stage_score") is not None else route.get("priority_score") or 0)
+    return (status_rank, stage_rank, priority_rank, -within_stage_score, str(route.get("route_id") or ""))
+
+
+def _is_actionable_route(route: dict[str, Any]) -> bool:
+    return (
+        not bool(route.get("is_route_group"))
+        and str(route.get("stage_gate_status") or "") in {"actionable", "event_triggered", "waived"}
+    )
+
+
+def _dedupe_gap_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for record in records:
+        key = json.dumps(record, ensure_ascii=True, sort_keys=True, default=str)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(record)
+    return output
+
+
+def _route_id(run_name: str, family: str, route_type: str) -> str:
+    return f"ER_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{route_type}"
 
 
 def export_experiment_routes(
@@ -296,8 +629,16 @@ def export_experiment_routes(
     summary = {
         "run_name": run_name,
         "routes_generated": len(routes),
-        "priority_routes": sum(1 for route in routes if route.get("priority_label") == "priority_experiment"),
-        "deferred_routes": sum(1 for route in routes if route.get("priority_label") == "defer_until_capability_available"),
+        "priority_routes": sum(
+            1 for route in routes if not route.get("is_route_group") and route.get("priority_label") == "priority_experiment"
+        ),
+        "deferred_routes": sum(
+            1
+            for route in routes
+            if not route.get("is_route_group") and route.get("priority_label") == "defer_until_capability_available"
+        ),
+        "executable_routes": sum(1 for route in routes if not route.get("is_route_group")),
+        "route_groups": sum(1 for route in routes if route.get("is_route_group")),
         "route_type_counts": dict(Counter(str(route.get("route_type") or "") for route in routes)),
         "reaction_family_counts": dict(Counter(str(route.get("reaction_family") or "unclear") for route in routes)),
         "lab_demonstration_allowed_routes": sum(1 for route in routes if bool(route.get("lab_demonstration_allowed"))),
@@ -375,9 +716,28 @@ def _build_route(
         priority_label = "defer_until_capability_available"
         capability_warnings.append(f"reaction family not in current lab demonstration scope: {family}")
     human_review_required = priority_label == "needs_human_review" or any(gap.get("llm_disagreement") for gap in gaps)
+    route_id = _route_id(run_name, family, route_type)
+    stage_rank = ROUTE_STAGE_MAP[route_type]
+    route_family_id = "electrolyte_operating_window" if route_type in {
+        "electrolyte_window",
+        "water_content_window",
+        "proton_donor_window",
+        "salt_solvent_window",
+    } else route_type
+    is_route_group = route_type == "electrolyte_window"
+    parent_route_id = _route_id(run_name, family, "electrolyte_window") if route_type in {
+        "water_content_window",
+        "proton_donor_window",
+        "salt_solvent_window",
+    } else ""
+    shared_evidence_group = (
+        f"SEG_{_sanitize_id(run_name)}_{_sanitize_id(family)}_electrolyte_operating_window"
+        if route_family_id == "electrolyte_operating_window"
+        else f"SEG_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{_sanitize_id(route_type)}"
+    )
     route = {
         "schema_version": EXPERIMENT_SCHEMA_VERSION,
-        "route_id": f"ER_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{route_type}",
+        "route_id": route_id,
         "run_name": run_name,
         "source_basis_ids": source_ids,
         "linked_paper_ids": paper_ids,
@@ -388,6 +748,19 @@ def _build_route(
         "reaction_profile": _reaction_profile_summary(profile),
         "lab_demonstration_allowed": lab_allowed,
         "route_type": route_type,
+        "execution_stage": EXECUTION_STAGES[stage_rank],
+        "stage_rank": stage_rank,
+        "within_stage_score": score,
+        "stage_gate_status": "pending",
+        "prerequisite_route_ids": [],
+        "blocked_by_route_ids": [],
+        "route_family_id": route_family_id,
+        "parent_route_id": parent_route_id,
+        "child_route_ids": [],
+        "is_route_group": is_route_group,
+        "mutually_exclusive_route_ids": [],
+        "shared_evidence_group": shared_evidence_group,
+        "execution_order_reason": "Stage gate evaluation pending.",
         "default_replicate_count": 3 if route_type == "baseline_repeatability" else 1,
         "minimum_valid_replicates": 3 if route_type == "baseline_repeatability" else 1,
         "replicate_type": "independent",
@@ -751,6 +1124,12 @@ def _list_values(value: Any) -> list[str]:
     return [part.strip() for part in re.split(r"[;,|]", text) if part.strip()]
 
 
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}
+
+
 def _split_measurements(route_type: str, measurements: list[str]) -> tuple[list[str], list[str]]:
     optional_set = _OPTIONAL_MEASUREMENTS_BY_ROUTE.get(route_type, set())
     optional = [measurement for measurement in measurements if measurement in optional_set]
@@ -1004,6 +1383,19 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "reaction_profile_name",
         "lab_demonstration_allowed",
         "route_type",
+        "execution_stage",
+        "stage_rank",
+        "within_stage_score",
+        "stage_gate_status",
+        "prerequisite_route_ids",
+        "blocked_by_route_ids",
+        "route_family_id",
+        "parent_route_id",
+        "child_route_ids",
+        "is_route_group",
+        "mutually_exclusive_route_ids",
+        "shared_evidence_group",
+        "execution_order_reason",
         "priority_label",
         "priority_score",
         "hypothesis",

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.ledger_router import load_jsonl
+from enh3bench.experiment_schema import EXECUTION_STAGES, ROUTE_STAGE_MAP
 
 
 def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> str:
@@ -23,6 +24,15 @@ def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> s
         f"Reaction family: `{route.get('reaction_family') or 'unclear'}`.",
         f"Lab demonstration allowed: `{bool(route.get('lab_demonstration_allowed'))}`.",
         f"Reaction profile: {_reaction_profile_line(route.get('reaction_profile'))}",
+        f"Execution stage: `{route.get('stage_rank', '')} {route.get('execution_stage') or ''}`.",
+        f"Stage gate: `{route.get('stage_gate_status') or 'unknown'}`.",
+        f"Execution order reason: {route.get('execution_order_reason') or ''}",
+        f"Prerequisites: {', '.join(_list_values(route.get('prerequisite_route_ids'))) or 'none'}",
+        f"Blocked by: {', '.join(_list_values(route.get('blocked_by_route_ids'))) or 'none'}",
+        f"Route family: `{route.get('route_family_id') or route.get('route_type') or ''}`.",
+        f"Parent route: {route.get('parent_route_id') or 'none'}",
+        f"Child routes: {', '.join(_list_values(route.get('child_route_ids'))) or 'none'}",
+        f"Non-executable parent: `{bool(route.get('is_route_group'))}`.",
         "",
         "## 2. Hypothesis / 假设",
         "",
@@ -131,7 +141,26 @@ def export_route_cards(
 
     output_path = Path(output_dir) / run_name / "route_cards.md"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    text = "\n\n---\n\n".join(route_to_markdown_card(route, index + 1) for index, route in enumerate(routes))
+    next_route = _next_actionable(routes)
+    sections = [
+        "# Experiment Route Cards",
+        "",
+        f"Next actionable route: `{next_route.get('route_id') if next_route else 'none'}`.",
+        "",
+        "## Parent-child route tree",
+        "",
+        _route_tree(routes),
+    ]
+    card_index = 1
+    for stage_rank, stage_name in enumerate(EXECUTION_STAGES):
+        stage_routes = [route for route in routes if _stage_rank(route) == stage_rank]
+        if not stage_routes:
+            continue
+        sections.extend(["", f"## Stage {stage_rank}: {stage_name}", ""])
+        for route in _stage_card_order(stage_routes):
+            sections.extend([route_to_markdown_card(route, card_index), "", "---", ""])
+            card_index += 1
+    text = "\n".join(sections).rstrip() + "\n"
     output_path.write_text(text or "# Experiment Route Cards\n\nNo routes generated.\n", encoding="utf-8", newline="\n")
     return str(output_path)
 
@@ -149,12 +178,15 @@ def export_public_route_summary(
     route_type_counts = Counter(str(route.get("route_type") or "missing") for route in routes)
     family_counts = Counter(str(route.get("reaction_family") or "unclear") for route in routes)
     measurement_counts = Counter(str(route.get("measurement_feasibility_status") or "unknown") for route in routes)
+    stage_counts = Counter(f"{_stage_rank(route)} {route.get('execution_stage') or ''}" for route in routes)
+    next_route = _next_actionable(routes)
     lines = [
         f"# Experiment Route Summary: {run_name}",
         "",
         "## 1. Route counts",
         "",
         f"- Routes generated: {len(routes)}",
+        f"- Next actionable route: {next_route.get('route_id') if next_route else 'none'}",
         "",
         "## 2. Priority labels",
         "",
@@ -174,7 +206,13 @@ def export_public_route_summary(
         "",
         _route_feasibility_table(routes),
         "",
-        "## 6. Safety statement",
+        "## 6. Execution stages",
+        "",
+        _table(["Stage", "Routes"], stage_counts.items()),
+        "",
+        _route_tree(routes),
+        "",
+        "## 7. Safety statement",
         "",
         "These route cards are structured planning artifacts, not wet-lab SOPs. Local safety review and human scientific review remain mandatory.",
         "",
@@ -254,3 +292,63 @@ def _route_feasibility_table(routes: list[dict[str, Any]]) -> str:
         ]
         lines.append("| " + " | ".join(str(value).replace("|", "\\|").replace("\n", " ") for value in values) + " |")
     return "\n".join(lines)
+
+
+def _route_tree(routes: list[dict[str, Any]]) -> str:
+    parents = [route for route in routes if route.get("is_route_group")]
+    lines: list[str] = []
+    for parent in sorted(parents, key=_card_sort_key):
+        lines.append(
+            f"- {parent.get('route_id')} [non-executable parent; {parent.get('stage_gate_status') or 'unknown'}]"
+        )
+        child_ids = set(_list_values(parent.get("child_route_ids")))
+        children = [route for route in routes if str(route.get("route_id") or "") in child_ids]
+        for child in sorted(children, key=_card_sort_key):
+            blockers = ", ".join(_list_values(child.get("blocked_by_route_ids"))) or "none"
+            lines.append(
+                f"  - {child.get('route_id')} [{child.get('stage_gate_status') or 'unknown'}; blocked_by={blockers}]"
+            )
+    if not lines:
+        return "- none"
+    return "\n".join(lines)
+
+
+def _next_actionable(routes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return next(
+        (
+            route
+            for route in sorted(routes, key=_card_sort_key)
+            if not route.get("is_route_group")
+            and str(route.get("stage_gate_status") or "") in {"actionable", "event_triggered", "waived"}
+        ),
+        None,
+    )
+
+
+def _stage_card_order(routes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    parents = [route for route in routes if route.get("is_route_group")]
+    ordered: list[dict[str, Any]] = []
+    for parent in sorted(parents, key=_card_sort_key):
+        ordered.append(parent)
+        child_ids = set(_list_values(parent.get("child_route_ids")))
+        ordered.extend(sorted((route for route in routes if str(route.get("route_id") or "") in child_ids), key=_card_sort_key))
+    included = {str(route.get("route_id") or "") for route in ordered}
+    ordered.extend(sorted((route for route in routes if str(route.get("route_id") or "") not in included), key=_card_sort_key))
+    return ordered
+
+
+def _stage_rank(route: dict[str, Any]) -> int:
+    if route.get("stage_rank") is not None:
+        return int(route.get("stage_rank") or 0)
+    return ROUTE_STAGE_MAP.get(str(route.get("route_type") or ""), 5)
+
+
+def _card_sort_key(route: dict[str, Any]) -> tuple[Any, ...]:
+    status = str(route.get("stage_gate_status") or "blocked")
+    status_rank = 0 if status in {"actionable", "event_triggered", "waived"} else 1
+    return (
+        _stage_rank(route),
+        status_rank,
+        -float(route.get("within_stage_score") or route.get("priority_score") or 0),
+        str(route.get("route_id") or ""),
+    )
