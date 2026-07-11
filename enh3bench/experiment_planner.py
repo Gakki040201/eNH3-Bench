@@ -14,6 +14,8 @@ from enh3bench.experiment_schema import (
     MEASUREMENT_LABELS,
     ROUTE_TYPES,
     validate_experiment_route,
+    EXPERIMENT_SCHEMA_VERSION,
+    EXECUTION_UNIT,
     utc_now,
 )
 from enh3bench.lab_profile import (
@@ -318,6 +320,7 @@ def _build_route(
         capability_warnings.append(f"reaction family not in current lab demonstration scope: {family}")
     human_review_required = priority_label == "needs_human_review" or any(gap.get("llm_disagreement") for gap in gaps)
     route = {
+        "schema_version": EXPERIMENT_SCHEMA_VERSION,
         "route_id": f"ER_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{route_type}",
         "run_name": run_name,
         "source_basis_ids": source_ids,
@@ -329,6 +332,11 @@ def _build_route(
         "reaction_profile": _reaction_profile_summary(profile),
         "lab_demonstration_allowed": lab_allowed,
         "route_type": route_type,
+        "default_replicate_count": 3 if route_type == "baseline_repeatability" else 1,
+        "minimum_valid_replicates": 3 if route_type == "baseline_repeatability" else 1,
+        "replicate_type": "independent",
+        "independent_assembly_required": route_type == "baseline_repeatability",
+        "execution_unit": EXECUTION_UNIT,
         "priority_label": priority_label,
         "priority_score": score,
         "hypothesis": _hypothesis(title, target),
@@ -336,7 +344,7 @@ def _build_route(
         "boundary_gap_targeted": _dedupe(gap.get("gap_type") for gap in gaps),
         "hidden_tax_targeted": hidden_taxes,
         "variable_type": variable_type,
-        "experimental_matrix": _experimental_matrix(variable_type),
+        "experimental_matrix": _experimental_matrix(variable_type, route_type),
         "fixed_conditions": _fixed_conditions(lab_profile),
         "required_controls": [control for control in controls if control in CONTROL_LABELS],
         "feasible_controls": feasible,
@@ -697,10 +705,23 @@ def _rationale(route_type: str, gaps: list[dict[str, Any]]) -> str:
     return f"Route {route_type} was generated from {len(gaps)} BoundaryLedger gap signals: {top}."
 
 
-def _experimental_matrix(variable_type: str) -> list[dict[str, str]]:
+def _experimental_matrix(variable_type: str, route_type: str = "") -> list[dict[str, str]]:
+    baseline = {
+        "condition_id": "baseline",
+        "condition_label": "Baseline",
+        "variable_type": variable_type,
+        "planned_value": "current lab baseline",
+    }
+    if route_type == "baseline_repeatability":
+        return [baseline]
     return [
-        {"condition_id": "baseline", "variable_type": variable_type, "planned_value": "current lab baseline"},
-        {"condition_id": "stress_or_control", "variable_type": variable_type, "planned_value": "single controlled perturbation"},
+        baseline,
+        {
+            "condition_id": "stress_or_control",
+            "condition_label": "Stress or control",
+            "variable_type": variable_type,
+            "planned_value": "single controlled perturbation",
+        },
     ]
 
 

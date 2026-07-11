@@ -25,9 +25,11 @@ def main() -> int:
     print(f"rows_read: {outputs['rows_read']}")
     print(f"valid_results: {outputs['valid_results']}")
     print(f"invalid_results: {outputs['invalid_results']}")
+    print(f"warning_results: {outputs['warning_results']}")
     print(f"imported_csv: {outputs['imported_csv']}")
     print(f"imported_jsonl: {outputs['imported_jsonl']}")
     print(f"errors_csv: {outputs['errors_csv']}")
+    print(f"warnings_csv: {outputs['warnings_csv']}")
     return 1 if outputs["invalid_results"] else 0
 
 

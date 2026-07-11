@@ -71,7 +71,9 @@ class LiNRRF0RoutePlannerTests(unittest.TestCase):
         route = _route("baseline_repeatability")
         with tempfile.TemporaryDirectory() as temp_dir:
             outputs = export_experiment_result_template([route], "run1", output_dir=Path(temp_dir))
-            self.assertEqual(outputs["count"], 1)
+            self.assertEqual(outputs["count"], 3)
+            self.assertTrue(Path(outputs["manifest"]).exists())
+            self.assertTrue(Path(outputs["summary_csv"]).exists())
         template = empty_experiment_result_template(route)
         for field in ("OCV", "pump_speed", "SSC_photo_before", "PtAuSSC_photo_after", "IC_NH4", "SOP_deviation", "operator_failure_note"):
             self.assertIn(field, template)

@@ -29,6 +29,7 @@ class ExperimentSchemaTests(unittest.TestCase):
 
 def _route() -> dict[str, object]:
     return {
+        "schema_version": "1.1",
         "route_id": "ER1",
         "run_name": "run1",
         "source_basis_ids": [],
@@ -38,6 +39,11 @@ def _route() -> dict[str, object]:
         "reaction_profile": {"reaction_family": "LiNRR"},
         "lab_demonstration_allowed": True,
         "route_type": "validation_gap_closure",
+        "default_replicate_count": 1,
+        "minimum_valid_replicates": 1,
+        "replicate_type": "independent",
+        "independent_assembly_required": False,
+        "execution_unit": "route_condition_replicate",
         "priority_label": "priority_experiment",
         "priority_score": 60,
         "hypothesis": "test",

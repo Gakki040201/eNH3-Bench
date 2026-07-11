@@ -138,13 +138,41 @@ CONTROL_LABELS = (
 
 RESULT_STATUS_LABELS = ("success", "partial", "failed", "invalid", "inconclusive")
 
+EXPERIMENT_SCHEMA_VERSION = "1.1"
+EXECUTION_UNIT = "route_condition_replicate"
+
+RESULT_IDENTITY_FIELDS = (
+    "execution_id",
+    "condition_id",
+    "condition_label",
+    "condition_values_json",
+    "replicate_id",
+    "replicate_index",
+    "independent_replicate",
+    "assembly_id",
+    "cell_build_id",
+    "electrolyte_batch_id",
+    "electrode_batch_id",
+    "gas_batch_id",
+    "experiment_start_utc",
+    "experiment_end_utc",
+    "timepoint_id",
+    "technical_repeat_id",
+)
+
 ROUTE_REQUIRED_FIELDS = (
+    "schema_version",
     "route_id",
     "run_name",
     "reaction_family",
     "reaction_profile",
     "lab_demonstration_allowed",
     "route_type",
+    "default_replicate_count",
+    "minimum_valid_replicates",
+    "replicate_type",
+    "independent_assembly_required",
+    "execution_unit",
     "priority_label",
     "priority_score",
     "hypothesis",
@@ -241,6 +269,14 @@ def validate_experiment_route(route: dict[str, Any]) -> tuple[bool, list[str]]:
         int(route.get("priority_score"))
     except (TypeError, ValueError):
         errors.append("priority_score must be an integer")
+    for field in ("default_replicate_count", "minimum_valid_replicates"):
+        try:
+            if int(route.get(field)) < 1:
+                errors.append(f"{field} must be at least 1")
+        except (TypeError, ValueError):
+            errors.append(f"{field} must be an integer")
+    if str(route.get("execution_unit") or "") != EXECUTION_UNIT:
+        errors.append(f"execution_unit must be {EXECUTION_UNIT}")
     if str(route.get("variable_type") or "") not in VARIABLE_TYPES:
         errors.append(f"invalid variable_type: {route.get('variable_type')}")
     for control in _normalize_multi(route.get("required_controls")):
@@ -255,17 +291,46 @@ def validate_experiment_route(route: dict[str, Any]) -> tuple[bool, list[str]]:
     return not errors, errors
 
 
-def empty_experiment_result_template(route: dict[str, Any]) -> dict[str, Any]:
+def empty_experiment_result_template(
+    route: dict[str, Any],
+    condition: dict[str, Any] | None = None,
+    replicate_index: int = 1,
+) -> dict[str, Any]:
     """Return an editable empty result template row for a route."""
 
+    route_id = str(route.get("route_id") or "TODO")
+    condition = dict(condition or _first_condition(route))
+    condition_id = _identifier(condition.get("condition_id") or "baseline")
+    replicate_index = max(1, int(replicate_index or 1))
+    replicate_id = f"rep_{replicate_index:02d}"
+    execution_id = f"EXEC_{route_id}_{condition_id}_{replicate_id}"
     return {
-        "experiment_id": f"EXP_{route.get('route_id') or 'TODO'}",
-        "route_id": str(route.get("route_id") or ""),
+        "schema_version": str(route.get("schema_version") or EXPERIMENT_SCHEMA_VERSION),
+        "execution_unit": str(route.get("execution_unit") or EXECUTION_UNIT),
+        "execution_id": execution_id,
+        "experiment_id": f"EXP_{route_id}_{condition_id}_{replicate_id}",
+        "route_id": route_id if route_id != "TODO" else "",
         "run_name": str(route.get("run_name") or ""),
         "date": "",
         "operator": "",
-        "condition_id": "",
-        "experimental_matrix_value": "",
+        "condition_id": condition_id,
+        "condition_label": str(condition.get("condition_label") or condition.get("label") or condition_id),
+        "condition_values_json": json.dumps(condition, ensure_ascii=True, sort_keys=True),
+        "experimental_matrix_value": str(condition.get("planned_value") or condition.get("value") or ""),
+        "replicate_id": replicate_id,
+        "replicate_index": replicate_index,
+        "independent_replicate": str(route.get("replicate_type") or "independent") == "independent",
+        "replicate_type": str(route.get("replicate_type") or "independent"),
+        "independent_assembly_required": bool(route.get("independent_assembly_required")),
+        "assembly_id": "",
+        "cell_build_id": "",
+        "electrolyte_batch_id": "",
+        "electrode_batch_id": "",
+        "gas_batch_id": "",
+        "experiment_start_utc": "",
+        "experiment_end_utc": "",
+        "timepoint_id": "",
+        "technical_repeat_id": "",
         "FE": "",
         "NH3_yield": "",
         "current_density": "",
@@ -316,8 +381,87 @@ def empty_experiment_result_template(route: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def expand_route_execution_rows(
+    route: dict[str, Any],
+    baseline_replicates: int = 3,
+    default_replicates: int = 1,
+    expand_matrix: bool = True,
+) -> list[dict[str, Any]]:
+    """Expand one route into editable condition-by-independent-replicate rows."""
+
+    route_type = str(route.get("route_type") or "")
+    conditions = [dict(item) for item in route.get("experimental_matrix") or [] if isinstance(item, dict)]
+    if route_type == "baseline_repeatability":
+        conditions = [_canonical_baseline_condition(route)]
+        replicate_count = max(1, int(baseline_replicates or 3))
+    else:
+        conditions = conditions or [_canonical_baseline_condition(route)]
+        replicate_count = max(
+            1,
+            int(route.get("default_replicate_count") or 1),
+            int(default_replicates or 1),
+        )
+    if not expand_matrix:
+        conditions = conditions[:1]
+
+    return [
+        empty_experiment_result_template(route, condition=condition, replicate_index=replicate_index)
+        for condition in conditions
+        for replicate_index in range(1, replicate_count + 1)
+    ]
+
+
+def expand_routes_to_result_rows(
+    routes: list[dict[str, Any]],
+    baseline_replicates: int = 3,
+    default_replicates: int = 1,
+    expand_matrix: bool = True,
+) -> list[dict[str, Any]]:
+    """Expand routes while keeping baseline repeatability rows first."""
+
+    ordered = sorted(routes, key=lambda route: str(route.get("route_type") or "") != "baseline_repeatability")
+    rows: list[dict[str, Any]] = []
+    for route in ordered:
+        rows.extend(
+            expand_route_execution_rows(
+                route,
+                baseline_replicates=baseline_replicates,
+                default_replicates=default_replicates,
+                expand_matrix=expand_matrix,
+            )
+        )
+    return rows
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _first_condition(route: dict[str, Any]) -> dict[str, Any]:
+    matrix = route.get("experimental_matrix") or []
+    if matrix and isinstance(matrix[0], dict):
+        return dict(matrix[0])
+    return _canonical_baseline_condition(route)
+
+
+def _canonical_baseline_condition(route: dict[str, Any]) -> dict[str, Any]:
+    for condition in route.get("experimental_matrix") or []:
+        if isinstance(condition, dict) and str(condition.get("condition_id") or "").casefold() == "baseline":
+            result = dict(condition)
+            result["condition_id"] = "baseline"
+            result.setdefault("condition_label", "Baseline")
+            return result
+    return {
+        "condition_id": "baseline",
+        "condition_label": "Baseline",
+        "variable_type": str(route.get("variable_type") or "baseline_condition"),
+        "planned_value": "current lab baseline",
+    }
+
+
+def _identifier(value: Any) -> str:
+    text = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "").strip()).strip("_")
+    return text or "baseline"
 
 
 def _normalize_multi(value: Any) -> list[str]:
