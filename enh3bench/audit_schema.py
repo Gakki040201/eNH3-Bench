@@ -73,6 +73,20 @@ VALIDATION_GATE_LABELS = (
 
 HUMAN_REVIEW_STATUSES = ("unreviewed", "reviewed", "needs_second_reviewer", "excluded")
 
+REVIEW_PRIORITY_BANDS = ("none", "low", "medium", "high", "critical")
+
+REVIEW_REQUIREMENT_FIELDS = (
+    "rule_needs_human_review",
+    "llm_needs_human_review",
+    "overall_needs_human_review",
+    "review_priority_band",
+    "review_trigger_flags",
+)
+
+NEEDS_HUMAN_REVIEW_ALIAS_NOTE = (
+    "needs_human_review is a deprecated compatibility alias for overall_needs_human_review."
+)
+
 HUMAN_FIELDS = (
     "human_reviewer_id",
     "human_review_status",

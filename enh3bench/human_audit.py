@@ -11,6 +11,7 @@ from typing import Any
 
 from enh3bench.audit_schema import (
     HUMAN_FIELDS,
+    REVIEW_REQUIREMENT_FIELDS,
     empty_human_fields_template,
     is_reviewed_record,
     normalize_list_field,
@@ -18,7 +19,12 @@ from enh3bench.audit_schema import (
 )
 from enh3bench.ledger_router import load_jsonl
 from enh3bench.llm_clients.base import sanitize_model_name_for_path
-from enh3bench.provenance_rules import is_reject_or_low_trust, normalize_provenance_type
+from enh3bench.provenance_rules import (
+    is_primary_admissible,
+    is_reject_or_low_trust,
+    is_secondary_or_context,
+    normalize_provenance_type,
+)
 
 
 AUDIT_FIELD_ORDER = [
@@ -58,12 +64,55 @@ AUDIT_FIELD_ORDER = [
     "boundary_agreement",
     "llm_more_permissive",
     "llm_more_conservative",
+    *REVIEW_REQUIREMENT_FIELDS,
     "needs_human_review",
     "llm_audit_flags",
     "audit_priority_score",
     "audit_priority_reasons",
     *HUMAN_FIELDS,
 ]
+
+CRITICAL_RULE_REVIEW_FLAGS = {
+    "text_class_provenance_conflict_primary_vs_low_trust",
+    "unsupported_or_missing_source_text",
+    "reaction_family_conflict",
+    "unpaired_caption_primary_claim",
+    "process_or_reactor_claim_low_trust_provenance",
+}
+
+HIGH_RULE_REVIEW_FLAGS = {
+    "n2_to_nh3_primary_claim_missing_isotope_attribution",
+    "rule_boundary_potentially_overclaims_provenance",
+    "high_priority_contamination_or_source_attribution_gap",
+    "trusted_boundary_capped_by_provenance",
+}
+
+MEDIUM_RULE_REVIEW_FLAGS = {
+    "missing_blank_or_nox_controls",
+    "review_table_primary_pairing_required",
+    "medium_confidence_family_or_section_conflict",
+}
+
+LOW_RULE_REVIEW_FLAGS = {
+    "incomplete_metric_matrix",
+    "optional_audit_note_only",
+}
+
+LLM_REVIEW_SCORE_FLAGS = {
+    "llm_parse_or_schema_error": 8,
+    "llm_more_permissive_than_rule": 5,
+    "llm_more_conservative_than_rule": 4,
+    "missing_boundary_field_disagreement": 4,
+    "required_control_disagreement": 4,
+    "llm_overrode_low_trust_provenance": 6,
+    "llm_upgraded_unpaired_caption": 6,
+    "possible_unsupported_isotope_claim": 5,
+    "text_class_disagreement": 2,
+}
+
+PRIMARY_TEXT_CLASSES = {"primary_performance", "primary_performance_with_validation"}
+LOW_TRUST_PROVENANCE_TYPES = {"reference", "bibliography", "front_matter", "metadata", "copyright_note"}
+CAPTION_PROVENANCE_TYPES = {"figure_caption", "scheme_caption"}
 
 
 def load_claim_rights(run_name: str, base_dir: str | Path = "data/boundary_ledger") -> list[dict[str, Any]]:
@@ -135,9 +184,114 @@ def merge_audit_sources(
 
         score = score_audit_priority(record)
         record.update(score)
+        _apply_review_requirements(record)
         merged_records.append(record)
 
     return merged_records
+
+
+def derive_rule_review_requirement(record: dict[str, Any]) -> dict[str, Any]:
+    """Derive rule-only human-review requirements from provenance and claim signals."""
+
+    flags: list[str] = []
+    provenance_type = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
+    risk_flags = _list_values(record.get("overclaim_risk_flags"))
+    all_flags = risk_flags + _list_values(record.get("llm_audit_flags"))
+    required_controls = _list_values(record.get("required_controls"))
+    missing_fields = _list_values(record.get("missing_boundary_fields"))
+    detected_taxes = _list_values(record.get("detected_taxes")) + _list_values(record.get("hidden_tax"))
+    source_text = str(record.get("source_text") or "").strip()
+    boundary = str(record.get("maximum_supported_boundary") or record.get("rule_maximum_supported_boundary") or "")
+    claim_type = str(record.get("claim_type") or "")
+    low_trust = _record_has_low_trust_provenance(record, provenance_type)
+    primary_claim = _is_primary_claim_context(record, provenance_type)
+
+    if (
+        (_truthy(record.get("text_class_provenance_conflict")) or "text_class_provenance_conflict" in risk_flags)
+        and primary_claim
+        and provenance_type in LOW_TRUST_PROVENANCE_TYPES
+    ):
+        flags.append("text_class_provenance_conflict_primary_vs_low_trust")
+    if not source_text or str(record.get("admissibility_status") or "") == "weak_grounding" or "weak_source_grounding" in all_flags:
+        flags.append("unsupported_or_missing_source_text")
+    if _truthy(record.get("reaction_family_conflict")):
+        flags.append("reaction_family_conflict")
+    if provenance_type in CAPTION_PROVENANCE_TYPES and _truthy(record.get("paired_body_required")) and primary_claim:
+        flags.append("unpaired_caption_primary_claim")
+    if low_trust and (claim_type in {"process_claim", "reactor_claim"} or boundary in {"process_partial", "reactor_legibility"}):
+        flags.append("process_or_reactor_claim_low_trust_provenance")
+
+    if primary_claim and _n2_to_nh3_claim(record) and not _gate_explicit(record, "isotope_15N"):
+        flags.append("n2_to_nh3_primary_claim_missing_isotope_attribution")
+    if _rule_boundary_overclaims_provenance(record, provenance_type, boundary):
+        flags.append("rule_boundary_potentially_overclaims_provenance")
+    if "trusted_boundary_capped_by_provenance" in all_flags:
+        flags.append("trusted_boundary_capped_by_provenance")
+    if _high_priority_contamination_or_source_gap(required_controls, missing_fields, detected_taxes, risk_flags):
+        flags.append("high_priority_contamination_or_source_attribution_gap")
+
+    if not _gate_explicit(record, "blank_control") or not _gate_explicit(record, "nox_control"):
+        flags.append("missing_blank_or_nox_controls")
+    if provenance_type in {"review_table", "table"} and _requires_primary_pairing(required_controls, missing_fields):
+        flags.append("review_table_primary_pairing_required")
+    if _medium_confidence_family_or_section_conflict(record, risk_flags):
+        flags.append("medium_confidence_family_or_section_conflict")
+
+    if _incomplete_metric_matrix(record, missing_fields, detected_taxes):
+        flags.append("incomplete_metric_matrix")
+    if _optional_audit_note(record):
+        flags.append("optional_audit_note_only")
+
+    flags = _dedupe(flags)
+    score = _rule_review_score(flags)
+    band = derive_review_priority_band(score, flags)
+    return {
+        "rule_needs_human_review": band in {"critical", "high", "medium"},
+        "rule_review_priority_score": score,
+        "rule_review_trigger_flags": flags,
+        "review_priority_band": band,
+        "review_trigger_flags": flags,
+    }
+
+
+def derive_review_priority_band(score: int, flags: list[str] | str | None) -> str:
+    """Map review score and trigger flags into a stable priority band."""
+
+    normalized_flags = set(_list_values(flags))
+    if normalized_flags & CRITICAL_RULE_REVIEW_FLAGS or any(flag.startswith("critical:") for flag in normalized_flags):
+        return "critical"
+    if normalized_flags & HIGH_RULE_REVIEW_FLAGS or int(score or 0) >= 8:
+        return "high"
+    if normalized_flags & MEDIUM_RULE_REVIEW_FLAGS or 4 <= int(score or 0) <= 7:
+        return "medium"
+    if normalized_flags & LOW_RULE_REVIEW_FLAGS or 1 <= int(score or 0) <= 3:
+        return "low"
+    return "none"
+
+
+def merge_review_requirements(rule_review: dict[str, Any], llm_review: dict[str, Any]) -> dict[str, Any]:
+    """Merge rule-only and LLM-only review requirements into overall review fields."""
+
+    rule_flags = _list_values(rule_review.get("review_trigger_flags")) + _list_values(rule_review.get("rule_review_trigger_flags"))
+    llm_flags = _list_values(llm_review.get("review_trigger_flags")) + _list_values(llm_review.get("llm_review_trigger_flags"))
+    flags = _dedupe([*rule_flags, *llm_flags])
+    score = max(
+        int(rule_review.get("audit_priority_score") or 0),
+        int(rule_review.get("rule_review_priority_score") or 0) + int(llm_review.get("llm_review_priority_score") or 0),
+        int(llm_review.get("audit_priority_score") or 0),
+    )
+    band = derive_review_priority_band(score, flags)
+    rule_needed = _truthy(rule_review.get("rule_needs_human_review"))
+    llm_needed = _truthy(llm_review.get("llm_needs_human_review"))
+    overall_needed = band in {"critical", "high", "medium"} or llm_needed
+    return {
+        "rule_needs_human_review": rule_needed,
+        "llm_needs_human_review": llm_needed,
+        "overall_needs_human_review": overall_needed,
+        "review_priority_band": band,
+        "review_trigger_flags": flags,
+        "needs_human_review": overall_needed,
+    }
 
 
 def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
@@ -157,8 +311,11 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
     boundary = str(record.get("maximum_supported_boundary") or "")
     status = str(record.get("admissibility_status") or "")
 
-    if _truthy(record.get("needs_human_review")):
-        add(4, "needs_human_review")
+    has_llm_signal = bool(record.get("llm_model") or record.get("llm_parse_error") or _list_values(record.get("llm_audit_flags")))
+    if _truthy(record.get("llm_needs_human_review")) or (
+        has_llm_signal and "llm_needs_human_review" not in record and _truthy(record.get("needs_human_review"))
+    ):
+        add(4, "llm_needs_human_review")
     if _truthy(record.get("llm_more_permissive")):
         add(5, "llm_more_permissive")
     if _truthy(record.get("llm_more_conservative")):
@@ -195,6 +352,8 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
         add(3, "hidden_taxes_high_severity")
     if not str(record.get("source_text") or "").strip() or status == "weak_grounding" or "weak_source_grounding" in flags:
         add(3, "source_text_missing_or_weak_grounding")
+    if _truthy(record.get("reaction_family_conflict")):
+        add(8, "reaction_family_conflict")
 
     return {"audit_priority_score": score, "audit_priority_reasons": reasons}
 
@@ -215,6 +374,7 @@ def export_human_audit_sheet(
         row["run_name"] = str(row.get("run_name") or run_name)
         if "audit_priority_score" not in row:
             row.update(score_audit_priority(row))
+        _apply_review_requirements(row)
         output_records.append(row)
 
     output_records.sort(key=lambda item: (-int(item.get("audit_priority_score") or 0), str(item.get("audit_id") or "")))
@@ -222,7 +382,7 @@ def export_human_audit_sheet(
         output_records = [
             record
             for record in output_records
-            if int(record.get("audit_priority_score") or 0) > 0 or _truthy(record.get("needs_human_review"))
+            if int(record.get("audit_priority_score") or 0) > 0 or _truthy(record.get("overall_needs_human_review"))
         ]
     if top_n is not None:
         output_records = output_records[: max(0, int(top_n))]
@@ -237,6 +397,10 @@ def export_human_audit_sheet(
         "run_name": run_name,
         "count": len(output_records),
         "priority_records": priority_count,
+        "rule_review_records": sum(1 for record in output_records if _truthy(record.get("rule_needs_human_review"))),
+        "llm_review_records": sum(1 for record in output_records if _truthy(record.get("llm_needs_human_review"))),
+        "overall_review_records": sum(1 for record in output_records if _truthy(record.get("overall_needs_human_review"))),
+        "priority_band_counts": dict(Counter(str(record.get("review_priority_band") or "none") for record in output_records)),
         "jsonl": str(jsonl_path),
         "csv": str(csv_path),
     }
@@ -319,6 +483,15 @@ def export_audit_report(
 ) -> str:
     """Write a Phase D human-audit Markdown report."""
 
+    prepared_records: list[dict[str, Any]] = []
+    for original in records:
+        record = dict(original)
+        if "audit_priority_score" not in record:
+            record.update(score_audit_priority(record))
+        _apply_review_requirements(record)
+        prepared_records.append(record)
+    records = prepared_records
+
     output_path = Path(output_dir) / f"human_audit_report.{run_name}.md"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     reason_counts = _list_counter(records, "audit_priority_reasons")
@@ -369,8 +542,17 @@ def export_audit_report(
         "",
         "## 7. Records needing human review",
         "",
-        f"- needs_human_review=true: {sum(1 for record in records if _truthy(record.get('needs_human_review')))}",
+        f"- Rule review required: {sum(1 for record in records if _truthy(record.get('rule_needs_human_review')))}",
+        f"- LLM review required: {sum(1 for record in records if _truthy(record.get('llm_needs_human_review')))}",
+        f"- Overall review required: {sum(1 for record in records if _truthy(record.get('overall_needs_human_review')))}",
+        f"- Rule-only review: {sum(1 for record in records if _truthy(record.get('rule_needs_human_review')) and not _truthy(record.get('llm_needs_human_review')))}",
+        f"- LLM-only review: {sum(1 for record in records if _truthy(record.get('llm_needs_human_review')) and not _truthy(record.get('rule_needs_human_review')))}",
         f"- priority score > 0: {sum(1 for record in records if int(record.get('audit_priority_score') or 0) > 0)}",
+        "",
+        _markdown_table(
+            ["Priority band", "Records"],
+            [[key, count] for key, count in Counter(str(record.get("review_priority_band") or "none") for record in records).most_common()],
+        ),
         "",
         "## 8. Human label completion status if reviewed records exist",
         "",
@@ -410,6 +592,11 @@ def _attach_llm_fields(record: dict[str, Any], llm: dict[str, Any]) -> None:
     record.setdefault("boundary_agreement", "")
     record.setdefault("llm_more_permissive", False)
     record.setdefault("llm_more_conservative", False)
+    record.setdefault("rule_needs_human_review", False)
+    record.setdefault("llm_needs_human_review", False)
+    record.setdefault("overall_needs_human_review", False)
+    record.setdefault("review_priority_band", "none")
+    record.setdefault("review_trigger_flags", [])
     record.setdefault("needs_human_review", False)
     record.setdefault("llm_audit_flags", [])
 
@@ -430,7 +617,8 @@ def _attach_llm_fields(record: dict[str, Any], llm: dict[str, Any]) -> None:
     record["boundary_agreement"] = llm.get("boundary_agreement")
     record["llm_more_permissive"] = bool(llm.get("llm_more_permissive"))
     record["llm_more_conservative"] = bool(llm.get("llm_more_conservative"))
-    record["needs_human_review"] = bool(llm.get("needs_human_review"))
+    record["llm_needs_human_review"] = bool(llm.get("llm_needs_human_review", llm.get("needs_human_review")))
+    record["needs_human_review"] = record["llm_needs_human_review"]
     record["llm_audit_flags"] = llm.get("llm_audit_flags") or []
     record["llm_parse_error"] = llm.get("llm_parse_error")
     record["text_class_agreement"] = llm.get("text_class_agreement")
@@ -578,6 +766,113 @@ def _caption_has_support_hint(record: dict[str, Any], provenance_type: str) -> b
     normalized = normalize_provenance_type(provenance_type)
     hint = str(record.get("support_hint_boundary") or "").strip()
     return normalized in {"figure_caption", "scheme_caption"} and hint not in {"", "unsupported_or_secondary"}
+
+
+def _apply_review_requirements(record: dict[str, Any]) -> None:
+    rule_review = derive_rule_review_requirement(record)
+    rule_review["audit_priority_score"] = int(record.get("audit_priority_score") or 0)
+    record.update(merge_review_requirements(rule_review, _derive_llm_review_requirement(record)))
+
+
+def _derive_llm_review_requirement(record: dict[str, Any]) -> dict[str, Any]:
+    flags = _list_values(record.get("llm_audit_flags"))
+    if record.get("llm_parse_error") and "llm_parse_or_schema_error" not in flags:
+        flags.append("llm_parse_or_schema_error")
+    if _truthy(record.get("llm_more_permissive")) and "llm_more_permissive_than_rule" not in flags:
+        flags.append("llm_more_permissive_than_rule")
+    if _truthy(record.get("llm_more_conservative")) and "llm_more_conservative_than_rule" not in flags:
+        flags.append("llm_more_conservative_than_rule")
+    has_llm_signal = bool(record.get("llm_model") or record.get("llm_parse_error") or flags)
+    needed = _truthy(record.get("llm_needs_human_review"))
+    if "llm_needs_human_review" not in record and has_llm_signal:
+        needed = _truthy(record.get("needs_human_review"))
+    needed = needed or bool(set(flags) & set(LLM_REVIEW_SCORE_FLAGS))
+    score = max((LLM_REVIEW_SCORE_FLAGS.get(flag, 0) for flag in flags), default=0)
+    if needed and score == 0:
+        score = 4
+    return {
+        "llm_needs_human_review": needed,
+        "llm_review_priority_score": score,
+        "llm_review_trigger_flags": _dedupe(flags),
+    }
+
+
+def _record_has_low_trust_provenance(record: dict[str, Any], provenance_type: str) -> bool:
+    return (
+        _truthy(record.get("low_trust_provenance"))
+        or _truthy(record.get("is_reject_or_low_trust"))
+        or is_reject_or_low_trust(provenance_type)
+    )
+
+
+def _is_primary_claim_context(record: dict[str, Any], provenance_type: str) -> bool:
+    return (
+        str(record.get("text_class") or "") in PRIMARY_TEXT_CLASSES
+        or str(record.get("claim_type") or "") in {"performance_claim", "validation_claim", "process_claim", "reactor_claim"}
+        or is_primary_admissible(provenance_type)
+    )
+
+
+def _rule_boundary_overclaims_provenance(record: dict[str, Any], provenance_type: str, boundary: str) -> bool:
+    if boundary in {"", "unsupported_or_secondary"}:
+        return False
+    return _truthy(record.get("provenance_constrained")) or not is_primary_admissible(provenance_type)
+
+
+def _high_priority_contamination_or_source_gap(
+    required_controls: list[str], missing_fields: list[str], detected_taxes: list[str], risk_flags: list[str]
+) -> bool:
+    text = " ".join([*required_controls, *missing_fields, *detected_taxes, *risk_flags]).casefold()
+    return any(term in text for term in ("contamination", "source_attribution", "isotope", "15n"))
+
+
+def _requires_primary_pairing(required_controls: list[str], missing_fields: list[str]) -> bool:
+    text = " ".join([*required_controls, *missing_fields]).casefold()
+    return "primary" in text and ("pair" in text or "body" in text)
+
+
+def _medium_confidence_family_or_section_conflict(record: dict[str, Any], risk_flags: list[str]) -> bool:
+    if any("family" in flag or "section" in flag for flag in risk_flags if "conflict" in flag):
+        return True
+    family_confidence = str(record.get("reaction_family_confidence") or "").casefold()
+    section_confidence = str(record.get("section_confidence") or "").casefold()
+    return family_confidence == "medium" and section_confidence == "medium"
+
+
+def _incomplete_metric_matrix(record: dict[str, Any], missing_fields: list[str], detected_taxes: list[str]) -> bool:
+    if "measurement_matrix_tax" in detected_taxes:
+        return True
+    metric_fields = {"FE", "NH3_yield", "EE", "current_density", "potential_or_voltage", "runtime"}
+    return str(record.get("maximum_supported_boundary") or "") == "cell_metric" and bool(metric_fields & set(missing_fields))
+
+
+def _optional_audit_note(record: dict[str, Any]) -> bool:
+    return any(str(record.get(key) or "").strip() for key in ("optional_audit_note", "audit_note", "audit_notes"))
+
+
+def _rule_review_score(flags: list[str]) -> int:
+    score = 0
+    for flag in flags:
+        if flag in CRITICAL_RULE_REVIEW_FLAGS:
+            score = max(score, 10)
+        elif flag in HIGH_RULE_REVIEW_FLAGS:
+            score = max(score, 8)
+        elif flag in MEDIUM_RULE_REVIEW_FLAGS:
+            score = max(score, 4)
+        elif flag in LOW_RULE_REVIEW_FLAGS:
+            score = max(score, 1)
+    return score
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        value = str(item).strip()
+        if value and value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
 
 
 def _caption_hint_counter(records: list[dict[str, Any]]) -> Counter[str]:

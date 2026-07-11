@@ -367,7 +367,8 @@ def _llm_priority(record: dict[str, Any]) -> int:
     boundary = str(record.get("llm_maximum_supported_boundary") or "")
     if boundary in {"reactor_legibility", "process_partial"}:
         return 1
-    if str(record.get("needs_human_review") or "").casefold() in {"true", "1", "yes"} or record.get("needs_human_review") is True:
+    review_value = record.get("llm_needs_human_review") if "llm_needs_human_review" in record else record.get("needs_human_review")
+    if _truthy(review_value):
         return 1
     return 0
 
@@ -403,10 +404,21 @@ def flatten_metrics(results: dict[str, dict[str, dict[str, Any]]]) -> list[dict[
 def metric_summary_counts(tasks: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     """Return compact counts for reports."""
 
+    records = [record for task_records in tasks.values() for record in task_records]
     return {
         "tasks": {task_name: len(records) for task_name, records in tasks.items()},
         "reviewed_records": max((len(records) for records in tasks.values()), default=0),
         "llm_rows": sum(1 for records in tasks.values() for record in records if record.get("llm_model")),
-        "needs_human_review_rows": sum(1 for records in tasks.values() for record in records if record.get("needs_human_review")),
+        "rule_review_rows": sum(1 for record in records if _truthy(record.get("rule_needs_human_review"))),
+        "llm_review_rows": sum(1 for record in records if _truthy(record.get("llm_needs_human_review"))),
+        "overall_review_rows": sum(1 for record in records if _truthy(record.get("overall_needs_human_review"))),
+        "needs_human_review_rows": sum(1 for record in records if _truthy(record.get("needs_human_review"))),
+        "review_priority_band_counts": dict(Counter(str(record.get("review_priority_band") or "none") for record in records)),
         "task_names": list(tasks),
     }
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}

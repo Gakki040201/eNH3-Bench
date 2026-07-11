@@ -213,6 +213,7 @@ def verify_record_with_llm(
     verified["low_trust_provenance_reason"] = low_trust_reason(str(record.get("provenance_type") or "unknown")) if low_trust else ""
 
     if parsed is None:
+        review_semantics = _merge_llm_review_semantics(record, True, ["llm_parse_or_schema_error"])
         verified.update(
             {
                 "boundary_agreement": False,
@@ -221,12 +222,12 @@ def verify_record_with_llm(
                 "llm_more_conservative": False,
                 "missing_field_disagreement": [],
                 "required_control_disagreement": [],
-                "needs_human_review": True,
                 "llm_audit_flags": ["llm_parse_or_schema_error"],
                 "trusted_llm_maximum_supported_boundary": rule_boundary,
                 "trusted_llm_boundary_reason": "LLM response could not be parsed or schema-validated.",
             }
         )
+        verified.update(review_semantics)
         return verified
 
     comparison = compare_rule_and_llm(record, parsed)
@@ -337,20 +338,21 @@ def compare_rule_and_llm(record: dict[str, Any], llm_result: dict[str, Any]) -> 
     if not text_class_agreement:
         flags.append("text_class_disagreement")
 
-    return {
+    comparison = {
         "boundary_agreement": rule_boundary == llm_boundary,
         "text_class_agreement": text_class_agreement,
         "llm_more_permissive": llm_more_permissive,
         "llm_more_conservative": llm_more_conservative,
         "missing_field_disagreement": missing_disagreement,
         "required_control_disagreement": required_disagreement,
-        "needs_human_review": needs_human_review,
         "llm_audit_flags": _dedupe(flags),
         "trusted_llm_maximum_supported_boundary": trusted_boundary,
         "trusted_llm_boundary_reason": trusted_boundary_reason,
         "low_trust_provenance": low_trust,
         "low_trust_provenance_reason": low_trust_provenance_reason,
     }
+    comparison.update(_merge_llm_review_semantics(record, needs_human_review, comparison["llm_audit_flags"]))
+    return comparison
 
 
 def export_llm_verification_results(
@@ -511,6 +513,11 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "text_class_agreement",
         "llm_more_permissive",
         "llm_more_conservative",
+        "rule_needs_human_review",
+        "llm_needs_human_review",
+        "overall_needs_human_review",
+        "review_priority_band",
+        "review_trigger_flags",
         "needs_human_review",
         "llm_audit_flags",
         "missing_field_disagreement",
@@ -532,3 +539,17 @@ def _csv_value(value: Any) -> str:
     if isinstance(value, (list, dict)):
         return json.dumps(value, ensure_ascii=True, sort_keys=True, default=str)
     return str(value)
+
+
+def _merge_llm_review_semantics(record: dict[str, Any], needed: bool, flags: list[str]) -> dict[str, Any]:
+    from enh3bench.human_audit import derive_rule_review_requirement, merge_review_requirements
+
+    score = 8 if "llm_parse_or_schema_error" in flags else (4 if needed else 0)
+    return merge_review_requirements(
+        derive_rule_review_requirement(record),
+        {
+            "llm_needs_human_review": needed,
+            "llm_review_priority_score": score,
+            "llm_review_trigger_flags": flags,
+        },
+    )

@@ -15,6 +15,7 @@ from enh3bench.audit_schema import (  # noqa: E402
     HUMAN_EXPERIMENT_DECISIONS,
     HUMAN_HIDDEN_TAX_TYPES,
     HUMAN_TEXT_CLASSES,
+    NEEDS_HUMAN_REVIEW_ALIAS_NOTE,
     VALIDATION_GATE_LABELS,
 )
 
@@ -48,6 +49,8 @@ def _render(run_name: str) -> str:
             "Use needs_second_reviewer for records that cannot be decided from the provided source text.",
             "Do not promote LLM output to gold. LLM fields are disagreement cues only.",
             "Do not overwrite rule columns. Save a copy such as human_audit_sheet.reviewed.csv before import.",
+            "rule_needs_human_review, llm_needs_human_review, and overall_needs_human_review show separate routing decisions.",
+            NEEDS_HUMAN_REVIEW_ALIAS_NOTE,
             "",
             "## Required reviewed fields",
             "",

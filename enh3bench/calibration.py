@@ -183,6 +183,7 @@ def export_calibration_outputs(
         "llm_human": compute_llm_human_metrics(reviewed),
         "required_controls": compute_required_control_metrics(reviewed),
         "hidden_tax": compute_hidden_tax_metrics(reviewed),
+        "human_review_requirements": _review_requirement_metrics(reviewed),
     }
     revision_records = _records_for_rule_revision(reviewed)
     metrics["revision_examples"] = revision_records[:10]
@@ -196,7 +197,10 @@ def export_calibration_outputs(
         "records_for_rule_revision_csv": str(run_dir / "records_for_rule_revision.csv"),
     }
 
-    _write_key_value_csv(metrics["rule_human"] | metrics["llm_human"], Path(paths["boundary_calibration_metrics_csv"]))
+    _write_key_value_csv(
+        metrics["rule_human"] | metrics["llm_human"] | metrics["human_review_requirements"],
+        Path(paths["boundary_calibration_metrics_csv"]),
+    )
     _write_rows(_confusion_rows(reviewed, "maximum_supported_boundary", "human_maximum_supported_boundary", "rule_boundary", "human_boundary"), Path(paths["boundary_confusion_matrix_csv"]))
     _write_rows(_confusion_rows(reviewed, "text_class", "human_text_class", "rule_text_class", "human_text_class"), Path(paths["text_class_confusion_matrix_csv"]))
     _write_key_value_csv(metrics["required_controls"], Path(paths["required_control_metrics_csv"]))
@@ -219,6 +223,7 @@ def export_calibration_report(
     llm = metrics.get("llm_human", {})
     controls = metrics.get("required_controls", {})
     taxes = metrics.get("hidden_tax", {})
+    review = metrics.get("human_review_requirements", {})
     examples = metrics.get("revision_examples") or []
 
     lines = [
@@ -227,6 +232,12 @@ def export_calibration_report(
         "## 1. Reviewed record count",
         "",
         f"- Reviewed records: {rule.get('reviewed_records', 0)}",
+        f"- Rule review required: {review.get('rule_review_count', 0)}",
+        f"- LLM review required: {review.get('llm_review_count', 0)}",
+        f"- Overall review required: {review.get('overall_review_count', 0)}",
+        f"- Rule-only review: {review.get('rule_only_review_count', 0)}",
+        f"- LLM-only review: {review.get('llm_only_review_count', 0)}",
+        f"- Priority bands: {json.dumps(review.get('review_priority_band_counts', {}), ensure_ascii=True, sort_keys=True)}",
         "",
         "## 2. Rule vs human boundary metrics",
         "",
@@ -305,6 +316,29 @@ def _reviewed_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if valid and is_reviewed_record(record):
             reviewed.append(record)
     return reviewed
+
+
+def _review_requirement_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
+    rule_count = sum(1 for record in records if _truthy(record.get("rule_needs_human_review")))
+    llm_count = sum(1 for record in records if _truthy(record.get("llm_needs_human_review")))
+    return {
+        "rule_review_count": rule_count,
+        "llm_review_count": llm_count,
+        "overall_review_count": sum(1 for record in records if _truthy(record.get("overall_needs_human_review"))),
+        "rule_only_review_count": sum(
+            1 for record in records if _truthy(record.get("rule_needs_human_review")) and not _truthy(record.get("llm_needs_human_review"))
+        ),
+        "llm_only_review_count": sum(
+            1 for record in records if _truthy(record.get("llm_needs_human_review")) and not _truthy(record.get("rule_needs_human_review"))
+        ),
+        "review_priority_band_counts": dict(Counter(str(record.get("review_priority_band") or "none") for record in records)),
+    }
+
+
+def _truthy(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().casefold() in {"true", "1", "yes", "y"}
 
 
 def _llm_text_class(record: dict[str, Any]) -> str:

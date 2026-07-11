@@ -226,7 +226,10 @@ def export_benchmark_summary(
     disagreement_rows = [
         row
         for row in claim_rows
-        if _truthy(row.get("llm_more_permissive")) or _truthy(row.get("llm_more_conservative")) or _truthy(row.get("needs_human_review"))
+        if _truthy(row.get("llm_more_permissive"))
+        or _truthy(row.get("llm_more_conservative"))
+        or _truthy(row.get("overall_needs_human_review"))
+        or _truthy(row.get("needs_human_review"))
     ]
 
     lines = [
@@ -272,6 +275,9 @@ def export_benchmark_summary(
         "",
         f"- Rows with LLM/rule disagreement or review flags: {len(disagreement_rows)}",
         f"- Rows with LLM model: {sum(1 for row in claim_rows if row.get('llm_model'))}",
+        f"- Rule review required: {sum(1 for row in claim_rows if _truthy(row.get('rule_needs_human_review')))}",
+        f"- LLM review required: {sum(1 for row in claim_rows if _truthy(row.get('llm_needs_human_review')))}",
+        f"- Overall review required: {sum(1 for row in claim_rows if _truthy(row.get('overall_needs_human_review')))}",
         "",
         "## 10. Limitations",
         "",
@@ -322,7 +328,20 @@ def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any])
         "trusted_llm_maximum_supported_boundary": str(record.get("trusted_llm_maximum_supported_boundary") or ""),
         "llm_more_permissive": bool(record.get("llm_more_permissive")),
         "llm_more_conservative": bool(record.get("llm_more_conservative")),
-        "needs_human_review": bool(record.get("needs_human_review")),
+        "rule_needs_human_review": bool(record.get("rule_needs_human_review")),
+        "llm_needs_human_review": bool(record.get("llm_needs_human_review")),
+        "overall_needs_human_review": bool(
+            record.get("overall_needs_human_review")
+            if "overall_needs_human_review" in record
+            else record.get("needs_human_review")
+        ),
+        "review_priority_band": str(record.get("review_priority_band") or "none"),
+        "review_trigger_flags": record.get("review_trigger_flags") or [],
+        "needs_human_review": bool(
+            record.get("overall_needs_human_review")
+            if "overall_needs_human_review" in record
+            else record.get("needs_human_review")
+        ),
         "human_reviewer_id": str(record.get("human_reviewer_id") or ""),
         "human_notes": str(record.get("human_notes") or ""),
         "validation_gates": record.get("validation_gates") or {},
