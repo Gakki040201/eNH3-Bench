@@ -123,6 +123,8 @@ def _constraint_violations(route: dict[str, Any], refinement: dict[str, Any]) ->
         violations.append("llm_attempted_priority_label_change")
     if route.get("infeasible_controls") and str(refinement.get("priority_label") or route.get("priority_label")) == "priority_experiment":
         violations.append("llm_attempted_priority_with_infeasible_controls")
+    if route.get("infeasible_measurements") and str(refinement.get("priority_label") or route.get("priority_label")) == "priority_experiment":
+        violations.append("llm_attempted_priority_with_infeasible_measurements")
     return violations
 
 

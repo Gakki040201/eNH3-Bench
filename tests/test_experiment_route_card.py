@@ -15,6 +15,8 @@ class ExperimentRouteCardTests(unittest.TestCase):
         self.assertIn("Required Measurements", text)
         self.assertIn("Success Criteria", text)
         self.assertIn("Failure Criteria", text)
+        self.assertIn("Measurement feasibility: feasible", text)
+        self.assertIn("Alternative measurement plan", text)
 
     def test_export_route_cards_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -22,6 +24,7 @@ class ExperimentRouteCardTests(unittest.TestCase):
             summary = export_public_route_summary([_route()], "run1", output_dir=Path(temp_dir) / "reports")
             self.assertTrue(Path(cards).exists())
             self.assertTrue(Path(summary).exists())
+            self.assertIn("Feasible measurements", Path(summary).read_text(encoding="utf-8"))
 
 
 def _route() -> dict[str, object]:
@@ -40,6 +43,14 @@ def _route() -> dict[str, object]:
         "experimental_matrix": [{"condition_id": "baseline"}],
         "required_controls": ["Ar blank"],
         "required_measurements": ["FE", "NH3_yield"],
+        "mandatory_measurements": ["FE", "NH3_yield"],
+        "optional_measurements": [],
+        "feasible_measurements": ["FE", "NH3_yield"],
+        "infeasible_measurements": [],
+        "measurement_capability_warnings": [],
+        "measurement_feasibility_status": "feasible",
+        "alternative_measurement_plan": [],
+        "boundary_not_closed_due_to_unavailable_measurements": [],
         "success_criteria": ["controls pass"],
         "failure_criteria": ["controls fail"],
         "failure_diagnosis_tree": ["check blanks"],

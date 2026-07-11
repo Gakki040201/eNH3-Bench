@@ -21,8 +21,12 @@ from enh3bench.experiment_schema import (
 from enh3bench.lab_profile import (
     capability_available,
     feasible_controls,
+    feasible_measurements,
     infeasible_controls,
+    infeasible_measurements,
+    measurement_feasibility_status,
     missing_capabilities_for_controls,
+    missing_capabilities_for_measurements,
 )
 from enh3bench.ledger_router import load_jsonl
 from enh3bench.llm_clients.base import sanitize_model_name_for_path
@@ -46,6 +50,26 @@ _VARIABLE_SCREENING_ROUTES = {
     "flow_wetting",
     "HOR_proton_economy",
     "outlet_product_split",
+}
+
+_OPTIONAL_MEASUREMENTS_BY_ROUTE = {
+    "baseline_repeatability": {"OCV", "pump_speed", "water_content_mid", "failure_mode"},
+    "validation_gap_closure": {"SSC_soak_solution_NH4", "gas_line_status", "liquid_line_status"},
+    "electrolyte_window": {"electrolyte_color"},
+    "water_content_window": {"electrolyte_color"},
+    "proton_donor_window": {"electrolyte_color"},
+    "salt_solvent_window": {"electrolyte_color"},
+    "interphase_resistance": {
+        "SSC_photo_before",
+        "SSC_photo_after",
+        "PtAuSSC_photo_before",
+        "PtAuSSC_photo_after",
+        "failure_mode",
+        "electrolyte_color",
+    },
+    "flow_wetting": {"leak_status", "back_suction_status", "pump_status", "failure_mode"},
+    "HOR_proton_economy": {"H2_observation"},
+    "postmortem_failure_analysis": {"electrolyte_color", "operator_failure_note"},
 }
 
 
@@ -199,7 +223,7 @@ def propose_rule_based_routes(
     routes: list[dict[str, Any]] = []
     route_specs = [
         ("baseline_repeatability", "Li-NRR baseline repeatability check", "baseline_condition", ["three water-content measurements", "electrolyte resistance before/after", "SSC/PtAuSSC before-after photos", "voltage/current/runtime reporting"], ["FE", "NH3_yield", "OCV", "pump_speed", "full_cell_voltage", "current_density", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_resistance_before", "electrolyte_resistance_after", "IC_NH4", "failure_mode"], "baseline reproducibility before variable screening"),
-        ("validation_gap_closure", "Validation-gate closure panel", "control_experiment", ["15N2 isotope validation", "Ar blank", "N2-free blank", "NOx/nitrate/nitrite screening", "background NH3 control"], ["NH3_yield", "nitrate", "nitrite", "NOx", "product_state_split", "IC_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4", "gas_line_status", "liquid_line_status"], "missing validation gates"),
+        ("validation_gap_closure", "Validation-gate closure panel", "control_experiment", ["15N2 isotope validation", "Ar blank", "N2-free blank", "NOx/nitrate/nitrite screening", "background NH3 control"], ["NH3_yield", "nitrate", "nitrite", "gas_phase_NOx", "feed_gas_impurity", "product_state_split", "IC_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4", "gas_line_status", "liquid_line_status"], "missing validation gates"),
         ("electrolyte_window", "Electrolyte water/proton donor window", "water_content", ["electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content", "electrolyte_color"], "solvent_management_tax"),
         ("water_content_window", "Li-NRR water-content window", "water_ppm", ["three water-content measurements", "electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_color", "IC_NH4"], "solvent_management_tax and water/proton ambiguity"),
         ("proton_donor_window", "Li-NRR proton-donor identity/concentration window", "donor_identity", ["electrolyte blank", "Ar blank", "NOx/nitrate/nitrite screening", "three water-content measurements"], ["FE", "NH3_yield", "full_cell_voltage", "EIS", "water_content_before", "water_content_mid", "water_content_after", "electrolyte_color", "IC_NH4"], "proton donor ambiguity"),
@@ -207,10 +231,10 @@ def propose_rule_based_routes(
         ("operating_field_matrix", "Operating-field voltage/current/runtime matrix", "potential", ["voltage/current/runtime reporting", "electrolyte resistance before/after"], ["FE", "NH3_yield", "full_cell_voltage", "current_density", "runtime", "EIS", "electrolyte_resistance_before", "electrolyte_resistance_after"], "operating-field disclosure gap"),
         ("interphase_resistance", "Interphase resistance and renewal diagnostic", "runtime", ["Ar blank", "voltage/current/runtime reporting", "electrolyte resistance before/after", "SSC/PtAuSSC before-after photos"], ["EIS", "full_cell_voltage", "FE", "NH3_yield", "electrolyte_resistance_before", "electrolyte_resistance_after", "SSC_photo_before", "SSC_photo_after", "PtAuSSC_photo_before", "PtAuSSC_photo_after", "failure_mode", "electrolyte_color"], "resistance_or_renewal_tax"),
         ("flow_wetting", "Flow/GDE wetting and outlet product-state map", "pump_speed", ["gas/liquid product accounting", "wetting/flooding diagnosis", "gas-line blank", "liquid-line blank"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "leak_status", "back_suction_status", "pump_status", "full_cell_voltage", "failure_mode"], "wetting_outlet_capture_tax"),
-        ("HOR_proton_economy", "HOR on/off proton-economy boundary test", "H2_flow", ["H2-off control", "HOR-off control", "voltage/current/runtime reporting"], ["full_cell_voltage", "anode_potential", "cathode_potential", "FE", "NH3_yield", "H2_observation", "product_state_split"], "hydrogen_logistics_tax"),
+        ("HOR_proton_economy", "HOR on/off proton-economy boundary test", "H2_flow", ["H2-off control", "HOR-off control", "voltage/current/runtime reporting"], ["full_cell_voltage", "anode_potential", "cathode_potential", "FE", "NH3_yield", "H2", "H2_observation", "product_state_split"], "hydrogen_logistics_tax"),
         ("outlet_product_split", "Gas/liquid/trap/SSC ammonia product split", "capture_route", ["HCl trap accounting", "gas/liquid product accounting", "SSC soak solution accounting"], ["gas_phase_NH3", "liquid_NH4", "HCl_trap_NH4", "SSC_soak_solution_NH4", "product_state_split"], "outlet product-state accounting gap"),
         ("product_state_accounting", "Gas/liquid ammonia accounting and capture boundary", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting"], ["gas_phase_NH3", "liquid_NH4", "product_state_split", "water_content"], "product_state/capture gap"),
-        ("contamination_control", "NOx/background ammonia contamination stress test", "control_experiment", ["NOx/nitrate/nitrite screening", "background NH3 control", "Ar blank", "N2-free blank", "electrolyte blank"], ["nitrate", "nitrite", "NOx", "liquid_NH4"], "contamination_tax"),
+        ("contamination_control", "NOx/background ammonia contamination stress test", "control_experiment", ["NOx/nitrate/nitrite screening", "background NH3 control", "Ar blank", "N2-free blank", "electrolyte blank"], ["nitrate", "nitrite", "gas_phase_NOx", "feed_gas_impurity", "liquid_NH4"], "contamination_tax"),
         ("stability_failure", "Runtime stability and first-failure boundary test", "runtime", ["voltage/current/runtime reporting", "Ar blank"], ["runtime", "full_cell_voltage", "FE", "NH3_yield", "EIS", "failure_mode"], "stability/failure disclosure gap"),
         ("process_boundary_probe", "Process-boundary accounting probe", "capture_route", ["gas/liquid product accounting", "solvent inventory/recycle reporting", "voltage/current/runtime reporting"], ["product_state_split", "full_cell_voltage", "water_content", "gas_phase_NH3", "liquid_NH4"], "process boundary overclaim risk"),
         ("postmortem_failure_analysis", "Postmortem failure and operator-note analysis", "sampling_timepoint", ["electrolyte resistance before/after", "SSC/PtAuSSC before-after photos"], ["failure_mode", "electrolyte_color", "SSC_photo_before", "SSC_photo_after", "PtAuSSC_photo_before", "PtAuSSC_photo_after", "electrolyte_resistance_before", "electrolyte_resistance_after", "operator_failure_note"], "failure-mode diagnosis"),
@@ -277,6 +301,10 @@ def export_experiment_routes(
         "route_type_counts": dict(Counter(str(route.get("route_type") or "") for route in routes)),
         "reaction_family_counts": dict(Counter(str(route.get("reaction_family") or "unclear") for route in routes)),
         "lab_demonstration_allowed_routes": sum(1 for route in routes if bool(route.get("lab_demonstration_allowed"))),
+        "measurement_feasibility_counts": dict(
+            Counter(str(route.get("measurement_feasibility_status") or "unknown") for route in routes)
+        ),
+        "routes_with_infeasible_measurements": sum(1 for route in routes if route.get("infeasible_measurements")),
         "jsonl": str(jsonl_path),
         "csv": str(csv_path),
     }
@@ -309,11 +337,39 @@ def _build_route(
     secondary_count = len(gaps) - primary_count
     feasible = feasible_controls(lab_profile, controls)
     infeasible = infeasible_controls(lab_profile, controls)
-    missing_capabilities = missing_capabilities_for_controls(lab_profile, controls)
-    capability_warnings = [f"missing capability: {item}" for item in missing_capabilities]
+    required_measurements = [measurement for measurement in measurements if measurement in MEASUREMENT_LABELS]
+    mandatory_measurements, optional_measurements = _split_measurements(route_type, required_measurements)
+    feasible_measurement_list = feasible_measurements(lab_profile, required_measurements)
+    infeasible_measurement_list = infeasible_measurements(lab_profile, required_measurements)
+    infeasible_mandatory = infeasible_measurements(lab_profile, mandatory_measurements)
+    infeasible_optional = infeasible_measurements(lab_profile, optional_measurements)
+    measurement_status = measurement_feasibility_status(lab_profile, mandatory_measurements, optional_measurements)
+    missing_control_capabilities = missing_capabilities_for_controls(lab_profile, controls)
+    missing_measurement_capabilities = missing_capabilities_for_measurements(lab_profile, required_measurements)
+    missing_capabilities = _dedupe([*missing_control_capabilities, *missing_measurement_capabilities])
+    capability_warnings = [f"missing control capability: {item}" for item in missing_control_capabilities]
+    measurement_warnings = [
+        *[f"mandatory measurement unavailable: {item}" for item in infeasible_mandatory],
+        *[f"optional measurement unavailable: {item}" for item in infeasible_optional],
+        *[f"missing measurement capability: {item}" for item in missing_measurement_capabilities],
+    ]
+    capability_warnings.extend(measurement_warnings)
+    alternative_measurement_plan = _dedupe(
+        item
+        for gap in gaps
+        for item in _list_values(gap.get("alternative_measurement_plan"))
+    )
+    boundary_not_closed_measurements = [
+        f"{measurement} remains unavailable and cannot close the targeted measurement boundary"
+        for measurement in infeasible_measurement_list
+    ]
+    if infeasible_mandatory and alternative_measurement_plan:
+        measurement_status = "partial"
     score = _route_score(route_type, gaps, lab_profile, controls, missing_capabilities, primary_count, secondary_count)
     critical_missing = _critical_missing(route_type, missing_capabilities)
     priority_label = _priority_label(route_type, score, critical_missing, infeasible, primary_count, secondary_count, gaps)
+    if infeasible_mandatory:
+        priority_label = "do_after_controls" if alternative_measurement_plan else "defer_until_capability_available"
     lab_allowed = experimental_demonstration_allowed(family, lab_profile)
     if not lab_allowed and family != "unclear":
         priority_label = "defer_until_capability_available"
@@ -349,7 +405,15 @@ def _build_route(
         "required_controls": [control for control in controls if control in CONTROL_LABELS],
         "feasible_controls": feasible,
         "infeasible_controls": infeasible,
-        "required_measurements": [measurement for measurement in measurements if measurement in MEASUREMENT_LABELS],
+        "mandatory_measurements": mandatory_measurements,
+        "optional_measurements": optional_measurements,
+        "feasible_measurements": feasible_measurement_list,
+        "infeasible_measurements": infeasible_measurement_list,
+        "measurement_capability_warnings": measurement_warnings,
+        "measurement_feasibility_status": measurement_status,
+        "alternative_measurement_plan": alternative_measurement_plan,
+        "boundary_not_closed_due_to_unavailable_measurements": boundary_not_closed_measurements,
+        "required_measurements": required_measurements,
         "success_criteria": _success_criteria(route_type),
         "failure_criteria": _failure_criteria(route_type),
         "stopping_rules": ["Stop route interpretation if mandatory controls fail.", "Do not upgrade claim boundary from invalid or incomplete controls."],
@@ -687,6 +751,13 @@ def _list_values(value: Any) -> list[str]:
     return [part.strip() for part in re.split(r"[;,|]", text) if part.strip()]
 
 
+def _split_measurements(route_type: str, measurements: list[str]) -> tuple[list[str], list[str]]:
+    optional_set = _OPTIONAL_MEASUREMENTS_BY_ROUTE.get(route_type, set())
+    optional = [measurement for measurement in measurements if measurement in optional_set]
+    mandatory = [measurement for measurement in measurements if measurement not in optional_set]
+    return mandatory, optional
+
+
 def _record_text(record: dict[str, Any]) -> str:
     return re.sub(r"\s+", " ", str(record.get("source_text") or record.get("source_span") or record.get("text") or "").casefold())
 
@@ -944,6 +1015,13 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "feasible_controls",
         "infeasible_controls",
         "required_measurements",
+        "mandatory_measurements",
+        "optional_measurements",
+        "feasible_measurements",
+        "infeasible_measurements",
+        "measurement_feasibility_status",
+        "alternative_measurement_plan",
+        "boundary_not_closed_due_to_unavailable_measurements",
         "SOP_anchor_points",
         "minimum_report_fields",
         "boundary_upgrade_if_successful",

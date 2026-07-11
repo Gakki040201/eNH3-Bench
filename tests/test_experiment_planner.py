@@ -78,9 +78,23 @@ def _capable_profile() -> dict[str, object]:
     profile["reactor_capabilities"].update({"can_do_flow_cell": True, "can_do_HOR_coupling": True})
     profile["electrochemistry"].update({"potentiostat_available": True, "can_record_full_cell_voltage": True, "can_record_anode_cathode_potential": True, "EIS_available": True})
     profile["gases"].update({"Ar_available": True, "H2_available": True, "isotopic_15N2_available": True})
-    profile["analytics"].update({"nitrate_nitrite_quantification_available": True, "NOx_quantification_available": True, "liquid_NH4_quantification_available": True, "product_state_accounting_available": True})
+    profile["analytics"].update(
+        {
+            "liquid_nitrate_nitrite_IC_available": True,
+            "gas_phase_NOx_quantification_available": True,
+            "feed_gas_impurity_testing_available": True,
+            "gas_phase_NH3_capture_available": True,
+            "liquid_NH4_quantification_available": True,
+            "H2_quantification_available": True,
+            "water_content_quantification_available": True,
+            "image_recording_available": True,
+            "electrical_resistance_measurement_available": True,
+            "product_state_accounting_available": True,
+        }
+    )
     profile["controls"].update({"can_do_Ar_blank": True, "can_do_N2_free_blank": True, "can_do_15N_control": True, "can_do_NOx_screening": True, "can_do_background_NH3_control": True, "can_do_H2_off_control": True, "can_do_HOR_off_control": True, "can_do_electrolyte_blank": True})
-    profile["electrolyte_chemistry"].update({"can_measure_water_content": True})
+    profile["electrolyte_chemistry"].update({"can_measure_water_content": True, "Karl_Fischer_available": True})
+    profile["sop_capabilities"].update({"Karl_Fischer_SOP": True})
     return profile
 
 

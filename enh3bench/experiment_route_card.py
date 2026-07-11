@@ -44,7 +44,12 @@ def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> s
         "",
         f"- Feasible controls: {', '.join(_list_values(route.get('feasible_controls'))) or 'none'}",
         f"- Infeasible controls: {', '.join(_list_values(route.get('infeasible_controls'))) or 'none'}",
+        f"- Measurement feasibility: {route.get('measurement_feasibility_status') or 'unknown'}",
+        f"- Feasible measurements: {', '.join(_list_values(route.get('feasible_measurements'))) or 'none'}",
+        f"- Infeasible measurements: {', '.join(_list_values(route.get('infeasible_measurements'))) or 'none'}",
+        f"- Measurement capability warnings: {', '.join(_list_values(route.get('measurement_capability_warnings'))) or 'none'}",
         f"- Capability warnings: {', '.join(_list_values(route.get('lab_capability_warnings'))) or 'none'}",
+        f"- Alternative measurement plan: {', '.join(_list_values(route.get('alternative_measurement_plan'))) or 'none'}",
         "",
         "## 7. Experimental Matrix / 实验矩阵",
         "",
@@ -57,6 +62,12 @@ def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> s
         "## 9. Required Measurements / 必需测量",
         "",
         _bullet_list(route.get("required_measurements")),
+        "",
+        "Mandatory measurements:",
+        _bullet_list(route.get("mandatory_measurements")),
+        "",
+        "Optional measurements:",
+        _bullet_list(route.get("optional_measurements")),
         "",
         "## 10. SOP Anchor Points / SOP 锚点",
         "",
@@ -73,6 +84,9 @@ def route_to_markdown_card(route: dict[str, Any], index: int | None = None) -> s
         "## 13. Boundary Still Not Closed / 仍未闭合边界",
         "",
         _bullet_list(route.get("boundary_not_closed_even_if_successful")),
+        "",
+        "Unavailable-measurement boundaries:",
+        _bullet_list(route.get("boundary_not_closed_due_to_unavailable_measurements")),
         "",
         "## 14. Required Raw Records To Save / 需保存原始记录",
         "",
@@ -134,6 +148,7 @@ def export_public_route_summary(
     priority_counts = Counter(str(route.get("priority_label") or "missing") for route in routes)
     route_type_counts = Counter(str(route.get("route_type") or "missing") for route in routes)
     family_counts = Counter(str(route.get("reaction_family") or "unclear") for route in routes)
+    measurement_counts = Counter(str(route.get("measurement_feasibility_status") or "unknown") for route in routes)
     lines = [
         f"# Experiment Route Summary: {run_name}",
         "",
@@ -153,7 +168,13 @@ def export_public_route_summary(
         "",
         _table(["Reaction family", "Routes"], family_counts.items()),
         "",
-        "## 5. Safety statement",
+        "## 5. Measurement feasibility",
+        "",
+        _table(["Status", "Routes"], measurement_counts.items()),
+        "",
+        _route_feasibility_table(routes),
+        "",
+        "## 6. Safety statement",
         "",
         "These route cards are structured planning artifacts, not wet-lab SOPs. Local safety review and human scientific review remain mandatory.",
         "",
@@ -205,4 +226,31 @@ def _table(headers: list[str], rows: Any) -> str:
     for key, count in sorted(rows, key=lambda item: (-item[1], item[0])):
         safe_key = str(key).replace("|", "\\|")
         lines.append(f"| {safe_key} | {count} |")
+    return "\n".join(lines)
+
+
+def _route_feasibility_table(routes: list[dict[str, Any]]) -> str:
+    if not routes:
+        return "No records."
+    headers = [
+        "Route",
+        "Feasible controls",
+        "Infeasible controls",
+        "Feasible measurements",
+        "Infeasible measurements",
+        "Alternative plan",
+        "Boundary not closed",
+    ]
+    lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join("---" for _ in headers) + " |"]
+    for route in routes:
+        values = [
+            route.get("route_id") or "",
+            ", ".join(_list_values(route.get("feasible_controls"))) or "none",
+            ", ".join(_list_values(route.get("infeasible_controls"))) or "none",
+            ", ".join(_list_values(route.get("feasible_measurements"))) or "none",
+            ", ".join(_list_values(route.get("infeasible_measurements"))) or "none",
+            ", ".join(_list_values(route.get("alternative_measurement_plan"))) or "none",
+            ", ".join(_list_values(route.get("boundary_not_closed_due_to_unavailable_measurements"))) or "none",
+        ]
+        lines.append("| " + " | ".join(str(value).replace("|", "\\|").replace("\n", " ") for value in values) + " |")
     return "\n".join(lines)

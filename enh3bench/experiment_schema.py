@@ -87,6 +87,8 @@ MEASUREMENT_LABELS = (
     "nitrate",
     "nitrite",
     "NOx",
+    "gas_phase_NOx",
+    "feed_gas_impurity",
     "H2",
     "H2_observation",
     "product_state_split",
@@ -185,6 +187,14 @@ ROUTE_REQUIRED_FIELDS = (
     "required_controls",
     "feasible_controls",
     "infeasible_controls",
+    "mandatory_measurements",
+    "optional_measurements",
+    "feasible_measurements",
+    "infeasible_measurements",
+    "measurement_capability_warnings",
+    "measurement_feasibility_status",
+    "alternative_measurement_plan",
+    "boundary_not_closed_due_to_unavailable_measurements",
     "required_measurements",
     "success_criteria",
     "failure_criteria",
@@ -285,7 +295,22 @@ def validate_experiment_route(route: dict[str, Any]) -> tuple[bool, list[str]]:
     for measurement in _normalize_multi(route.get("required_measurements")):
         if measurement not in MEASUREMENT_LABELS:
             errors.append(f"invalid required_measurement: {measurement}")
-    for field in ("source_basis_ids", "linked_paper_ids", "linked_source_span_ids", "required_controls", "required_measurements"):
+    if str(route.get("measurement_feasibility_status") or "") not in {"feasible", "partial", "infeasible"}:
+        errors.append(f"invalid measurement_feasibility_status: {route.get('measurement_feasibility_status')}")
+    for field in (
+        "source_basis_ids",
+        "linked_paper_ids",
+        "linked_source_span_ids",
+        "required_controls",
+        "mandatory_measurements",
+        "optional_measurements",
+        "feasible_measurements",
+        "infeasible_measurements",
+        "measurement_capability_warnings",
+        "alternative_measurement_plan",
+        "boundary_not_closed_due_to_unavailable_measurements",
+        "required_measurements",
+    ):
         if field in route and not isinstance(route.get(field), list):
             errors.append(f"{field} must be list")
     return not errors, errors
@@ -355,6 +380,8 @@ def empty_experiment_result_template(
         "nitrate": "",
         "nitrite": "",
         "NOx": "",
+        "gas_phase_NOx": "",
+        "feed_gas_impurity": "",
         "H2_observation": "",
         "product_state_split": "",
         "electrolyte_color": "",

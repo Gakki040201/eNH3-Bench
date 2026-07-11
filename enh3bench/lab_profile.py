@@ -73,11 +73,15 @@ SECTION_DEFAULTS: dict[str, dict[str, Any]] = {
         "ion_chromatography_available": False,
         "UV_vis_available": False,
         "NMR_available": False,
-        "ammonia_gas_capture_available": False,
+        "liquid_nitrate_nitrite_IC_available": False,
+        "gas_phase_NOx_quantification_available": False,
+        "feed_gas_impurity_testing_available": False,
+        "gas_phase_NH3_capture_available": False,
         "liquid_NH4_quantification_available": False,
-        "nitrate_nitrite_quantification_available": False,
-        "NOx_quantification_available": False,
         "H2_quantification_available": False,
+        "water_content_quantification_available": False,
+        "image_recording_available": False,
+        "electrical_resistance_measurement_available": False,
         "product_state_accounting_available": False,
     },
     "controls": {
@@ -118,23 +122,61 @@ CONTROL_CAPABILITY_KEYS = {
     "15N2 isotope validation": ("can_do_15N_control", "isotopic_15N2_available"),
     "Ar blank": ("can_do_Ar_blank", "Ar_available"),
     "N2-free blank": ("can_do_N2_free_blank", "Ar_available"),
-    "NOx/nitrate/nitrite screening": ("can_do_NOx_screening", "nitrate_nitrite_quantification_available"),
+    "NOx/nitrate/nitrite screening": ("can_do_NOx_screening", "liquid_nitrate_nitrite_IC_available"),
     "background NH3 control": ("can_do_background_NH3_control", "liquid_NH4_quantification_available"),
     "electrolyte blank": ("can_do_electrolyte_blank",),
     "H2-off control": ("can_do_H2_off_control", "H2_available"),
     "HOR-off control": ("can_do_HOR_off_control", "can_do_HOR_coupling"),
-    "gas/liquid product accounting": ("product_state_accounting_available",),
+    "gas/liquid product accounting": ("gas_phase_NH3_capture_available", "liquid_NH4_quantification_available"),
     "wetting/flooding diagnosis": ("can_do_flow_cell",),
     "voltage/current/runtime reporting": ("potentiostat_available", "can_record_full_cell_voltage"),
     "solvent inventory/recycle reporting": ("can_measure_water_content",),
     "primary body text pairing": (),
-    "electrolyte resistance before/after": ("EIS_available",),
-    "SSC/PtAuSSC before-after photos": ("SSC_preparation_SOP", "PtAuSSC_preparation_SOP"),
-    "three water-content measurements": ("can_measure_water_content", "Karl_Fischer_available", "Karl_Fischer_SOP"),
-    "HCl trap accounting": ("ammonia_gas_capture_available", "liquid_NH4_quantification_available"),
+    "electrolyte resistance before/after": ("electrical_resistance_measurement_available",),
+    "SSC/PtAuSSC before-after photos": ("image_recording_available",),
+    "three water-content measurements": ("water_content_quantification_available", "Karl_Fischer_available", "Karl_Fischer_SOP"),
+    "HCl trap accounting": ("gas_phase_NH3_capture_available", "liquid_NH4_quantification_available"),
     "SSC soak solution accounting": ("liquid_NH4_quantification_available",),
     "gas-line blank": ("gas_liquid_line_SOP",),
     "liquid-line blank": ("gas_liquid_line_SOP",),
+}
+
+MEASUREMENT_CAPABILITY_KEYS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "FE": (
+        ("potentiostat_available", "liquid_NH4_quantification_available"),
+        ("potentiostat_available", "gas_phase_NH3_capture_available"),
+    ),
+    "NH3_yield": (("liquid_NH4_quantification_available",), ("gas_phase_NH3_capture_available",)),
+    "current_density": (("potentiostat_available",),),
+    "OCV": (("potentiostat_available",),),
+    "full_cell_voltage": (("can_record_full_cell_voltage",),),
+    "anode_potential": (("can_record_anode_cathode_potential",),),
+    "cathode_potential": (("can_record_anode_cathode_potential",),),
+    "runtime": (("potentiostat_available",),),
+    "EIS": (("EIS_available",),),
+    "water_content": (("water_content_quantification_available",), ("Karl_Fischer_available",)),
+    "water_content_before": (("water_content_quantification_available",), ("Karl_Fischer_available",)),
+    "water_content_mid": (("water_content_quantification_available",), ("Karl_Fischer_available",)),
+    "water_content_after": (("water_content_quantification_available",), ("Karl_Fischer_available",)),
+    "nitrate": (("liquid_nitrate_nitrite_IC_available",),),
+    "nitrite": (("liquid_nitrate_nitrite_IC_available",),),
+    "NOx": (("gas_phase_NOx_quantification_available",),),
+    "gas_phase_NOx": (("gas_phase_NOx_quantification_available",),),
+    "feed_gas_impurity": (("feed_gas_impurity_testing_available",),),
+    "H2": (("H2_quantification_available",),),
+    "gas_phase_NH3": (("gas_phase_NH3_capture_available",),),
+    "liquid_NH4": (("liquid_NH4_quantification_available",),),
+    "IC_NH4": (("liquid_NH4_quantification_available",),),
+    "HCl_trap_NH4": (("gas_phase_NH3_capture_available", "liquid_NH4_quantification_available"),),
+    "SSC_soak_solution_NH4": (("liquid_NH4_quantification_available",),),
+    "product_state_split": (("gas_phase_NH3_capture_available", "liquid_NH4_quantification_available"),),
+    "photo_before_after": (("image_recording_available",),),
+    "SSC_photo_before": (("image_recording_available",),),
+    "SSC_photo_after": (("image_recording_available",),),
+    "PtAuSSC_photo_before": (("image_recording_available",),),
+    "PtAuSSC_photo_after": (("image_recording_available",),),
+    "electrolyte_resistance_before": (("electrical_resistance_measurement_available",),),
+    "electrolyte_resistance_after": (("electrical_resistance_measurement_available",),),
 }
 
 
@@ -207,10 +249,15 @@ def _apply_ustc_linnr_realistic_defaults(profile: dict[str, Any]) -> None:
     profile["analytics"].update(
         {
             "ion_chromatography_available": True,
-            "ammonia_gas_capture_available": True,
+            "liquid_nitrate_nitrite_IC_available": True,
+            "gas_phase_NOx_quantification_available": False,
+            "feed_gas_impurity_testing_available": False,
+            "gas_phase_NH3_capture_available": True,
             "liquid_NH4_quantification_available": True,
-            "nitrate_nitrite_quantification_available": True,
-            "NOx_quantification_available": True,
+            "H2_quantification_available": False,
+            "water_content_quantification_available": True,
+            "image_recording_available": True,
+            "electrical_resistance_measurement_available": True,
             "product_state_accounting_available": True,
         }
     )
@@ -246,7 +293,49 @@ def load_lab_profile(path: str | Path) -> dict[str, Any]:
         data = yaml_module.safe_load(text)
     else:
         data = json.loads(text)
-    return data if isinstance(data, dict) else {}
+    if not isinstance(data, dict):
+        return {}
+    migrated, warnings = migrate_lab_profile(data)
+    if warnings:
+        migrated["migration_warnings"] = warnings
+    return migrated
+
+
+def migrate_lab_profile(profile: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Add split analytics fields to a legacy profile without granting ambiguous capabilities."""
+
+    migrated = json.loads(json.dumps(profile))
+    warnings: list[str] = []
+    analytics = migrated.setdefault("analytics", {})
+    electrolyte = migrated.get("electrolyte_chemistry") or {}
+
+    if "liquid_nitrate_nitrite_IC_available" not in analytics:
+        if "nitrate_nitrite_quantification_available" in analytics:
+            analytics["liquid_nitrate_nitrite_IC_available"] = bool(analytics.get("nitrate_nitrite_quantification_available"))
+            warnings.append(
+                "legacy analytics.nitrate_nitrite_quantification_available migrated to liquid_nitrate_nitrite_IC_available"
+            )
+        else:
+            analytics["liquid_nitrate_nitrite_IC_available"] = False
+    if "NOx_quantification_available" in analytics:
+        warnings.append(
+            "legacy analytics.NOx_quantification_available is ambiguous and was not used to enable gas-phase NOx quantification"
+        )
+    analytics.setdefault("gas_phase_NOx_quantification_available", False)
+    analytics.setdefault("feed_gas_impurity_testing_available", False)
+    if "gas_phase_NH3_capture_available" not in analytics:
+        analytics["gas_phase_NH3_capture_available"] = bool(analytics.get("ammonia_gas_capture_available", False))
+        if "ammonia_gas_capture_available" in analytics:
+            warnings.append("legacy analytics.ammonia_gas_capture_available migrated to gas_phase_NH3_capture_available")
+    analytics.setdefault("liquid_NH4_quantification_available", False)
+    analytics.setdefault("H2_quantification_available", False)
+    analytics.setdefault(
+        "water_content_quantification_available",
+        bool(electrolyte.get("can_measure_water_content") or electrolyte.get("Karl_Fischer_available")),
+    )
+    analytics.setdefault("image_recording_available", False)
+    analytics.setdefault("electrical_resistance_measurement_available", False)
+    return migrated, _dedupe(warnings)
 
 
 def save_lab_profile(profile: dict[str, Any], path: str | Path) -> None:
@@ -305,6 +394,7 @@ def summarize_lab_profile(profile: dict[str, Any]) -> dict[str, Any]:
         "budget_level": (profile.get("constraints") or {}).get("budget_level") or "unknown",
         "feasible_controls": feasible_controls(profile, controls),
         "infeasible_controls": infeasible_controls(profile, controls),
+        "migration_warnings": profile.get("migration_warnings") or [],
         "can_do_flow_cell": capability_available(profile, "can_do_flow_cell"),
         "can_do_HOR_coupling": capability_available(profile, "can_do_HOR_coupling"),
         "isotopic_15N2_available": capability_available(profile, "isotopic_15N2_available"),
@@ -319,6 +409,10 @@ def capability_available(profile: dict[str, Any], capability_key: str) -> bool:
     """Return True when a capability key is present and true anywhere in the profile."""
 
     found = _find_key(profile, capability_key)
+    if found is None and capability_key == "liquid_nitrate_nitrite_IC_available":
+        found = _find_key(profile, "nitrate_nitrite_quantification_available")
+    if found is None and capability_key == "gas_phase_NH3_capture_available":
+        found = _find_key(profile, "ammonia_gas_capture_available")
     if found is None:
         return False
     if isinstance(found, bool):
@@ -360,6 +454,54 @@ def infeasible_controls(profile: dict[str, Any], controls: list[str]) -> list[st
     return [str(control) for control in controls if str(control) not in feasible]
 
 
+def missing_capabilities_for_measurements(profile: dict[str, Any], measurements: list[str]) -> list[str]:
+    """Return the smallest missing capability set for each requested measurement."""
+
+    missing: list[str] = []
+    for measurement in measurements:
+        alternatives = MEASUREMENT_CAPABILITY_KEYS.get(str(measurement), ())
+        if not alternatives or any(all(capability_available(profile, key) for key in option) for option in alternatives):
+            continue
+        option_missing = min(
+            ([key for key in option if not capability_available(profile, key)] for option in alternatives),
+            key=lambda values: (len(values), values),
+        )
+        for key in option_missing:
+            if key not in missing:
+                missing.append(key)
+    return missing
+
+
+def feasible_measurements(profile: dict[str, Any], measurements: list[str]) -> list[str]:
+    """Return measurements with at least one fully available capability path."""
+
+    feasible: list[str] = []
+    for measurement in measurements:
+        alternatives = MEASUREMENT_CAPABILITY_KEYS.get(str(measurement), ())
+        if not alternatives or any(all(capability_available(profile, key) for key in option) for option in alternatives):
+            feasible.append(str(measurement))
+    return feasible
+
+
+def infeasible_measurements(profile: dict[str, Any], measurements: list[str]) -> list[str]:
+    """Return measurements for which no capability path is available."""
+
+    feasible = set(feasible_measurements(profile, measurements))
+    return [str(measurement) for measurement in measurements if str(measurement) not in feasible]
+
+
+def measurement_feasibility_status(
+    profile: dict[str, Any], mandatory: list[str], optional: list[str] | None = None
+) -> str:
+    """Return feasible, partial, or infeasible for a measurement plan."""
+
+    if infeasible_measurements(profile, mandatory):
+        return "infeasible"
+    if infeasible_measurements(profile, optional or []):
+        return "partial"
+    return "feasible"
+
+
 def _find_key(value: Any, key: str) -> Any:
     if isinstance(value, dict):
         if key in value:
@@ -369,6 +511,10 @@ def _find_key(value: Any, key: str) -> Any:
             if found is not None:
                 return found
     return None
+
+
+def _dedupe(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(str(item) for item in items if str(item).strip()))
 
 
 def _yaml_module() -> Any | None:
