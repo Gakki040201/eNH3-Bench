@@ -8,16 +8,19 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.experiment_schema import (
+    BASELINE_GATE_STATUSES,
     EXECUTION_UNIT,
     EXPERIMENT_SCHEMA_VERSION,
     RESULT_STATUS_LABELS,
     expand_routes_to_result_rows,
+    migrate_experiment_route,
 )
 from enh3bench.ledger_router import load_jsonl
 
 
 RESULT_FIELDS = (
     "schema_version",
+    "migration_warnings",
     "execution_unit",
     "execution_id",
     "experiment_id",
@@ -88,7 +91,11 @@ RESULT_FIELDS = (
     "controls_completed",
     "controls_failed",
     "required_controls",
+    "mandatory_measurements",
     "required_measurements",
+    "human_baseline_approval",
+    "human_baseline_notes",
+    "baseline_gate_status",
     "success_status",
     "invalid_reason",
     "notes",
@@ -142,7 +149,10 @@ MEASUREMENT_TO_RESULT_FIELD = {
 
 
 def load_experiment_routes(run_name: str, base_dir: str | Path = "data/experiment_routes") -> list[dict[str, Any]]:
-    return load_jsonl(Path(base_dir) / run_name / "ranked_experiment_routes.jsonl")
+    return [
+        migrate_experiment_route(route)
+        for route in load_jsonl(Path(base_dir) / run_name / "ranked_experiment_routes.jsonl")
+    ]
 
 
 def export_experiment_result_template(
@@ -221,6 +231,8 @@ def import_experiment_results(
     for index, row in enumerate(rows, start=2):
         migrated, migration_warnings = _migrate_legacy_result_row(row, index)
         normalized = {field: str(migrated.get(field) or "") for field in RESULT_FIELDS}
+        normalized["schema_version"] = EXPERIMENT_SCHEMA_VERSION
+        normalized["migration_warnings"] = migration_warnings
         normalized["run_name"] = normalized.get("run_name") or run_name
         _, validation_errors = validate_experiment_result(normalized)
         row_errors.append(validation_errors)
@@ -247,10 +259,12 @@ def import_experiment_results(
     imported_jsonl = run_dir / "experiment_results_imported.jsonl"
     errors_csv = run_dir / "experiment_result_errors.csv"
     warnings_csv = run_dir / "experiment_result_warnings.csv"
+    report_path = run_dir / "experiment_result_import_report.md"
     _write_csv(imported, imported_csv)
     _write_jsonl(imported, imported_jsonl)
     _write_csv(errors, errors_csv)
     _write_csv(warnings, warnings_csv)
+    _write_import_report(imported, errors, warnings, report_path, run_name)
     return {
         "run_name": run_name,
         "rows_read": len(rows),
@@ -261,6 +275,7 @@ def import_experiment_results(
         "imported_jsonl": str(imported_jsonl),
         "errors_csv": str(errors_csv),
         "warnings_csv": str(warnings_csv),
+        "report": str(report_path),
     }
 
 
@@ -274,10 +289,20 @@ def validate_experiment_result(record: dict[str, Any]) -> tuple[bool, list[str]]
     status = str(record.get("success_status") or "").strip()
     if status and status not in RESULT_STATUS_LABELS:
         errors.append(f"invalid success_status: {status}")
+    baseline_gate_status = str(record.get("baseline_gate_status") or "").strip()
+    if baseline_gate_status and baseline_gate_status not in BASELINE_GATE_STATUSES:
+        errors.append(f"invalid baseline_gate_status: {baseline_gate_status}")
     controls_failed = _list_values(record.get("controls_failed"))
     if status == "success" and controls_failed:
         errors.append("failed mandatory controls cannot be marked success")
-    required_measurements = _list_values(record.get("required_measurements"))
+    if status in {"success", "partial"}:
+        completed_controls = set(_list_values(record.get("controls_completed")))
+        for control in _list_values(record.get("required_controls")):
+            if control not in completed_controls:
+                errors.append(f"missing required control: {control}")
+    required_measurements = _list_values(record.get("mandatory_measurements")) or _list_values(
+        record.get("required_measurements")
+    )
     if status in {"success", "partial"}:
         for measurement in required_measurements:
             result_field = MEASUREMENT_TO_RESULT_FIELD.get(measurement)
@@ -290,8 +315,11 @@ def validate_experiment_result(record: dict[str, Any]) -> tuple[bool, list[str]]
 
 def _migrate_legacy_result_row(row: dict[str, Any], row_number: int) -> tuple[dict[str, Any], list[str]]:
     migrated = dict(row)
-    warnings: list[str] = []
+    warnings: list[str] = _list_values(migrated.get("migration_warnings"))
     route_id = str(migrated.get("route_id") or "TODO")
+    old_version = str(migrated.get("schema_version") or "legacy")
+    if old_version != EXPERIMENT_SCHEMA_VERSION:
+        warnings.append(f"result schema migrated from {old_version} to {EXPERIMENT_SCHEMA_VERSION}")
     if not str(migrated.get("condition_id") or "").strip():
         migrated["condition_id"] = "legacy"
         warnings.append("legacy template missing condition_id; migrated to legacy")
@@ -307,8 +335,12 @@ def _migrate_legacy_result_row(row: dict[str, Any], row_number: int) -> tuple[di
         warnings.append("legacy template did not establish an independent replicate")
     migrated.setdefault("condition_label", str(migrated.get("condition_id") or "legacy"))
     migrated.setdefault("condition_values_json", "{}")
-    migrated.setdefault("schema_version", EXPERIMENT_SCHEMA_VERSION)
+    migrated["schema_version"] = EXPERIMENT_SCHEMA_VERSION
     migrated.setdefault("execution_unit", EXECUTION_UNIT)
+    migrated.setdefault("human_baseline_approval", "")
+    migrated.setdefault("human_baseline_notes", "")
+    migrated.setdefault("baseline_gate_status", "not_started")
+    migrated["migration_warnings"] = warnings
     return migrated, warnings
 
 
@@ -377,6 +409,34 @@ def _route_execution_summary(routes: list[dict[str, Any]], rows: list[dict[str, 
     ]
 
 
+def _write_import_report(
+    imported: list[dict[str, Any]],
+    errors: list[dict[str, Any]],
+    warnings: list[dict[str, Any]],
+    output_path: Path,
+    run_name: str,
+) -> None:
+    error_messages = [message for record in imported for message in record.get("validation_errors") or []]
+    lines = [
+        f"# Experiment Result Import Report: {run_name}",
+        "",
+        f"- Rows imported: {len(imported)}",
+        f"- Invalid rows: {len(errors)}",
+        f"- Rows with warnings: {len(warnings)}",
+        f"- Duplicate executions: {sum(1 for message in error_messages if 'duplicate execution_id' in message)}",
+        f"- Invalid condition/replicate identities: {sum(1 for message in error_messages if 'duplicate route/condition/replicate' in message)}",
+        f"- Missing controls: {sum(1 for message in error_messages if 'missing required control' in message)}",
+        f"- Missing measurements: {sum(1 for message in error_messages if 'missing required measurement' in message)}",
+        "",
+        "## Validation messages",
+        "",
+        *([f"- {message}" for message in sorted(set(error_messages))] or ["- none"]),
+        "",
+    ]
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+
+
 def _read_records(path: Path) -> list[dict[str, Any]]:
     if path.suffix.lower() == ".jsonl":
         return load_jsonl(path)
@@ -427,7 +487,8 @@ def _write_csv(records: list[dict[str, Any]], output_path: Path) -> None:
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(records)
+        for record in records:
+            writer.writerow({field: _csv_value(record.get(field)) for field in fieldnames})
 
 
 def _write_mapping_csv(records: list[dict[str, Any]], output_path: Path) -> None:
@@ -447,3 +508,11 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
     ordered = [field for field in RESULT_FIELDS if field in names]
     ordered.extend(sorted(name for name in names if name not in set(ordered)))
     return ordered
+
+
+def _csv_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (list, dict, tuple, set)):
+        return json.dumps(value, ensure_ascii=True, sort_keys=True, default=str)
+    return str(value)

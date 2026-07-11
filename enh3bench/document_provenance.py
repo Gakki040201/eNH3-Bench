@@ -14,6 +14,9 @@ from enh3bench.provenance_rules import infer_provenance_from_text
 from enh3bench.section_context import attach_section_context_to_records
 
 
+PROVENANCE_SCHEMA_VERSION = "0.13"
+
+
 def load_docling_json(path: str | Path) -> dict[str, Any]:
     """Load a Docling JSON export, returning an empty dict on malformed input."""
 
@@ -61,6 +64,8 @@ def extract_provenance_from_docling_json(
         evidence_id = _first_text(item, "evidence_id") or f"E_{source_span_id}"
         records.append(
             {
+                "schema_version": PROVENANCE_SCHEMA_VERSION,
+                "migration_warnings": [],
                 "provenance_id": f"PV_{source_span_id}",
                 "paper_id": paper_id or "",
                 "document_id": document_id or _first_text(item, "document_id", "doc_id"),
@@ -107,6 +112,8 @@ def infer_provenance_for_record(record: dict[str, Any]) -> dict[str, Any]:
     source_span_id = _first_text(record, "source_span_id", "span_id", "id")
     evidence_id = _first_text(record, "evidence_id")
     return {
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "migration_warnings": [],
         "provenance_id": _provenance_id(record, source_span_id, evidence_id),
         "run_name": _first_text(record, "run_name"),
         "paper_id": _first_text(record, "paper_id"),
@@ -168,7 +175,7 @@ def export_provenance_records(
     csv_path = run_dir / "source_span_provenance.csv"
     tagged = []
     for record in records:
-        item = dict(record)
+        item = migrate_provenance_record(record)
         item.setdefault("run_name", run_name)
         tagged.append(item)
     _write_jsonl(tagged, jsonl_path)
@@ -206,6 +213,8 @@ def summarize_provenance(records: list[dict[str, Any]]) -> dict[str, Any]:
         "recognized_section_count": recognized_section_count,
         "recognized_section_coverage": (recognized_section_count / len(records)) if records else 0.0,
         "unsectioned_body_count": unsectioned_body_count,
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "migration_warning_count": sum(1 for record in records if record.get("migration_warnings")),
         "primary_admissible_count": sum(1 for record in records if bool(record.get("is_primary_admissible"))),
         "secondary_or_context_count": sum(1 for record in records if bool(record.get("is_secondary_or_context"))),
         "reject_or_low_trust_count": sum(1 for record in records if bool(record.get("is_reject_or_low_trust"))),
@@ -218,7 +227,7 @@ def attach_existing_or_infer(
 ) -> list[dict[str, Any]]:
     """Attach provenance records by span/evidence key, falling back to inference."""
 
-    provenance_records = provenance_records or []
+    provenance_records = [migrate_provenance_record(record) for record in (provenance_records or [])]
     index = _provenance_index(provenance_records)
     attached: list[dict[str, Any]] = []
     for record in records:
@@ -232,7 +241,35 @@ def attach_existing_or_infer(
 
 
 def load_provenance_records(run_name: str, base_dir: str | Path = "data/provenance") -> list[dict[str, Any]]:
-    return load_jsonl(Path(base_dir) / run_name / "source_span_provenance.jsonl")
+    return [
+        migrate_provenance_record(record)
+        for record in load_jsonl(Path(base_dir) / run_name / "source_span_provenance.jsonl")
+    ]
+
+
+def migrate_provenance_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Add explicit v0.13 section/provenance defaults to an older record."""
+
+    migrated = dict(record)
+    warnings = _list_values(migrated.get("migration_warnings"))
+    old_version = str(migrated.get("schema_version") or "legacy")
+    if old_version != PROVENANCE_SCHEMA_VERSION:
+        warnings.append(f"provenance schema migrated from {old_version} to {PROVENANCE_SCHEMA_VERSION}")
+    defaults = {
+        "section_heading": "",
+        "section_path": [],
+        "section_level": 0,
+        "section_type": "unknown",
+        "section_confidence": "low",
+        "section_signals": [],
+        "provenance_confidence": "low",
+        "provenance_confidence_rationale": ["legacy provenance record lacked v0.13 rationale"],
+    }
+    for key, value in defaults.items():
+        migrated.setdefault(key, value)
+    migrated["schema_version"] = PROVENANCE_SCHEMA_VERSION
+    migrated["migration_warnings"] = list(dict.fromkeys(warnings))
+    return migrated
 
 
 def _candidate_items(docling_json: dict[str, Any]) -> list[Any]:
@@ -328,6 +365,8 @@ def _provenance_id(record: dict[str, Any], source_span_id: str, evidence_id: str
 
 def _copy_provenance_fields(target: dict[str, Any], provenance: dict[str, Any]) -> None:
     for key in (
+        "schema_version",
+        "migration_warnings",
         "provenance_id",
         "provenance_type",
         "provenance_confidence",
@@ -393,6 +432,24 @@ def _first_text(record: dict[str, Any], *keys: str) -> str:
     return ""
 
 
+def _list_values(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    text = str(value).strip()
+    if not text:
+        return []
+    if text.startswith("[") and text.endswith("]"):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list):
+            return _list_values(parsed)
+    return [text]
+
+
 def _write_jsonl(records: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -413,6 +470,8 @@ def _write_csv(records: list[dict[str, Any]], output_path: Path) -> None:
 
 def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
     preferred = [
+        "schema_version",
+        "migration_warnings",
         "provenance_id",
         "run_name",
         "paper_id",

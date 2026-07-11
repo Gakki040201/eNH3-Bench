@@ -30,6 +30,7 @@ def main() -> int:
     print(f"imported_jsonl: {outputs['imported_jsonl']}")
     print(f"errors_csv: {outputs['errors_csv']}")
     print(f"warnings_csv: {outputs['warnings_csv']}")
+    print(f"report: {outputs['report']}")
     return 1 if outputs["invalid_results"] else 0
 
 

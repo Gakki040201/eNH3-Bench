@@ -140,8 +140,18 @@ CONTROL_LABELS = (
 
 RESULT_STATUS_LABELS = ("success", "partial", "failed", "invalid", "inconclusive")
 
-EXPERIMENT_SCHEMA_VERSION = "1.1"
+EXPERIMENT_SCHEMA_VERSION = "0.13"
 EXECUTION_UNIT = "route_condition_replicate"
+
+BASELINE_GATE_STATUSES = (
+    "not_started",
+    "insufficient_replicates",
+    "invalid_controls",
+    "incomplete_measurements",
+    "awaiting_human_approval",
+    "passed",
+    "failed",
+)
 
 EXECUTION_STAGES = (
     "baseline_establishment",
@@ -202,6 +212,7 @@ RESULT_IDENTITY_FIELDS = (
 
 ROUTE_REQUIRED_FIELDS = (
     "schema_version",
+    "migration_warnings",
     "route_id",
     "run_name",
     "reaction_family",
@@ -223,6 +234,9 @@ ROUTE_REQUIRED_FIELDS = (
     "execution_order_reason",
     "default_replicate_count",
     "minimum_valid_replicates",
+    "minimum_valid_baseline_replicates",
+    "baseline_FE_CV_threshold_optional",
+    "baseline_yield_CV_threshold_optional",
     "replicate_type",
     "independent_assembly_required",
     "execution_unit",
@@ -403,7 +417,8 @@ def empty_experiment_result_template(
     replicate_id = f"rep_{replicate_index:02d}"
     execution_id = f"EXEC_{route_id}_{condition_id}_{replicate_id}"
     return {
-        "schema_version": str(route.get("schema_version") or EXPERIMENT_SCHEMA_VERSION),
+        "schema_version": EXPERIMENT_SCHEMA_VERSION,
+        "migration_warnings": [],
         "execution_unit": str(route.get("execution_unit") or EXECUTION_UNIT),
         "execution_id": execution_id,
         "experiment_id": f"EXP_{route_id}_{condition_id}_{replicate_id}",
@@ -429,6 +444,9 @@ def empty_experiment_result_template(
         "experiment_end_utc": "",
         "timepoint_id": "",
         "technical_repeat_id": "",
+        "human_baseline_approval": "",
+        "human_baseline_notes": "",
+        "baseline_gate_status": "not_started",
         "FE": "",
         "NH3_yield": "",
         "current_density": "",
@@ -474,11 +492,68 @@ def empty_experiment_result_template(
         "controls_completed": "",
         "controls_failed": "",
         "required_controls": json.dumps(route.get("required_controls") or [], ensure_ascii=True),
+        "mandatory_measurements": json.dumps(
+            route.get("mandatory_measurements") or route.get("required_measurements") or [],
+            ensure_ascii=True,
+        ),
         "required_measurements": json.dumps(route.get("required_measurements") or [], ensure_ascii=True),
         "success_status": "",
         "invalid_reason": "",
         "notes": "",
     }
+
+
+def migrate_experiment_route(route: dict[str, Any]) -> dict[str, Any]:
+    """Load an older route with explicit v0.13 defaults and migration warnings."""
+
+    migrated = dict(route)
+    warnings = _normalize_multi(migrated.get("migration_warnings"))
+    if str(migrated.get("schema_version") or "") != EXPERIMENT_SCHEMA_VERSION:
+        warnings.append(
+            f"route schema migrated from {migrated.get('schema_version') or 'legacy'} to {EXPERIMENT_SCHEMA_VERSION}"
+        )
+    route_type = normalize_route_label(str(migrated.get("route_type") or "validation_gap_closure"))
+    stage_rank = ROUTE_STAGE_MAP[route_type]
+    required_measurements = _normalize_multi(migrated.get("required_measurements"))
+    baseline_replicates = 3 if route_type == "baseline_repeatability" else 1
+    defaults: dict[str, Any] = {
+        "schema_version": EXPERIMENT_SCHEMA_VERSION,
+        "execution_stage": EXECUTION_STAGES[stage_rank],
+        "stage_rank": stage_rank,
+        "within_stage_score": migrated.get("priority_score") or 0,
+        "stage_gate_status": "pending",
+        "prerequisite_route_ids": [],
+        "blocked_by_route_ids": [],
+        "route_family_id": route_type,
+        "parent_route_id": "",
+        "child_route_ids": [],
+        "is_route_group": route_type == "electrolyte_window",
+        "mutually_exclusive_route_ids": [],
+        "shared_evidence_group": str(migrated.get("route_id") or route_type),
+        "execution_order_reason": "Loaded with v0.13 route defaults.",
+        "default_replicate_count": baseline_replicates,
+        "minimum_valid_replicates": baseline_replicates,
+        "minimum_valid_baseline_replicates": 3,
+        "baseline_FE_CV_threshold_optional": None,
+        "baseline_yield_CV_threshold_optional": None,
+        "replicate_type": "independent",
+        "independent_assembly_required": route_type == "baseline_repeatability",
+        "execution_unit": EXECUTION_UNIT,
+        "mandatory_measurements": required_measurements,
+        "optional_measurements": [],
+        "feasible_measurements": required_measurements,
+        "infeasible_measurements": [],
+        "measurement_capability_warnings": [],
+        "measurement_feasibility_status": "feasible",
+        "alternative_measurement_plan": [],
+        "boundary_not_closed_due_to_unavailable_measurements": [],
+    }
+    for key, value in defaults.items():
+        if key not in migrated or migrated.get(key) in (None, ""):
+            migrated[key] = value
+    migrated["schema_version"] = EXPERIMENT_SCHEMA_VERSION
+    migrated["migration_warnings"] = _dedupe([*warnings])
+    return migrated
 
 
 def expand_route_execution_rows(

@@ -29,7 +29,8 @@ class ExperimentSchemaTests(unittest.TestCase):
 
 def _route() -> dict[str, object]:
     return {
-        "schema_version": "1.1",
+        "schema_version": "0.13",
+        "migration_warnings": [],
         "route_id": "ER1",
         "run_name": "run1",
         "source_basis_ids": [],
@@ -54,6 +55,9 @@ def _route() -> dict[str, object]:
         "execution_order_reason": "test",
         "default_replicate_count": 1,
         "minimum_valid_replicates": 1,
+        "minimum_valid_baseline_replicates": 3,
+        "baseline_FE_CV_threshold_optional": None,
+        "baseline_yield_CV_threshold_optional": None,
         "replicate_type": "independent",
         "independent_assembly_required": False,
         "execution_unit": "route_condition_replicate",

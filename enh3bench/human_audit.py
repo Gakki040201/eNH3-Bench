@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.audit_schema import (
+    AUDIT_SCHEMA_VERSION,
     HUMAN_FIELDS,
     REVIEW_REQUIREMENT_FIELDS,
     empty_human_fields_template,
@@ -28,6 +29,8 @@ from enh3bench.provenance_rules import (
 
 
 AUDIT_FIELD_ORDER = [
+    "schema_version",
+    "migration_warnings",
     "audit_id",
     "run_name",
     "paper_id",
@@ -39,6 +42,17 @@ AUDIT_FIELD_ORDER = [
     "source_section",
     "provenance_type",
     "provenance_confidence",
+    "provenance_confidence_rationale",
+    "section_heading",
+    "section_path",
+    "section_type",
+    "section_confidence",
+    "reaction_family",
+    "reaction_family_confidence",
+    "reaction_family_signals",
+    "reaction_family_scope",
+    "paper_level_reaction_family",
+    "reaction_family_conflict",
     "text_class",
     "claim_type",
     "maximum_supported_boundary",
@@ -159,6 +173,8 @@ def merge_audit_sources(
 
     for rule in rule_records:
         record = dict(rule)
+        record["schema_version"] = AUDIT_SCHEMA_VERSION
+        record.setdefault("migration_warnings", [])
         key = _record_key(rule)
         hidden = hidden_by_key.get(key, {})
         llm = llm_by_key.get(key, {})
@@ -370,7 +386,7 @@ def export_human_audit_sheet(
     run_dir = Path(output_dir) / run_name
     output_records = []
     for record in records:
-        row = dict(record)
+        row = migrate_audit_record(record)
         row["run_name"] = str(row.get("run_name") or run_name)
         if "audit_priority_score" not in row:
             row.update(score_audit_priority(row))
@@ -406,6 +422,27 @@ def export_human_audit_sheet(
     }
 
 
+def migrate_audit_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Add v0.13 audit/review defaults with an explicit migration warning."""
+
+    migrated = dict(record)
+    warnings = _list_values(migrated.get("migration_warnings"))
+    old_version = str(migrated.get("schema_version") or "legacy")
+    if old_version != AUDIT_SCHEMA_VERSION:
+        warnings.append(f"audit schema migrated from {old_version} to {AUDIT_SCHEMA_VERSION}")
+    migrated["schema_version"] = AUDIT_SCHEMA_VERSION
+    migrated["migration_warnings"] = _dedupe(warnings)
+    migrated.setdefault("reaction_family", "unclear")
+    migrated.setdefault("reaction_family_confidence", "unclear")
+    migrated.setdefault("reaction_family_signals", [])
+    migrated.setdefault("reaction_family_scope", "fallback")
+    migrated.setdefault("paper_level_reaction_family", "unclear")
+    migrated.setdefault("reaction_family_conflict", False)
+    migrated.setdefault("section_type", "unknown")
+    migrated.setdefault("section_confidence", "low")
+    return migrated
+
+
 def import_human_audit_sheet(
     path: str | Path,
     run_name: str,
@@ -434,7 +471,7 @@ def import_human_audit_sheet(
             errors.append(_error_row(index, cleaned, row_errors or ["reviewed record is missing required human labels"]))
             continue
 
-        normalized = dict(cleaned)
+        normalized = migrate_audit_record(cleaned)
         normalized["human_required_controls"] = normalize_list_field(cleaned.get("human_required_controls"))
         normalized["human_hidden_tax"] = normalize_list_field(cleaned.get("human_hidden_tax"))
         normalized["human_label_validated"] = True
@@ -485,7 +522,7 @@ def export_audit_report(
 
     prepared_records: list[dict[str, Any]] = []
     for original in records:
-        record = dict(original)
+        record = migrate_audit_record(original)
         if "audit_priority_score" not in record:
             record.update(score_audit_priority(record))
         _apply_review_requirements(record)
@@ -514,6 +551,8 @@ def export_audit_report(
         "## 2. Audit source counts",
         "",
         f"- Audit records: {len(records)}",
+        f"- Schema version: {AUDIT_SCHEMA_VERSION}",
+        f"- Records with migration warnings: {sum(1 for record in records if _list_values(record.get('migration_warnings')))}",
         f"- Records with hidden-tax fields: {sum(1 for record in records if _list_values(record.get('detected_taxes')))}",
         f"- Records with LLM verification: {sum(1 for record in records if record.get('llm_model'))}",
         "",

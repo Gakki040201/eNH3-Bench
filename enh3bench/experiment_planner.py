@@ -15,6 +15,7 @@ from enh3bench.experiment_schema import (
     MEASUREMENT_LABELS,
     ROUTE_STAGE_MAP,
     ROUTE_TYPES,
+    migrate_experiment_route,
     validate_experiment_route,
     EXPERIMENT_SCHEMA_VERSION,
     EXECUTION_UNIT,
@@ -613,6 +614,33 @@ def _route_id(run_name: str, family: str, route_type: str) -> str:
     return f"ER_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{route_type}"
 
 
+def _profile_value(value: Any, key: str) -> Any:
+    if isinstance(value, dict):
+        if key in value:
+            return value[key]
+        for child in value.values():
+            found = _profile_value(child, key)
+            if found is not None:
+                return found
+    return None
+
+
+def _int_or_default(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def export_experiment_routes(
     routes: list[dict[str, Any]],
     run_name: str,
@@ -620,6 +648,7 @@ def export_experiment_routes(
 ) -> dict[str, Any]:
     """Export ranked experiment routes as JSONL, CSV, and a summary JSON."""
 
+    routes = [migrate_experiment_route(route) for route in routes]
     run_dir = Path(output_dir) / run_name
     jsonl_path = run_dir / "ranked_experiment_routes.jsonl"
     csv_path = run_dir / "ranked_experiment_routes.csv"
@@ -735,8 +764,19 @@ def _build_route(
         if route_family_id == "electrolyte_operating_window"
         else f"SEG_{_sanitize_id(run_name)}_{_sanitize_id(family)}_{_sanitize_id(route_type)}"
     )
+    minimum_valid_baseline_replicates = max(
+        1,
+        _int_or_default(_profile_value(lab_profile, "minimum_valid_baseline_replicates"), 3),
+    )
+    baseline_fe_cv_threshold = _optional_float(
+        _profile_value(lab_profile, "baseline_FE_CV_threshold_optional")
+    )
+    baseline_yield_cv_threshold = _optional_float(
+        _profile_value(lab_profile, "baseline_yield_CV_threshold_optional")
+    )
     route = {
         "schema_version": EXPERIMENT_SCHEMA_VERSION,
+        "migration_warnings": [],
         "route_id": route_id,
         "run_name": run_name,
         "source_basis_ids": source_ids,
@@ -761,8 +801,11 @@ def _build_route(
         "mutually_exclusive_route_ids": [],
         "shared_evidence_group": shared_evidence_group,
         "execution_order_reason": "Stage gate evaluation pending.",
-        "default_replicate_count": 3 if route_type == "baseline_repeatability" else 1,
-        "minimum_valid_replicates": 3 if route_type == "baseline_repeatability" else 1,
+        "default_replicate_count": minimum_valid_baseline_replicates if route_type == "baseline_repeatability" else 1,
+        "minimum_valid_replicates": minimum_valid_baseline_replicates if route_type == "baseline_repeatability" else 1,
+        "minimum_valid_baseline_replicates": minimum_valid_baseline_replicates,
+        "baseline_FE_CV_threshold_optional": baseline_fe_cv_threshold,
+        "baseline_yield_CV_threshold_optional": baseline_yield_cv_threshold,
         "replicate_type": "independent",
         "independent_assembly_required": route_type == "baseline_repeatability",
         "execution_unit": EXECUTION_UNIT,
@@ -1371,6 +1414,8 @@ def _write_csv(records: list[dict[str, Any]], output_path: Path) -> None:
 
 def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
     preferred = [
+        "schema_version",
+        "migration_warnings",
         "route_id",
         "run_name",
         "reaction_family",
@@ -1383,6 +1428,9 @@ def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
         "reaction_profile_name",
         "lab_demonstration_allowed",
         "route_type",
+        "minimum_valid_baseline_replicates",
+        "baseline_FE_CV_threshold_optional",
+        "baseline_yield_CV_threshold_optional",
         "execution_stage",
         "stage_rank",
         "within_stage_score",

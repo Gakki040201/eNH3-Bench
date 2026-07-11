@@ -302,6 +302,8 @@ def _valid_reviewed(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any]) -> dict[str, Any]:
     row = {
+        "schema_version": "0.13",
+        "migration_warnings": _benchmark_migration_warnings(record),
         "benchmark_id": benchmark_record_id(record, task_name),
         "task_name": task_name,
         "run_name": str(record.get("run_name") or ""),
@@ -314,6 +316,17 @@ def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any])
         "source_section": str(record.get("source_section") or ""),
         "provenance_type": str(record.get("provenance_type") or ""),
         "provenance_confidence": str(record.get("provenance_confidence") or ""),
+        "provenance_confidence_rationale": record.get("provenance_confidence_rationale") or [],
+        "section_heading": str(record.get("section_heading") or ""),
+        "section_path": record.get("section_path") or [],
+        "section_type": str(record.get("section_type") or "unknown"),
+        "section_confidence": str(record.get("section_confidence") or "low"),
+        "reaction_family": str(record.get("reaction_family") or "unclear"),
+        "reaction_family_confidence": str(record.get("reaction_family_confidence") or "unclear"),
+        "reaction_family_signals": record.get("reaction_family_signals") or [],
+        "reaction_family_scope": str(record.get("reaction_family_scope") or "fallback"),
+        "paper_level_reaction_family": str(record.get("paper_level_reaction_family") or "unclear"),
+        "reaction_family_conflict": bool(record.get("reaction_family_conflict")),
         "rule_text_class": str(record.get("text_class") or record.get("rule_text_class") or ""),
         "rule_maximum_supported_boundary": str(
             record.get("maximum_supported_boundary") or record.get("rule_maximum_supported_boundary") or ""
@@ -354,6 +367,14 @@ def _task_record(record: dict[str, Any], task_name: str, labels: dict[str, Any])
 
 def _human_gate(record: dict[str, Any], field: str) -> str:
     return normalize_label(str(record.get(field) or ""), VALIDATION_GATE_LABELS, default="unclear")
+
+
+def _benchmark_migration_warnings(record: dict[str, Any]) -> list[str]:
+    warnings = normalize_multi_label(record.get("migration_warnings"))
+    old_version = str(record.get("schema_version") or "legacy")
+    if old_version != "0.13":
+        warnings.append(f"benchmark source schema migrated from {old_version} to 0.13")
+    return list(dict.fromkeys(warnings))
 
 
 def _rule_gate(record: dict[str, Any], field: str) -> str:

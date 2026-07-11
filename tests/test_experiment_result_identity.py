@@ -66,7 +66,7 @@ class ExperimentResultIdentityTests(unittest.TestCase):
 
 def _result(execution_id: str, replicate_id: str) -> dict[str, str]:
     return {
-        "schema_version": "1.1",
+        "schema_version": "0.13",
         "execution_unit": "route_condition_replicate",
         "execution_id": execution_id,
         "experiment_id": f"EXP_{execution_id}",

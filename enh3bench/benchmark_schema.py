@@ -90,6 +90,8 @@ EXPERIMENT_DECISION_LABELS = (
 )
 
 COMMON_TASK_FIELDS = (
+    "schema_version",
+    "migration_warnings",
     "benchmark_id",
     "task_name",
     "run_name",
@@ -102,6 +104,17 @@ COMMON_TASK_FIELDS = (
     "source_section",
     "provenance_type",
     "provenance_confidence",
+    "provenance_confidence_rationale",
+    "section_heading",
+    "section_path",
+    "section_type",
+    "section_confidence",
+    "reaction_family",
+    "reaction_family_confidence",
+    "reaction_family_signals",
+    "reaction_family_scope",
+    "paper_level_reaction_family",
+    "reaction_family_conflict",
     "rule_text_class",
     "rule_maximum_supported_boundary",
     "support_hint_boundary",

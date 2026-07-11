@@ -7,6 +7,9 @@ import re
 from typing import Any
 
 
+AUDIT_SCHEMA_VERSION = "0.13"
+
+
 HUMAN_TEXT_CLASSES = (
     "primary_performance",
     "primary_performance_with_validation",
