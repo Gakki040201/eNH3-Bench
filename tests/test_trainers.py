@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,7 +17,7 @@ from enh3bench.trainers import (
 class TrainerTests(unittest.TestCase):
     def test_missing_dependency_message_contains_install_command(self) -> None:
         self.assertIn("scikit-learn joblib", missing_dependency_message())
-        self.assertIn(r"C:\Python314\python.exe", missing_dependency_message())
+        self.assertIn(sys.executable, missing_dependency_message())
 
     @unittest.skipUnless(dependencies_available(), "scikit-learn/joblib not installed")
     def test_train_source_span_classifier_smoke_model(self) -> None:

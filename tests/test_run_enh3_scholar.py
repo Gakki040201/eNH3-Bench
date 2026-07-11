@@ -8,7 +8,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = Path(r"C:\Python314\python.exe")
 
 
 class RunEnh3ScholarTests(unittest.TestCase):
@@ -25,7 +24,7 @@ class RunEnh3ScholarTests(unittest.TestCase):
             )
             result = subprocess.run(
                 [
-                    str(PYTHON),
+                    sys.executable,
                     str(ROOT / "scripts" / "run_enh3_scholar.py"),
                     "--input-dir",
                     str(input_dir),

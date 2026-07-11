@@ -105,7 +105,7 @@ def _render(run_name: str) -> str:
             "",
             "```powershell",
             (
-                "C:\\Python314\\python.exe scripts\\import_human_audit_sheet.py "
+                "python scripts/import_human_audit_sheet.py "
                 f"--run-name {run_name} --input data\\human_audit\\{run_name}\\human_audit_sheet.reviewed.csv"
             ),
             "```",

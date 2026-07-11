@@ -5,12 +5,13 @@ from __future__ import annotations
 import csv
 import importlib.util
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 
-SKLEARN_INSTALL_COMMAND = r"C:\Python314\python.exe -m pip install scikit-learn joblib"
+SKLEARN_INSTALL_COMMAND = f'"{sys.executable}" -m pip install scikit-learn joblib'
 
 
 def dependencies_available() -> bool:
