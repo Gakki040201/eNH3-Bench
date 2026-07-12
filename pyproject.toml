@@ -12,7 +12,10 @@ license = { text = "MIT" }
 authors = [
   { name = "eNH3-Bench contributors" }
 ]
-dependencies = []
+dependencies = [
+  "openpyxl>=3.1",
+  "requests>=2.31"
+]
 
 [project.optional-dependencies]
 dev = [
