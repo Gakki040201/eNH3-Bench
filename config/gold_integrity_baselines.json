@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "runs": {
+    "enrr_round1_oa_20260712": {
+      "jsonl": {
+        "record_count": 100,
+        "sha256": "D6D39C6908A281D36F2DF20A4F5876B7E91DF87FDBBAD5C7C499A4D2655D236D"
+      },
+      "csv": {
+        "record_count": 100,
+        "sha256": "1087068AF6A8E5BEA9F3273FE3C439CE3BA1B20711D9C6E64B5661EB564AFAEF"
+      }
+    }
+  }
+}
