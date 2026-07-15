@@ -48,6 +48,8 @@ data/experiment_results/*
 !data/experiment_results/.gitkeep
 data/closed_loop/*
 !data/closed_loop/.gitkeep
+data/context_packets/*
+!data/context_packets/.gitkeep
 models/*
 !models/.gitkeep
 
