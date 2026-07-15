@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "A no-API benchmark for AI-assisted extraction and validation of electrochemical ammonia synthesis literature."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
   { name = "eNH3-Bench contributors" }
 ]
@@ -30,3 +30,17 @@ document = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["enh3bench*"]
+exclude = [
+  "config*",
+  "data*",
+  "docs*",
+  "input_raw*",
+  "input_markdown*",
+  "review_artifacts*",
+  "scripts*",
+  "tests*",
+]
+namespaces = false

@@ -7,6 +7,7 @@ from typing import Any
 
 from enh3bench.front_matter import strip_conversion_front_matter
 from enh3bench.section_context import extract_markdown_section_blocks, infer_section_confidence
+from enh3bench.source_ledger import OrderedSourceLedger, sort_spans_by_priority, sort_spans_by_source_order
 
 
 KEYWORDS = [
@@ -33,14 +34,29 @@ KEYWORDS = [
     "flow cell",
     "reactor",
 ]
+LEGACY_SELECTION_PROFILE = "legacy_keyword_topk_v1"
+ORDERED_SELECTION_PROFILE = "ordered_source_v1"
 
 
 def find_candidate_spans(
     document: dict[str, Any],
     paper_id: str | None = None,
     max_spans_per_document: int = 8,
+    *,
+    selection_profile: str = LEGACY_SELECTION_PROFILE,
+    output_order: str | None = None,
+    source_ledger: OrderedSourceLedger | None = None,
 ) -> list[dict[str, Any]]:
     """Find candidate evidence spans in one loaded Markdown document."""
+
+    if selection_profile == ORDERED_SELECTION_PROFILE:
+        if source_ledger is None:
+            raise ValueError("ordered_source_v1 requires source_ledger")
+        return _find_ordered_candidates(
+            document, paper_id, max_spans_per_document, output_order or "source", source_ledger
+        )
+    if selection_profile != LEGACY_SELECTION_PROFILE:
+        raise ValueError(f"unknown span selection profile: {selection_profile}")
 
     document_id = str(document.get("document_id", "")).strip()
     resolved_paper_id = paper_id or document_id
@@ -85,6 +101,71 @@ def find_candidate_spans(
 
     candidates.sort(key=lambda item: (-int(item["candidate_score"]), str(item["span_id"])))
     return candidates[:max_spans_per_document]
+
+
+def _find_ordered_candidates(
+    document: dict[str, Any], paper_id: str | None, maximum: int, output_order: str,
+    source_ledger: OrderedSourceLedger,
+) -> list[dict[str, Any]]:
+    document_id = str(document.get("document_id") or "").strip()
+    resolved_paper_id = str(paper_id or document_id)
+    paragraphs = source_ledger.paragraphs_by_document.get(document_id)
+    if paragraphs is None:
+        raise KeyError(f"document not found in source ledger: {document_id}")
+    section_index = {
+        str(section["section_uid"]): section
+        for section in source_ledger.sections_by_document.get(document_id, [])
+    }
+    all_candidates: list[dict[str, Any]] = []
+    for paragraph in paragraphs:
+        text = str(paragraph["text"])
+        matched_keywords = _matched_keywords(text)
+        if not matched_keywords:
+            continue
+        section = section_index.get(str(paragraph["section_uid"]), {})
+        source_span_id = f"{document_id}_S{int(paragraph['paragraph_global_index']):03d}"
+        order_key = str(paragraph["source_order_key"])
+        if order_key.endswith("000000"):
+            order_key = order_key[:-6] + "000001"
+        all_candidates.append({
+            "span_id": source_span_id, "source_span_id": source_span_id,
+            "legacy_span_id": source_span_id, "paper_id": resolved_paper_id,
+            "document_id": document_id, "source_locator": f"{paragraph['source_locator']}::ANCHOR01",
+            "source_order_key": order_key, "paragraph_uid": paragraph["paragraph_uid"],
+            "section_uid": paragraph["section_uid"],
+            "paragraph_global_index": paragraph["paragraph_global_index"],
+            "paragraph_index_in_section": paragraph["paragraph_index_in_section"],
+            "section_outline_label": paragraph["section_outline_label"],
+            "section_type": paragraph["section_type"], "section_heading": paragraph["section_heading"],
+            "source_section": _source_section_from_context(paragraph), "text": text,
+            "source_start_offset": paragraph["source_start_offset"],
+            "source_end_offset": paragraph["source_end_offset"],
+            "section_start_offset": section.get("section_start_offset"),
+            "section_end_offset": section.get("section_end_offset"),
+            "section_level": section.get("section_level", 0),
+            "section_path": list(paragraph.get("section_path") or (
+                [paragraph["section_heading"]] if paragraph.get("section_heading") else []
+            )),
+            "section_confidence": "high" if paragraph.get("section_heading") else "low",
+            "section_signals": ["ordered_source_ledger"],
+            "candidate_score": _score_keywords(matched_keywords), "matched_keywords": matched_keywords,
+            "annotation_status": "machine_drafted", "notes": "Auto-selected candidate span.",
+            "selected_by_priority": True, "selection_reason": "top_k_keyword_score_then_source_order",
+            "document_relative_position": paragraph["document_relative_position"],
+            "section_relative_position": paragraph["section_relative_position"],
+        })
+    priority = sorted(
+        all_candidates,
+        key=lambda item: (-int(item["candidate_score"]), int(item["source_start_offset"])),
+    )
+    for rank, candidate in enumerate(priority, start=1):
+        candidate["candidate_priority_rank"] = rank
+    selected = priority[:max(0, int(maximum))]
+    if output_order == "source":
+        return sort_spans_by_source_order(selected)
+    if output_order == "priority":
+        return sort_spans_by_priority(selected)
+    raise ValueError(f"unknown output_order: {output_order}")
 
 
 def _matched_keywords(text: str) -> list[str]:

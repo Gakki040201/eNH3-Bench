@@ -19,7 +19,9 @@ from enh3bench.document_context import build_document_context_index  # noqa: E40
 from enh3bench.evidence_linking import (  # noqa: E402
     HIERARCHICAL_LINKING_PROFILE,
     KEYWORD_LINKING_PROFILE,
+    ORDERED_SOURCE_PROFILE,
 )
+from enh3bench.source_ledger import build_ordered_source_ledger  # noqa: E402
 from enh3bench.ledger_router import load_jsonl  # noqa: E402
 
 
@@ -35,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--markdown-dir", type=Path, default=Path("input_markdown"))
     parser.add_argument(
         "--context-profile",
-        choices=(KEYWORD_LINKING_PROFILE, HIERARCHICAL_LINKING_PROFILE),
+        choices=(KEYWORD_LINKING_PROFILE, HIERARCHICAL_LINKING_PROFILE, ORDERED_SOURCE_PROFILE),
         default=HIERARCHICAL_LINKING_PROFILE,
     )
     parser.add_argument("--minimum-link-score", type=float, default=0.60)
@@ -65,6 +67,11 @@ def main() -> int:
     claims = load_jsonl(claim_path)
     hidden = load_jsonl(hidden_path)
     provenance = load_jsonl(provenance_path)
+    source_ledger = (
+        build_ordered_source_ledger(args.markdown_dir)
+        if args.context_profile == ORDERED_SOURCE_PROFILE
+        else None
+    )
     document_index = (
         build_document_context_index(args.markdown_dir)
         if args.context_profile == HIERARCHICAL_LINKING_PROFILE
@@ -75,6 +82,7 @@ def main() -> int:
         run_name=args.run_name,
         context_profile=args.context_profile,
         document_context_index=document_index,
+        source_ledger=source_ledger,
         minimum_link_score=args.minimum_link_score,
         adjacent_before=args.adjacent_before,
         adjacent_after=args.adjacent_after,
@@ -86,7 +94,7 @@ def main() -> int:
         section_chunk_max_characters=args.section_chunk_max_characters,
     )
     legacy_comparison = None
-    if args.context_profile == HIERARCHICAL_LINKING_PROFILE:
+    if args.context_profile in {HIERARCHICAL_LINKING_PROFILE, ORDERED_SOURCE_PROFILE}:
         legacy_packets = build_context_packets(
             evidence, claims, hidden, provenance,
             run_name=args.run_name,
@@ -106,7 +114,7 @@ def main() -> int:
     summary = outputs["summary_data"]
     print(f"context_packets: {summary['packet_count']}")
     print(f"papers: {summary['paper_count']}")
-    if args.context_profile == HIERARCHICAL_LINKING_PROFILE:
+    if args.context_profile in {HIERARCHICAL_LINKING_PROFILE, ORDERED_SOURCE_PROFILE}:
         print(f"classification_context_sufficient: {summary['classification_context_sufficient_count']}")
         print(f"claim_support_context_sufficient: {summary['claim_support_context_sufficient_count']}")
         print(f"unique_evidence_total: {summary['unique_evidence_total']}")
@@ -114,6 +122,9 @@ def main() -> int:
         print(f"self_link_count: {summary['self_link_count']}")
         print(f"duplicate_serialized_span_count: {summary['duplicate_serialized_span_count']}")
         print(f"context_hint_positive_overlap_count: {summary['context_hint_positive_overlap_count']}")
+        if args.context_profile == ORDERED_SOURCE_PROFILE:
+            print(f"claim_support_applicable_count: {summary['claim_support_applicable_count']}")
+            print(f"claim_support_sufficient_among_applicable: {summary['claim_support_sufficient_among_applicable']}")
     else:
         print(f"context_sufficient: {summary['packets_with_context_sufficient']}")
         print(f"context_insufficient: {summary['packets_with_context_insufficient']}")

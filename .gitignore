@@ -1,4 +1,5 @@
 __pycache__/
+*.egg-info/
 .venv/
 .env
 *.env
@@ -50,6 +51,8 @@ data/closed_loop/*
 !data/closed_loop/.gitkeep
 data/context_packets/*
 !data/context_packets/.gitkeep
+data/source_ledgers/*
+!data/source_ledgers/.gitkeep
 models/*
 !models/.gitkeep
 

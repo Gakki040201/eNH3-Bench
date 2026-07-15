@@ -63,9 +63,28 @@ def _identity_payload(record: dict[str, Any]) -> tuple[dict[str, Any], str, list
         record.get("source_text") or record.get("source_span") or record.get("text") or record.get("raw_source_text")
     )
     text_sha256 = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+    verified_start = _coerce_order(record.get("verified_source_start_offset"))
+    verified_end = _coerce_order(record.get("verified_source_end_offset"))
+    body_sha = normalize_span_text(record.get("document_body_sha256"))
+    if (
+        record.get("source_mapping_method") == "explicit_verified"
+        and bool(record.get("offset_text_match"))
+        and verified_start is not None
+        and verified_end is not None
+        and verified_end > verified_start
+        and body_sha
+    ):
+        return ({
+            "paper_id": paper_id,
+            "document_id": document_id,
+            "document_body_sha256": body_sha,
+            "verified_source_start_offset": verified_start,
+            "verified_source_end_offset": verified_end,
+            "normalized_text_sha256": text_sha256,
+        }, "offset_anchored_verified", [])
     start = _coerce_order(record.get("source_start_offset"))
     end = _coerce_order(record.get("source_end_offset"))
-    if start is not None and end is not None and end > start:
+    if not record.get("source_mapping_method") and start is not None and end is not None and end > start:
         return ({
             "paper_id": paper_id,
             "document_id": document_id,

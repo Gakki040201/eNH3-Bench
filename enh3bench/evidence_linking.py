@@ -11,6 +11,7 @@ from enh3bench.span_identity import normalize_section_path, parse_legacy_span_or
 
 KEYWORD_LINKING_PROFILE = "keyword_linking_v1"
 HIERARCHICAL_LINKING_PROFILE = "hierarchical_docling_v1"
+ORDERED_SOURCE_PROFILE = "ordered_source_v1"
 LINK_TYPES = (
     "performance", "validation", "quantification", "reactor", "process",
     "negative_or_contradicting", "context_hint",
@@ -130,8 +131,11 @@ def link_supporting_evidence(
 ) -> dict[str, Any]:
     if profile == KEYWORD_LINKING_PROFILE:
         return _legacy_keyword_links(target, paper_records, limits)
-    if profile != HIERARCHICAL_LINKING_PROFILE:
+    if profile not in {HIERARCHICAL_LINKING_PROFILE, ORDERED_SOURCE_PROFILE}:
         raise ValueError(f"unknown context linking profile: {profile}")
+    ordered_source = profile == ORDERED_SOURCE_PROFILE
+    if ordered_source and not _has_source_coordinates(target):
+        raise ValueError(f"ordered source target lacks source coordinates: {_span_id(target)}")
     settings = dict(DEFAULT_LINK_LIMITS)
     if limits:
         settings.update({key: int(value) for key, value in limits.items() if key in settings})
@@ -161,10 +165,13 @@ def link_supporting_evidence(
             diagnostics["cross_paper_link_count"] += 1
             warnings.append(f"cross_paper_candidate_rejected:{candidate_id}")
             continue
+        if ordered_source and not _has_source_coordinates(candidate):
+            warnings.append(f"source_coordinates_missing:{candidate_id}")
+            continue
         roles = _link_types(candidate)
         for role in roles:
             diagnostics["candidate_link_count"] += 1
-            score, signals = _score_link_detailed(target, candidate, role)
+            score, signals = _score_link_detailed(target, candidate, role, ordered_source=ordered_source)
             if role in POSITIVE_LINK_TYPES and _is_context_only(candidate):
                 diagnostics["low_trust_rejected_count"] += 1
                 continue
@@ -223,7 +230,7 @@ def link_supporting_evidence(
 
 
 def _score_link_detailed(
-    target: dict[str, Any], candidate: dict[str, Any], link_type: str
+    target: dict[str, Any], candidate: dict[str, Any], link_type: str, *, ordered_source: bool = False
 ) -> tuple[float, list[str]]:
     if str(target.get("paper_id") or "") != str(candidate.get("paper_id") or ""):
         return float("-inf"), ["cross_paper_rejected"]
@@ -237,12 +244,17 @@ def _score_link_detailed(
     if explicit_phrase and link_type != "context_hint":
         score += LINK_WEIGHTS["explicit_category_phrase"]
         signals.append(f"explicit_{link_type}_phrase")
-    if _same_or_adjacent_paragraph(target, candidate):
+    adjacent_source = _same_or_adjacent_paragraph(target, candidate, ordered_source=ordered_source)
+    if adjacent_source:
         score += LINK_WEIGHTS["same_or_adjacent_paragraph"]
         signals.append("same_or_adjacent_paragraph")
     target_section = normalize_section_path(target.get("section_path") or target.get("section_heading") or target.get("source_section"))
     candidate_section = normalize_section_path(candidate.get("section_path") or candidate.get("section_heading") or candidate.get("source_section"))
-    if target_section and target_section == candidate_section:
+    same_source_section = bool(
+        (target_section and target_section == candidate_section)
+        or (ordered_source and target.get("section_uid") and target.get("section_uid") == candidate.get("section_uid"))
+    )
+    if same_source_section:
         score += LINK_WEIGHTS["same_section"]
         signals.append("same_section")
     if _primary_admissible(candidate):
@@ -270,6 +282,13 @@ def _score_link_detailed(
     if explicit_phrase and not _specific_phrase(text, link_type) and not _structured_match(candidate, link_type):
         score += LINK_WEIGHTS["generic_keyword_only"]
         signals.append("generic_keyword_only")
+    if link_type == "context_hint" and _is_context_only(candidate):
+        if adjacent_source:
+            score = max(score, 0.65)
+            signals.append("adjacent_context_hint_provenance")
+        elif same_source_section:
+            score = max(score, 0.60)
+            signals.append("same_section_context_hint_provenance")
     return round(max(0.0, min(1.0, score)), 4), _dedupe(signals)
 
 
@@ -379,6 +398,10 @@ def _linked_record(
     target: dict[str, Any], candidate: dict[str, Any], link_type: str, score: float, signals: list[str]
 ) -> dict[str, Any]:
     context_only = _is_context_only(candidate) or link_type == "context_hint"
+    paragraph_distance = _paragraph_distance(target, candidate)
+    target_start = _source_start(target)
+    candidate_start = _source_start(candidate)
+    direction = "same" if candidate_start == target_start else ("before" if candidate_start < target_start else "after")
     return {
         "span_id": _span_id(candidate),
         "stable_span_uid": str(candidate.get("stable_span_uid") or ""),
@@ -386,6 +409,15 @@ def _linked_record(
         "document_id": str(candidate.get("document_id") or ""),
         "source_start_offset": candidate.get("source_start_offset"),
         "source_end_offset": candidate.get("source_end_offset"),
+        "verified_source_start_offset": candidate.get("verified_source_start_offset"),
+        "verified_source_end_offset": candidate.get("verified_source_end_offset"),
+        "source_locator": candidate.get("source_locator"),
+        "source_order_key": candidate.get("source_order_key"),
+        "paragraph_uid": candidate.get("paragraph_uid"),
+        "paragraph_global_index": candidate.get("paragraph_global_index"),
+        "paragraph_index_in_section": candidate.get("paragraph_index_in_section"),
+        "section_uid": candidate.get("section_uid"),
+        "section_outline_label": candidate.get("section_outline_label"),
         "span_order": candidate.get("span_order"),
         "section_path": candidate.get("section_path") or [],
         "section_heading": str(candidate.get("section_heading") or ""),
@@ -401,6 +433,10 @@ def _linked_record(
         "linking_signals": _dedupe(signals),
         "context_only": context_only,
         "primary_support": bool(_primary_admissible(candidate) and not context_only and link_type in POSITIVE_LINK_TYPES),
+        "source_paragraph_distance": paragraph_distance,
+        "same_source_section": bool(target.get("section_uid") and target.get("section_uid") == candidate.get("section_uid")),
+        "same_parent_section": bool(target.get("parent_section_uid") and target.get("parent_section_uid") == candidate.get("parent_section_uid")),
+        "source_direction": direction,
     }
 
 
@@ -422,15 +458,44 @@ def _explicit_relation(record: dict[str, Any], role: str) -> bool:
     return bool(relation and (role.replace("_or_contradicting", "") in relation or relation in {"supports", "contradicts"}))
 
 
-def _same_or_adjacent_paragraph(target: dict[str, Any], candidate: dict[str, Any]) -> bool:
-    target_paragraph = target.get("paragraph_order")
-    candidate_paragraph = candidate.get("paragraph_order")
+def _same_or_adjacent_paragraph(
+    target: dict[str, Any], candidate: dict[str, Any], *, ordered_source: bool = False
+) -> bool:
+    target_paragraph = target.get("paragraph_global_index")
+    candidate_paragraph = candidate.get("paragraph_global_index")
+    if target_paragraph is None or candidate_paragraph is None:
+        target_paragraph = target.get("paragraph_order")
+        candidate_paragraph = candidate.get("paragraph_order")
     if target_paragraph is not None and candidate_paragraph is not None:
         try:
             return abs(int(target_paragraph) - int(candidate_paragraph)) <= 1
         except (TypeError, ValueError):
             pass
+    if ordered_source:
+        return False
     return abs(_span_order(candidate) - _span_order(target)) <= 1
+
+
+def _has_source_coordinates(record: dict[str, Any]) -> bool:
+    return all(record.get(field) not in (None, "") for field in (
+        "paragraph_uid", "paragraph_global_index", "section_uid", "source_order_key"
+    ))
+
+
+def _paragraph_distance(target: dict[str, Any], candidate: dict[str, Any]) -> int | None:
+    try:
+        return int(candidate.get("paragraph_global_index")) - int(target.get("paragraph_global_index"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _source_start(record: dict[str, Any]) -> int:
+    for field in ("verified_source_start_offset", "source_start_offset"):
+        try:
+            return int(record.get(field))
+        except (TypeError, ValueError):
+            continue
+    return 10**18
 
 
 def _specific_phrase(text: str, role: str) -> bool:

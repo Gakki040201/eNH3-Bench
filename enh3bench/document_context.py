@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from enh3bench.document_loader import load_markdown_documents
-from enh3bench.section_context import extract_markdown_section_blocks
+from enh3bench.source_ledger import OrderedSourceLedger, build_ordered_source_ledger
 from enh3bench.span_identity import normalize_span_text
 
 
@@ -20,52 +18,42 @@ class DocumentContextIndex:
     paragraphs_by_document: dict[str, list[dict[str, Any]]]
     sections_by_document: dict[str, list[dict[str, Any]]]
     warnings: list[str]
+    source_ledger: OrderedSourceLedger | None = None
 
 
 def build_document_context_index(markdown_dir: str | Path) -> DocumentContextIndex:
     """Load each Markdown body once and derive paragraph offsets from that body."""
 
-    root = Path(markdown_dir)
+    ledger = build_ordered_source_ledger(markdown_dir)
     documents_by_id: dict[str, dict[str, Any]] = {}
     documents_by_paper: dict[str, list[dict[str, Any]]] = {}
     paragraphs_by_document: dict[str, list[dict[str, Any]]] = {}
     sections_by_document: dict[str, list[dict[str, Any]]] = {}
-    warnings: list[str] = []
-    for loaded in load_markdown_documents(root):
-        document_id = str(loaded["document_id"])
-        if document_id in documents_by_id:
-            raise ValueError(f"duplicate document_id: {document_id}")
-        body = str(loaded.get("text") or "")
-        sections = list(loaded.get("section_blocks") or extract_markdown_section_blocks(body))
-        paragraphs = _paragraph_blocks(body, document_id, document_id, sections)
-        path = Path(str(loaded.get("path") or root / f"{document_id}.md"))
-        try:
-            relative_path = path.resolve().relative_to(Path.cwd().resolve()).as_posix()
-        except ValueError:
-            relative_path = (root / path.name).as_posix()
+    for document_id, source_document in ledger.documents_by_id.items():
+        sections = [_legacy_section_record(item) for item in ledger.sections_by_document[document_id]]
+        paragraphs = [_legacy_paragraph_record(item) for item in ledger.paragraphs_by_document[document_id]]
         document = {
             "document_id": document_id,
-            "paper_id": document_id,
-            "relative_markdown_path": relative_path,
-            "body_text_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
-            "body_character_count": len(body),
+            "paper_id": source_document["paper_id"],
+            "relative_markdown_path": source_document["document_ref"],
+            "body_text_sha256": source_document["document_body_sha256"],
+            "body_character_count": source_document["document_character_count"],
             "section_blocks": sections,
             "paragraph_blocks": paragraphs,
-            "front_matter_signals": list(loaded.get("front_matter_signals") or []),
-            "body_text": body,
+            "front_matter_signals": list(source_document.get("front_matter_signals") or []),
+            "body_text": source_document["full_body_text"],
         }
         documents_by_id[document_id] = document
-        documents_by_paper.setdefault(document_id, []).append(document)
+        documents_by_paper.setdefault(str(source_document["paper_id"]), []).append(document)
         paragraphs_by_document[document_id] = paragraphs
         sections_by_document[document_id] = sections
-        if not body:
-            warnings.append(f"empty_document_body:{document_id}")
     return DocumentContextIndex(
         documents_by_id=documents_by_id,
         documents_by_paper=documents_by_paper,
         paragraphs_by_document=paragraphs_by_document,
         sections_by_document=sections_by_document,
-        warnings=warnings,
+        warnings=list(ledger.warnings),
+        source_ledger=ledger,
     )
 
 
@@ -97,9 +85,12 @@ def resolve_span_mapping(record: dict[str, Any], index: DocumentContextIndex) ->
     end = _offset(record.get("source_end_offset"))
     if start is not None or end is not None:
         if start is not None and end is not None and 0 <= start < end <= len(body):
-            return _mapping_record(
-                "explicit_offset", "high", start, end, document_id, index, warnings, []
-            )
+            source_text = str(record.get("source_text") or record.get("text") or "")
+            if normalize_span_text(body[start:end]) == normalize_span_text(source_text):
+                return _mapping_record(
+                    "explicit_offset", "high", start, end, document_id, index, warnings, []
+                )
+            warnings.append("offset_text_mismatch")
         warnings.append("invalid_explicit_offsets")
 
     source_text = str(record.get("source_text") or record.get("text") or "")
@@ -169,30 +160,29 @@ def get_section_chunk(
     }
 
 
-def _paragraph_blocks(
-    body: str, document_id: str, paper_id: str, sections: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    blocks: list[dict[str, Any]] = []
-    for order, match in enumerate(re.finditer(r"\S(?:.*?)(?=\n\s*\n+|\Z)", body, flags=re.DOTALL)):
-        raw = match.group(0)
-        leading = len(raw) - len(raw.lstrip())
-        trailing = len(raw.rstrip())
-        start = match.start() + leading
-        end = match.start() + trailing
-        section = _section_for_offset(sections, start, len(body)) or {}
-        blocks.append({
-            "paragraph_id": f"{document_id}_P{order + 1:05d}",
-            "document_id": document_id,
-            "paper_id": paper_id,
-            "paragraph_order": order + 1,
-            "text": body[start:end],
-            "start_offset": start,
-            "end_offset": end,
-            "section_heading": str(section.get("section_heading") or ""),
-            "section_path": list(section.get("section_path") or []),
-            "section_type": str(section.get("section_type") or "unknown"),
-        })
-    return blocks
+def _legacy_section_record(section: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **section,
+        "section_heading": str(section.get("heading_text") or ""),
+        "section_path": list(section.get("section_path") or (
+            [str(section.get("heading_text"))] if section.get("heading_text") else []
+        )),
+        "section_confidence": "high" if section.get("heading_text") else "low",
+        "section_signals": ["ordered_source_ledger"],
+    }
+
+
+def _legacy_paragraph_record(paragraph: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **paragraph,
+        "paragraph_id": paragraph["paragraph_uid"],
+        "paragraph_order": paragraph["paragraph_global_index"],
+        "start_offset": paragraph["source_start_offset"],
+        "end_offset": paragraph["source_end_offset"],
+        "section_path": list(paragraph.get("section_path") or (
+            [paragraph["section_heading"]] if paragraph.get("section_heading") else []
+        )),
+    }
 
 
 def _mapping_record(

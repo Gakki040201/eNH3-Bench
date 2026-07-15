@@ -16,10 +16,11 @@ class ContextOffsetPropagationTests(unittest.TestCase):
         provenance = [{"source_span_id": "P1_S001", "source_start_offset": 30, "source_end_offset": 40, "section_type": "results"}]
         before = copy.deepcopy(bundle)
         record = merge_context_sources([bundle], [], [], provenance)[0]
-        self.assertEqual(record["source_start_offset"], 4)
+        self.assertEqual(record["source_start_offset"], 10)
         self.assertEqual(record["source_end_offset"], 20)
-        self.assertEqual(record["section_type"], "results")
-        self.assertEqual(record["location_source"], "explicit_bundle")
+        self.assertIsNone(record["section_type"])
+        self.assertEqual(record["location_source"], "raw_record")
+        self.assertEqual(record["location_sources"]["source_offset_pair"], "raw_record")
         self.assertIsNone(record["section_start_offset"])
         self.assertEqual(bundle, before)
 

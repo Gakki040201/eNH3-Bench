@@ -24,10 +24,16 @@ from enh3bench.evidence_linking import (
     DEFAULT_MINIMUM_LINK_SCORE,
     HIERARCHICAL_LINKING_PROFILE,
     KEYWORD_LINKING_PROFILE,
+    ORDERED_SOURCE_PROFILE,
     LINK_TYPES,
     link_supporting_evidence,
 )
 from enh3bench.reaction_profiles import get_reaction_profile, normalize_reaction_family
+from enh3bench.source_ledger import (
+    OrderedSourceLedger,
+    attach_source_coordinates_to_spans,
+    sort_spans_by_source_order,
+)
 from enh3bench.span_context import (
     build_document_span_index,
     get_next_spans,
@@ -38,6 +44,7 @@ from enh3bench.span_context import (
 
 
 CONTEXT_PACKET_SCHEMA_VERSION = "1.1"
+ORDERED_CONTEXT_PACKET_SCHEMA_VERSION = "1.2"
 LEGACY_CONTEXT_PACKET_SCHEMA_VERSION = "1.0"
 LOCATION_FIELDS = (
     "document_id", "source_start_offset", "source_end_offset", "section_start_offset",
@@ -66,6 +73,21 @@ PACKET_FIELDS = (
     "context_purpose", "context_sufficient", "context_missing_types", "context_confidence",
     "linking_signals", "linking_diagnostics", "warnings",
 )
+ORDERED_PACKET_FIELDS = (
+    "context_packet_schema_version", "context_profile", "context_packet_id", "run_name",
+    "paper_id", "document_id", "document_ref", "document_body_sha256",
+    "target_span_id", "target_stable_span_uid", "target_source_locator", "target_source_order_key",
+    "target_section_uid", "target_section_outline_label", "target_section_heading", "target_section_type",
+    "target_paragraph_uid", "target_paragraph_global_index", "target_paragraph_index_in_section",
+    "target_document_relative_position", "target_section_relative_position",
+    "target_source_start_offset", "target_source_end_offset", "target_text", "target_text_class",
+    "target_provenance_type", "target_reaction_family", "target_span_boundary",
+    "target_admissibility_status", "previous_paragraph", "target_paragraph", "next_paragraph",
+    "section_context", "document_outline", "evidence_items", "evidence_role_index",
+    "classification_context_sufficient", "claim_support_applicable",
+    "claim_support_context_sufficient", "context_purpose", "context_sufficient",
+    "context_missing_types", "context_confidence", "linking_signals", "linking_diagnostics", "warnings",
+)
 LINK_PACKET_FIELDS = {
     "performance": "linked_performance_spans",
     "validation": "linked_validation_spans",
@@ -91,33 +113,30 @@ def promote_document_location(
     promoted = dict(record)
     raw = raw_record if isinstance(raw_record, dict) else {}
     provenance = provenance_record if isinstance(provenance_record, dict) else {}
-    sources_used: list[str] = []
     warnings = _list_values(record.get("location_warnings"))
-    for field in LOCATION_FIELDS:
-        explicit = record.get(field)
-        raw_value = raw.get(field)
-        provenance_value = provenance.get(field)
-        if _present(explicit):
-            promoted[field] = _copy_value(explicit)
-            sources_used.append("explicit_bundle")
-        elif _present(raw_value):
-            promoted[field] = _copy_value(raw_value)
-            sources_used.append("raw_record")
-        elif _present(provenance_value):
-            promoted[field] = _copy_value(provenance_value)
-            sources_used.append("provenance")
-        else:
-            promoted[field] = None
-    if "explicit_bundle" in sources_used:
-        source = "explicit_bundle"
-    elif "raw_record" in sources_used:
-        source = "raw_record"
-    elif "provenance" in sources_used:
-        source = "provenance"
-    else:
-        source = "unresolved"
+    sources = (("explicit_bundle", record), ("raw_record", raw), ("provenance", provenance))
+    source_pair, source_pair_source = _select_location_pair(sources, "source_start_offset", "source_end_offset")
+    section_pair, section_pair_source = _select_location_pair(sources, "section_start_offset", "section_end_offset")
+    document_id, document_id_source = _select_location_value(sources, "document_id")
+    metadata_fields = ("section_level", "section_type", "section_confidence", "section_signals", "source_section", "path")
+    metadata, metadata_source = _select_location_metadata(sources, metadata_fields)
+    promoted["source_start_offset"], promoted["source_end_offset"] = source_pair
+    promoted["section_start_offset"], promoted["section_end_offset"] = section_pair
+    promoted["document_id"] = document_id
+    for field in metadata_fields:
+        promoted[field] = _copy_value(metadata.get(field)) if field in metadata else None
+    promoted["location_sources"] = {
+        "source_offset_pair": source_pair_source,
+        "section_offset_pair": section_pair_source,
+        "document_id": document_id_source,
+        "section_metadata": metadata_source,
+    }
+    source_names = [source_pair_source, section_pair_source, document_id_source, metadata_source]
+    promoted["location_source"] = next((name for name in source_names if name != "unresolved"), "unresolved")
+    if all(name == "unresolved" for name in source_names):
         warnings.append("document_location_unresolved")
-    promoted["location_source"] = source
+    if any(name == "unresolved" for name in source_names):
+        warnings.append("partial_document_location")
     promoted["location_warnings"] = _dedupe(warnings)
     return promoted
 
@@ -142,7 +161,10 @@ def merge_context_sources(
             for key, value in extracted.items():
                 record.setdefault(key, _copy_value(value))
         raw = record.get("raw_record") if isinstance(record.get("raw_record"), dict) else {}
-        for key in ("paper_title", "title", "paper_abstract", "abstract", "section_path", "section_heading", "span_order"):
+        for key in (
+            "paper_title", "title", "paper_abstract", "abstract", "section_path",
+            "section_heading", "span_order", "candidate_score", "matched_keywords",
+        ):
             if _present(raw.get(key)):
                 record.setdefault(key, _copy_value(raw[key]))
         claim = claim_index.get(span_id, {})
@@ -177,6 +199,7 @@ def build_context_packets(
     run_name: str,
     context_profile: str = KEYWORD_LINKING_PROFILE,
     document_context_index: DocumentContextIndex | None = None,
+    source_ledger: OrderedSourceLedger | None = None,
     minimum_link_score: float = DEFAULT_MINIMUM_LINK_SCORE,
     adjacent_before: int = 1,
     adjacent_after: int = 1,
@@ -188,6 +211,11 @@ def build_context_packets(
     section_chunk_max_characters: int = 12000,
 ) -> list[dict[str, Any]]:
     merged = merge_context_sources(evidence_bundles, claim_rights, hidden_tax, provenance)
+    if context_profile == ORDERED_SOURCE_PROFILE:
+        if source_ledger is None:
+            raise ValueError("ordered_source_v1 requires source_ledger")
+        merged = attach_source_coordinates_to_spans(merged, source_ledger)
+        merged = sort_spans_by_source_order(merged)
     index = build_document_span_index(merged)
     limits = {
         **DEFAULT_LINK_LIMITS, "adjacent_before": adjacent_before, "adjacent_after": adjacent_after,
@@ -208,6 +236,11 @@ def build_context_packets(
             packet = _hierarchical_packet(
                 target, span_id, index.records_by_id, links, run_name, document_context_index,
                 local_paragraphs_before, local_paragraphs_after, section_chunk_max_characters,
+                maximum_total_links,
+            )
+        elif context_profile == ORDERED_SOURCE_PROFILE:
+            packet = _ordered_packet(
+                target, span_id, index.records_by_id, links, run_name, source_ledger,
                 maximum_total_links,
             )
         else:
@@ -314,6 +347,100 @@ def _hierarchical_packet(
     }
 
 
+def _ordered_packet(
+    target: dict[str, Any], span_id: str, records_by_id: dict[str, dict[str, Any]],
+    links: dict[str, Any], run_name: str, source_ledger: OrderedSourceLedger,
+    maximum_total_links: int,
+) -> dict[str, Any]:
+    document_id = str(target.get("document_id") or "")
+    document = source_ledger.documents_by_id.get(document_id, {})
+    paragraph_uid = str(target.get("paragraph_uid") or "")
+    paragraph = source_ledger.paragraphs_by_uid.get(paragraph_uid)
+    previous_paragraph = source_ledger.paragraphs_by_uid.get(str(paragraph.get("previous_paragraph_uid") or "")) if paragraph else None
+    next_paragraph = source_ledger.paragraphs_by_uid.get(str(paragraph.get("next_paragraph_uid") or "")) if paragraph else None
+    section_uid = str(target.get("section_uid") or "")
+    section = next(
+        (item for item in source_ledger.sections_by_document.get(document_id, []) if item["section_uid"] == section_uid),
+        None,
+    )
+    evidence_items, role_index = _unique_evidence_items(links, records_by_id, None)
+    classification, claim_support, purpose, missing, confidence = _context_sufficiency_v11(target, evidence_items)
+    applicable = _claim_support_applicable(target)
+    if not applicable:
+        claim_support = False
+        purpose = "classification"
+        missing = []
+    diagnostics = dict(links.get("diagnostics") or {})
+    diagnostics.update({
+        "unique_evidence_count": len(evidence_items),
+        "role_assignment_count": sum(len(item["link_roles"]) for item in evidence_items),
+        "duplicate_serialized_span_count": len(evidence_items) - len({item["span_id"] for item in evidence_items}),
+        "multi_role_span_count": sum(len(item["link_roles"]) > 1 for item in evidence_items),
+        "maximum_total_links": maximum_total_links,
+    })
+    target_mapping = {
+        "method": target.get("source_mapping_method") or "unresolved",
+        "confidence": target.get("source_mapping_confidence") or "unresolved",
+        "source_start_offset": target.get("verified_source_start_offset"),
+        "source_end_offset": target.get("verified_source_end_offset"),
+        "paragraph_id": target.get("paragraph_uid"),
+        "section_heading": target.get("section_heading") or "",
+        "section_path": target.get("section_path") or [],
+        "warnings": target.get("source_mapping_warnings") or [],
+    }
+    warnings = _dedupe([
+        *(target.get("source_mapping_warnings") or []), *(target.get("span_identity_warnings") or []),
+        *(target.get("stable_span_uid_warnings") or []), *(links.get("warnings") or []),
+    ])
+    return {
+        "context_packet_schema_version": ORDERED_CONTEXT_PACKET_SCHEMA_VERSION,
+        "context_profile": ORDERED_SOURCE_PROFILE,
+        "context_packet_id": _packet_id(run_name, target), "run_name": run_name,
+        "paper_id": str(target.get("paper_id") or ""), "document_id": document_id,
+        "document_ref": str(document.get("document_ref") or ""),
+        "document_body_sha256": str(document.get("document_body_sha256") or ""),
+        "target_span_id": span_id, "target_stable_span_uid": str(target.get("stable_span_uid") or ""),
+        "target_stable_span_uid_method": str(target.get("stable_span_uid_method") or ""),
+        "target_source_locator": target.get("source_locator"),
+        "target_source_order_key": target.get("source_order_key"),
+        "target_section_uid": target.get("section_uid"),
+        "target_section_outline_label": target.get("section_outline_label") or "",
+        "target_section_heading": target.get("section_heading") or "",
+        "target_section_type": target.get("section_type") or "unknown",
+        "target_paragraph_uid": target.get("paragraph_uid"),
+        "target_paragraph_global_index": target.get("paragraph_global_index"),
+        "target_paragraph_index_in_section": target.get("paragraph_index_in_section"),
+        "target_document_relative_position": target.get("document_relative_position"),
+        "target_section_relative_position": target.get("section_relative_position"),
+        "target_source_start_offset": target.get("verified_source_start_offset"),
+        "target_source_end_offset": target.get("verified_source_end_offset"),
+        "target_text": str(target.get("source_text") or ""),
+        "target_text_class": str(target.get("text_class") or "unknown"),
+        "target_provenance_type": str(target.get("provenance_type") or "unknown"),
+        "target_reaction_family": str(target.get("reaction_family") or "unclear"),
+        "target_span_boundary": str(target.get("maximum_supported_boundary") or "unsupported_or_secondary"),
+        "target_admissibility_status": str(target.get("admissibility_status") or ""),
+        "target_mapping": target_mapping,
+        "previous_paragraph": _compact_paragraph(previous_paragraph),
+        "target_paragraph": _compact_paragraph(paragraph),
+        "next_paragraph": _compact_paragraph(next_paragraph),
+        "section_context": _compact_section_context(section, source_ledger, document_id),
+        "document_outline": [
+            {"section_uid": item["section_uid"], "outline_label": item["outline_label"],
+             "heading": item["heading_text"], "section_type": item["section_type"]}
+            for item in source_ledger.sections_by_document.get(document_id, [])
+        ],
+        "evidence_items": evidence_items, "evidence_role_index": role_index,
+        "classification_context_sufficient": classification,
+        "claim_support_applicable": applicable,
+        "claim_support_context_sufficient": bool(applicable and claim_support),
+        "context_purpose": purpose, "context_sufficient": bool(applicable and claim_support),
+        "context_missing_types": missing, "context_confidence": confidence,
+        "linking_signals": links.get("linking_signals") or [], "linking_diagnostics": diagnostics,
+        "warnings": warnings,
+    }
+
+
 def _unique_evidence_items(
     links: dict[str, Any], records_by_id: dict[str, dict[str, Any]], document_index: DocumentContextIndex | None
 ) -> tuple[list[dict[str, Any]], dict[str, list[str]]]:
@@ -325,13 +452,24 @@ def _unique_evidence_items(
             if not span_id:
                 continue
             original = records_by_id.get(span_id, {})
-            mapping = resolve_span_mapping(original, document_index) if document_index else _unresolved_target_mapping()
+            mapping = resolve_span_mapping(original, document_index) if document_index else {
+                "confidence": original.get("source_mapping_confidence") or "unresolved"
+            }
             item = combined.setdefault(span_id, {
                 "span_id": span_id, "stable_span_uid": str(linked.get("stable_span_uid") or ""),
                 "text": str(linked.get("source_text") or ""), "paper_id": str(linked.get("paper_id") or ""),
                 "document_id": str(linked.get("document_id") or original.get("document_id") or ""),
                 "source_start_offset": linked.get("source_start_offset"),
                 "source_end_offset": linked.get("source_end_offset"),
+                "verified_source_start_offset": linked.get("verified_source_start_offset"),
+                "verified_source_end_offset": linked.get("verified_source_end_offset"),
+                "source_locator": linked.get("source_locator"),
+                "source_order_key": linked.get("source_order_key"),
+                "paragraph_uid": linked.get("paragraph_uid"),
+                "paragraph_global_index": linked.get("paragraph_global_index"),
+                "paragraph_index_in_section": linked.get("paragraph_index_in_section"),
+                "section_uid": linked.get("section_uid"),
+                "section_outline_label": linked.get("section_outline_label"),
                 "section_heading": str(linked.get("section_heading") or ""),
                 "section_path": linked.get("section_path") or [],
                 "provenance_type": str(linked.get("provenance_type") or "unknown"),
@@ -351,7 +489,18 @@ def _unique_evidence_items(
         item["link_roles"] = [role for role in LINK_TYPES if role in item["link_roles"]]
         if item["context_only"]:
             item["primary_support"] = False
-    return [combined[key] for key in sorted(combined)], {role: _dedupe(ids) for role, ids in role_index.items()}
+    if document_index is None:
+        ordered_items = sorted(
+            combined.values(),
+            key=lambda item: (
+                _sortable_offset(item.get("verified_source_start_offset"), item.get("source_start_offset")),
+                _sortable_offset(item.get("verified_source_end_offset"), item.get("source_end_offset")),
+                str(item.get("span_id") or ""),
+            ),
+        )
+    else:
+        ordered_items = [combined[key] for key in sorted(combined)]
+    return ordered_items, {role: _dedupe(ids) for role, ids in role_index.items()}
 
 
 def _context_sufficiency_v11(
@@ -478,15 +627,27 @@ def summarize_context_packets(
                 hint_overlap += 1
         diagnostics.update(packet.get("linking_diagnostics") or {})
     packet_count = len(packets)
+    profile_name = str(packets[0].get("context_profile") or HIERARCHICAL_LINKING_PROFILE) if packets else HIERARCHICAL_LINKING_PROFILE
+    applicability_enabled = profile_name == ORDERED_SOURCE_PROFILE
+    applicable_packets = (
+        [packet for packet in packets if bool(packet.get("claim_support_applicable"))]
+        if applicability_enabled else packets
+    )
+    applicable_sufficient = sum(bool(packet.get("claim_support_context_sufficient")) for packet in applicable_packets)
     role_total = sum(role_distribution.values())
     unique_total = sum(unique_counts)
     summary = {
-        "run_name": run_name, "context_profile": HIERARCHICAL_LINKING_PROFILE,
+        "run_name": run_name, "context_profile": profile_name,
         "packet_count": packet_count, "paper_count": len(paper_ids),
         "classification_context_sufficient_count": sum(bool(p.get("classification_context_sufficient")) for p in packets),
         "classification_context_insufficient_count": sum(not bool(p.get("classification_context_sufficient")) for p in packets),
         "claim_support_context_sufficient_count": sum(bool(p.get("claim_support_context_sufficient")) for p in packets),
-        "claim_support_context_insufficient_count": sum(not bool(p.get("claim_support_context_sufficient")) for p in packets),
+        "claim_support_context_insufficient_count": len(applicable_packets) - applicable_sufficient,
+        "claim_support_applicable_count": len(applicable_packets),
+        "claim_support_not_applicable_count": packet_count - len(applicable_packets) if applicability_enabled else 0,
+        "claim_support_sufficient_among_applicable": applicable_sufficient,
+        "claim_support_insufficient_among_applicable": len(applicable_packets) - applicable_sufficient,
+        "claim_support_rate_among_applicable": round(applicable_sufficient / len(applicable_packets), 6) if applicable_packets else 0.0,
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
         "median_unique_evidence_per_packet": round(statistics.median(unique_counts), 4) if unique_counts else 0.0,
@@ -539,7 +700,7 @@ def export_context_packets(
         if packets else KEYWORD_LINKING_PROFILE
     )
     base = Path(output_dir)
-    if profile == HIERARCHICAL_LINKING_PROFILE:
+    if profile in {HIERARCHICAL_LINKING_PROFILE, ORDERED_SOURCE_PROFILE}:
         if base.name == profile:
             run_dir = base
         elif base.name == run_name:
@@ -557,7 +718,10 @@ def export_context_packets(
         packets, run_name, legacy_keyword_linking_comparison=legacy_keyword_linking_comparison
     )
     _write_jsonl(packets, jsonl_path)
-    _write_csv(packets, csv_path, LEGACY_PACKET_FIELDS if profile == KEYWORD_LINKING_PROFILE else PACKET_FIELDS)
+    fields = LEGACY_PACKET_FIELDS if profile == KEYWORD_LINKING_PROFILE else (
+        ORDERED_PACKET_FIELDS if profile == ORDERED_SOURCE_PROFILE else PACKET_FIELDS
+    )
+    _write_csv(packets, csv_path, fields)
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     report_path.parent.mkdir(parents=True, exist_ok=True)
@@ -670,7 +834,10 @@ def _render_report(summary: dict[str, Any]) -> str:
     for key in (
         "context_profile", "packet_count", "paper_count", "classification_context_sufficient_count",
         "classification_context_insufficient_count", "claim_support_context_sufficient_count",
-        "claim_support_context_insufficient_count", "unique_evidence_total", "role_assignment_total",
+        "claim_support_context_insufficient_count", "claim_support_applicable_count",
+        "claim_support_not_applicable_count", "claim_support_sufficient_among_applicable",
+        "claim_support_insufficient_among_applicable", "claim_support_rate_among_applicable",
+        "unique_evidence_total", "role_assignment_total",
         "mean_unique_evidence_per_packet", "median_unique_evidence_per_packet", "p90_unique_evidence_per_packet",
         "p95_unique_evidence_per_packet", "packets_at_unique_limit", "packets_with_zero_evidence",
         "links_below_threshold", "unresolved_mapping_count", "multiple_exact_match_count",
@@ -695,6 +862,53 @@ def _sample_category(packet: dict[str, Any], category: str) -> bool:
     if category == "negative": return "negative_or_contradicting" in roles
     if category == "reactor_or_process": return bool(roles & {"reactor", "process"})
     return False
+
+
+def _claim_support_applicable(target: dict[str, Any]) -> bool:
+    text_class = str(target.get("text_class") or "unknown").casefold()
+    provenance = str(target.get("provenance_type") or "unknown").casefold()
+    claim_type = str(target.get("claim_type") or "").casefold()
+    if provenance in LOW_TRUST_PROVENANCE or text_class in {
+        "reference_list", "figure_caption", "scheme_caption", "review_table",
+        "background_context", "protocol_guideline", "metadata",
+    }:
+        return False
+    return text_class in {"primary_performance", "primary_performance_with_validation"} or claim_type in {
+        "performance_claim", "validation_claim", "reactor_claim", "process_claim",
+    }
+
+
+def _compact_paragraph(paragraph: dict[str, Any] | None) -> dict[str, Any] | None:
+    if paragraph is None:
+        return None
+    return {
+        "paragraph_uid": paragraph.get("paragraph_uid"),
+        "source_locator": paragraph.get("source_locator"),
+        "paragraph_global_index": paragraph.get("paragraph_global_index"),
+        "paragraph_index_in_section": paragraph.get("paragraph_index_in_section"),
+        "source_start_offset": paragraph.get("source_start_offset"),
+        "source_end_offset": paragraph.get("source_end_offset"),
+        "section_uid": paragraph.get("section_uid"),
+        "text": paragraph.get("text") or "",
+    }
+
+
+def _compact_section_context(
+    section: dict[str, Any] | None, source_ledger: OrderedSourceLedger, document_id: str
+) -> dict[str, Any] | None:
+    if section is None:
+        return None
+    paragraph_count = sum(
+        paragraph.get("section_uid") == section.get("section_uid")
+        for paragraph in source_ledger.paragraphs_by_document.get(document_id, [])
+    )
+    return {
+        "section_uid": section.get("section_uid"), "outline_label": section.get("outline_label"),
+        "heading": section.get("heading_text"), "section_type": section.get("section_type"),
+        "document_region": section.get("document_region"),
+        "section_start_offset": section.get("section_start_offset"),
+        "section_end_offset": section.get("section_end_offset"), "paragraph_count": paragraph_count,
+    }
 
 
 def _missing_name(gate: str) -> str:
@@ -784,6 +998,42 @@ def _csv_value(value: Any) -> str:
 
 def _present(value: Any) -> bool:
     return value is not None and value != "" and value != []
+
+
+def _sortable_offset(primary: Any, fallback: Any) -> int:
+    for value in (primary, fallback):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return 10**18
+
+
+def _select_location_pair(
+    sources: tuple[tuple[str, dict[str, Any]], ...], start_field: str, end_field: str
+) -> tuple[tuple[Any, Any], str]:
+    for name, source in sources:
+        if _present(source.get(start_field)) and _present(source.get(end_field)):
+            return ((_copy_value(source[start_field]), _copy_value(source[end_field])), name)
+    return ((None, None), "unresolved")
+
+
+def _select_location_value(
+    sources: tuple[tuple[str, dict[str, Any]], ...], field: str
+) -> tuple[Any, str]:
+    for name, source in sources:
+        if _present(source.get(field)):
+            return (_copy_value(source[field]), name)
+    return (None, "unresolved")
+
+
+def _select_location_metadata(
+    sources: tuple[tuple[str, dict[str, Any]], ...], fields: tuple[str, ...]
+) -> tuple[dict[str, Any], str]:
+    for name, source in sources:
+        if any(_present(source.get(field)) for field in fields):
+            return ({field: _copy_value(source.get(field)) for field in fields if _present(source.get(field))}, name)
+    return ({}, "unresolved")
 
 
 def _copy_value(value: Any) -> Any:

@@ -16,8 +16,8 @@ class DocumentContextTests(unittest.TestCase):
                 "---\nsource_file: input_raw\\paper.pdf\nconversion_method: docling\n---\n# Title\n\n## Results\n\nFirst paragraph.\n\nSecond NH3 paragraph.",
                 encoding="utf-8",
             )
-            from enh3bench.document_context import load_markdown_documents as real_loader
-            with patch("enh3bench.document_context.load_markdown_documents", wraps=real_loader) as loader:
+            from enh3bench.source_ledger import load_markdown_documents as real_loader
+            with patch("enh3bench.source_ledger.load_markdown_documents", wraps=real_loader) as loader:
                 index = build_document_context_index(root)
                 self.assertEqual(loader.call_count, 1)
             document = index.documents_by_id["P1"]
