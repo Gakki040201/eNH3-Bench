@@ -36,6 +36,9 @@ def main() -> int:
     summary = outputs["summary_data"]
     print(f"record_count: {summary['record_count']}")
     print(f"comparison_group_count: {summary['comparison_group_count']}")
+    print(f"comparison_groups_using_direct_section: {summary['comparison_groups_using_direct_section']}")
+    print(f"comparison_groups_using_inherited_section: {summary['comparison_groups_using_inherited_section']}")
+    print(f"comparison_groups_with_unknown_section: {summary['comparison_groups_with_unknown_section']}")
     print(f"scientific_comparability_asserted_count: {summary['scientific_comparability_asserted_count']}")
     print(f"index: {outputs['index']}")
     print(f"summary: {outputs['summary']}")

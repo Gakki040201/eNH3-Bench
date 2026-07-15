@@ -11,6 +11,8 @@ class CIConfigurationTests(unittest.TestCase):
         text = path.read_text(encoding="utf-8").casefold()
         self.assertIn("python -m unittest discover", text)
         self.assertIn("check_gold_integrity.py", text)
+        self.assertIn("report_gold_ci_availability.py", text)
+        self.assertIn("if: always()", text)
         self.assertIn("--require-baseline", text)
         self.assertIn("hashfiles('data/gold/", text)
         self.assertIn('"3.10"', text)

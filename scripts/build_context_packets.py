@@ -125,6 +125,19 @@ def main() -> int:
         if args.context_profile == ORDERED_SOURCE_PROFILE:
             print(f"claim_support_applicable_count: {summary['claim_support_applicable_count']}")
             print(f"claim_support_sufficient_among_applicable: {summary['claim_support_sufficient_among_applicable']}")
+            print(f"packet_local_applicable_count: {summary['packet_local_applicable_count']}")
+            print(f"packet_local_sufficient_count: {summary['packet_local_sufficient_count']}")
+            print(f"packet_local_insufficient_count: {summary['packet_local_insufficient_count']}")
+            print(f"packet_local_sufficiency_rate: {summary['packet_local_sufficiency_rate']}")
+            print(
+                "paper_gate_coverage_apparently_complete_count: "
+                f"{summary['paper_gate_coverage_apparently_complete_count']}"
+            )
+            print(f"paper_gate_coverage_partial_count: {summary['paper_gate_coverage_partial_count']}")
+            print(
+                "paper_gate_coverage_not_evaluated_count: "
+                f"{summary['paper_gate_coverage_not_evaluated_count']}"
+            )
     else:
         print(f"context_sufficient: {summary['packets_with_context_sufficient']}")
         print(f"context_insufficient: {summary['packets_with_context_insufficient']}")

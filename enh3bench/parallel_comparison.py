@@ -19,7 +19,13 @@ def build_parallel_comparison_index(records: list[dict[str, Any]]) -> list[dict[
     for record in sort_spans_by_source_order(records):
         position = _position(record.get("document_relative_position"))
         roles = _evidence_roles(record)
-        semantic_section = _semantic_section_type(record)
+        direct_section = str(record.get("direct_section_type") or record.get("section_type") or "unknown").casefold()
+        effective_section = str(
+            record.get("effective_section_type") or record.get("section_type") or "unknown"
+        ).casefold()
+        semantic_section = _semantic_section_type(effective_section)
+        raw_semantic_section = _semantic_section_type(direct_section)
+        section_source = _section_type_source(record, direct_section, effective_section)
         family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
         primary_role = roles[0] if roles else "context_hint"
         comparison.append({
@@ -27,6 +33,9 @@ def build_parallel_comparison_index(records: list[dict[str, Any]]) -> list[dict[
             "source_span_id": str(record.get("source_span_id") or record.get("legacy_span_id") or ""),
             "source_locator": record.get("source_locator"),
             "reaction_family": family,
+            "direct_section_type": direct_section,
+            "effective_section_type": effective_section,
+            "section_type_source": section_source,
             "semantic_section_type": semantic_section,
             "evidence_roles": roles,
             "section_outline_label": str(record.get("section_outline_label") or ""),
@@ -35,6 +44,7 @@ def build_parallel_comparison_index(records: list[dict[str, Any]]) -> list[dict[
             "section_relative_position": record.get("section_relative_position"),
             "normalized_position_bin": _position_bin(position),
             "comparison_key": f"{family}|{semantic_section}|{primary_role}",
+            "raw_comparison_key": f"{family}|{raw_semantic_section}|{primary_role}",
             "scientific_comparability_asserted": False,
             "source_text_excerpt": str(record.get("source_text") or record.get("text") or "")[:500],
         })
@@ -43,11 +53,20 @@ def build_parallel_comparison_index(records: list[dict[str, Any]]) -> list[dict[
 
 def summarize_parallel_comparison(records: list[dict[str, Any]], run_name: str) -> dict[str, Any]:
     keys = Counter(str(record.get("comparison_key") or "") for record in records)
+    source_distribution = Counter(str(record.get("section_type_source") or "unknown") for record in records)
+    keys_by_source = {
+        source: {str(record.get("comparison_key") or "") for record in records if record.get("section_type_source") == source}
+        for source in ("direct", "inherited", "unknown")
+    }
     return {
         "run_name": run_name,
         "record_count": len(records),
         "comparison_group_count": len(keys),
         "comparison_key_distribution": dict(sorted(keys.items())),
+        "comparison_groups_using_direct_section": len(keys_by_source["direct"]),
+        "comparison_groups_using_inherited_section": len(keys_by_source["inherited"]),
+        "comparison_groups_with_unknown_section": len(keys_by_source["unknown"]),
+        "section_type_source_distribution": dict(sorted(source_distribution.items())),
         "position_bin_distribution": dict(sorted(Counter(str(record.get("normalized_position_bin") or "") for record in records).items())),
         "scientific_comparability_asserted_count": sum(bool(record.get("scientific_comparability_asserted")) for record in records),
     }
@@ -77,11 +96,19 @@ def _evidence_roles(record: dict[str, Any]) -> list[str]:
     return [classify_link_type(record)]
 
 
-def _semantic_section_type(record: dict[str, Any]) -> str:
-    section_type = str(record.get("section_type") or "unknown").casefold()
+def _semantic_section_type(value: Any) -> str:
+    section_type = str(value or "unknown").casefold()
     if section_type == "results_and_discussion":
         return "results"
     return section_type
+
+
+def _section_type_source(record: dict[str, Any], direct: str, effective: str) -> str:
+    if direct != "unknown":
+        return "direct"
+    if effective != "unknown" and (record.get("inherited_section_type") or record.get("inherited_from_section_uid")):
+        return "inherited"
+    return "unknown"
 
 
 def _position(value: Any) -> float:

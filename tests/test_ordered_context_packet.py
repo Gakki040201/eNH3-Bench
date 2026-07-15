@@ -24,7 +24,7 @@ class OrderedContextPacketTests(unittest.TestCase):
             packets = build_context_packets(evidence, [], [], [], run_name="fixture", context_profile=ORDERED_SOURCE_PROFILE, source_ledger=ledger)
             target = next(packet for packet in packets if packet["target_span_id"] == "P1_S001")
             reference = next(packet for packet in packets if packet["target_span_id"] == "P1_S003")
-            self.assertEqual(target["context_packet_schema_version"], "1.2")
+            self.assertEqual(target["context_packet_schema_version"], "1.3")
             self.assertEqual(target["next_paragraph"]["text"], "15N isotope validation and Ar blank.")
             self.assertTrue(target["claim_support_applicable"])
             self.assertFalse(reference["claim_support_applicable"])
@@ -33,7 +33,8 @@ class OrderedContextPacketTests(unittest.TestCase):
             summary = summarize_context_packets(packets, "fixture")
             self.assertEqual(summary["claim_support_applicable_count"], 1)
             self.assertEqual(summary["claim_support_not_applicable_count"], 2)
-            self.assertEqual(summary["claim_support_context_insufficient_count"], 1)
+            self.assertEqual(summary["claim_support_context_insufficient_count"], 0)
+            self.assertEqual(summary["packet_local_sufficient_count"], 1)
 
 
 def _record(span_id: str, body: str, text: str, text_class: str, provenance: str) -> dict[str, object]:

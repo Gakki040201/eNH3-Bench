@@ -24,6 +24,11 @@ jobs:
       - run: python -m pip check
       - run: python -m compileall enh3bench scripts
       - run: python -m unittest discover
+      - name: Report authoritative Gold availability
+        if: always()
+        run: >-
+          python scripts/report_gold_ci_availability.py
+          --run-name enrr_round1_oa_20260712
       - name: Verify authoritative Gold exact integrity when available
         if: >-
           ${{ hashFiles('data/gold/enrr_round1_oa_20260712/human_gold_claim_rights.jsonl') != '' &&

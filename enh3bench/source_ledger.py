@@ -11,7 +11,11 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.document_loader import load_markdown_documents
-from enh3bench.section_context import extract_markdown_section_blocks
+from enh3bench.section_context import (
+    apply_section_type_inheritance,
+    extract_markdown_section_blocks,
+    normalize_heading,
+)
 from enh3bench.span_identity import normalize_section_path, normalize_span_text
 
 
@@ -42,7 +46,9 @@ def build_ordered_source_ledger(markdown_dir: str | Path) -> OrderedSourceLedger
             raise ValueError(f"duplicate or missing document_id: {document_id}")
         body = str(loaded.get("text") or "")
         body_sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
-        raw_sections = list(loaded.get("section_blocks") or extract_markdown_section_blocks(body))
+        raw_sections = apply_section_type_inheritance(
+            list(loaded.get("section_blocks") or extract_markdown_section_blocks(body))
+        )
         sections = _build_section_nodes(raw_sections, paper_id, document_id, body_sha, len(body))
         paragraphs = _build_paragraph_nodes(body, paper_id, document_id, body_sha, sections)
         path = Path(str(loaded.get("path") or root / f"{document_id}.md"))
@@ -183,6 +189,11 @@ def summarize_source_ledger(
     missing_ids = original_id_set - current_id_set
     extra_ids = current_id_set - original_id_set
     spans_per_section = Counter(str(record.get("section_uid") or "unresolved") for record in spans)
+    direct_types = Counter(str(section.get("direct_section_type") or "unknown") for section in sections)
+    effective_types = Counter(str(section.get("effective_section_type") or section.get("section_type") or "unknown") for section in sections)
+    direct_unknown = direct_types.get("unknown", 0)
+    effective_unknown = effective_types.get("unknown", 0)
+    inherited_sections = [section for section in sections if section.get("inherited_section_type")]
     return {
         "document_count": len(documents),
         "section_count": len(sections),
@@ -195,7 +206,21 @@ def summarize_source_ledger(
         "duplicate_source_locator_count": len(locators) - len(set(locators)),
         "source_order_violation_count": source_violations,
         "offset_overlap_violation_count": overlap_violations,
-        "section_type_distribution": dict(sorted(Counter(str(section.get("section_type") or "unknown") for section in sections).items())),
+        "section_type_distribution": dict(sorted(effective_types.items())),
+        "direct_section_type_distribution": dict(sorted(direct_types.items())),
+        "effective_section_type_distribution": dict(sorted(effective_types.items())),
+        "direct_unknown_count": direct_unknown,
+        "effective_unknown_count": effective_unknown,
+        "inherited_section_count": len(inherited_sections),
+        "inheritance_distance_distribution": _count_distribution(
+            [int(section["inheritance_distance"]) for section in inherited_sections]
+        ),
+        "section_inheritance_warning_count": sum(
+            bool(section.get("section_inheritance_warnings")) for section in sections
+        ),
+        "unknown_reduction_rate": round(
+            (direct_unknown - effective_unknown) / direct_unknown, 6
+        ) if direct_unknown else 0.0,
         "document_region_distribution": dict(sorted(Counter(str(section.get("document_region") or "unknown") for section in sections).items())),
         "paragraphs_per_document_distribution": _count_distribution([int(document["paragraph_count"]) for document in documents]),
         "spans_per_section_distribution": _count_distribution(list(spans_per_section.values())),
@@ -251,7 +276,9 @@ def _build_section_nodes(
         end = body_length if end_value is None else int(end_value)
         heading = str(raw.get("section_heading") or "")
         normalized_heading = normalize_span_text(heading).casefold()
-        section_type = str(raw.get("section_type") or "unknown")
+        direct_section_type = str(raw.get("direct_section_type") or raw.get("section_type") or "unknown")
+        effective_section_type = str(raw.get("effective_section_type") or raw.get("section_type") or "unknown")
+        section_type = effective_section_type
         level = int(raw.get("section_level") or 0)
         region = _document_region(section_type, normalized_heading, bool(heading))
         outline_path: list[int] = []
@@ -275,20 +302,33 @@ def _build_section_nodes(
         nodes.append({
             "section_uid": uid, "paper_id": paper_id, "document_id": document_id,
             "source_section_index": source_index, "body_section_index": current_body_index,
-            "heading_text": heading, "normalized_heading": normalized_heading,
+            "heading_text": heading, "raw_heading": str(raw.get("raw_heading") or heading),
+            "normalized_heading": str(raw.get("normalized_heading") or normalized_heading),
             "section_path": list(raw.get("section_path") or []),
+            "direct_section_type": direct_section_type,
+            "direct_section_type_confidence": str(raw.get("direct_section_type_confidence") or "low"),
+            "inherited_section_type": raw.get("inherited_section_type"),
+            "inherited_from_source_section_index": raw.get("inherited_from_source_section_index"),
+            "inherited_from_section_uid": None,
+            "inheritance_distance": raw.get("inheritance_distance"),
+            "effective_section_type": effective_section_type,
+            "effective_section_type_confidence": str(raw.get("effective_section_type_confidence") or "low"),
             "section_type": section_type, "section_level": level,
+            "section_inheritance_warnings": list(raw.get("section_inheritance_warnings") or []),
             "outline_index_path": outline_path, "outline_label": ".".join(map(str, outline_path)),
             "section_start_offset": start, "section_end_offset": end,
             "parent_section_uid": None, "previous_section_uid": None, "next_section_uid": None,
             "document_region": region,
         })
     by_outline = {tuple(node["outline_index_path"]): node["section_uid"] for node in nodes if node["outline_index_path"]}
+    by_source_index = {int(node["source_section_index"]): node["section_uid"] for node in nodes}
     for index, node in enumerate(nodes):
         path = tuple(node["outline_index_path"])
         node["parent_section_uid"] = by_outline.get(path[:-1]) if len(path) > 1 else None
         node["previous_section_uid"] = nodes[index - 1]["section_uid"] if index else None
         node["next_section_uid"] = nodes[index + 1]["section_uid"] if index + 1 < len(nodes) else None
+        inherited_index = node.pop("inherited_from_source_section_index", None)
+        node["inherited_from_section_uid"] = by_source_index.get(int(inherited_index) + 1) if inherited_index is not None else None
     return nodes
 
 
@@ -322,6 +362,15 @@ def _build_paragraph_nodes(
             "section_outline_label": str(section.get("outline_label") or ""),
             "outline_index_path": outline, "section_heading": str(section.get("heading_text") or ""),
             "section_path": list(section.get("section_path") or []),
+            "raw_heading": str(section.get("raw_heading") or section.get("heading_text") or ""),
+            "normalized_heading": str(section.get("normalized_heading") or ""),
+            "direct_section_type": str(section.get("direct_section_type") or "unknown"),
+            "direct_section_type_confidence": str(section.get("direct_section_type_confidence") or "low"),
+            "inherited_section_type": section.get("inherited_section_type"),
+            "inherited_from_section_uid": section.get("inherited_from_section_uid"),
+            "inheritance_distance": section.get("inheritance_distance"),
+            "effective_section_type": str(section.get("effective_section_type") or "unknown"),
+            "effective_section_type_confidence": str(section.get("effective_section_type_confidence") or "low"),
             "section_type": str(section.get("section_type") or "unknown"),
             "document_region": str(section.get("document_region") or "unknown"),
             "previous_paragraph_uid": None, "next_paragraph_uid": None,
@@ -394,6 +443,15 @@ def _resolved_mapping(
         "paragraph_index_in_section": paragraph.get("paragraph_index_in_section") if paragraph else None,
         "section_outline_label": section.get("outline_label") if section else "",
         "section_heading": section.get("heading_text") if section else "",
+        "raw_heading": section.get("raw_heading") if section else "",
+        "normalized_heading": section.get("normalized_heading") if section else "",
+        "direct_section_type": section.get("direct_section_type") if section else "unknown",
+        "direct_section_type_confidence": section.get("direct_section_type_confidence") if section else "low",
+        "inherited_section_type": section.get("inherited_section_type") if section else None,
+        "inherited_from_section_uid": section.get("inherited_from_section_uid") if section else None,
+        "inheritance_distance": section.get("inheritance_distance") if section else None,
+        "effective_section_type": section.get("effective_section_type") if section else "unknown",
+        "effective_section_type_confidence": section.get("effective_section_type_confidence") if section else "low",
         "section_type": section.get("section_type") if section else "unknown",
         "document_region": section.get("document_region") if section else "unknown",
         "document_relative_position": paragraph.get("document_relative_position") if paragraph else None,
@@ -409,6 +467,11 @@ def _unresolved_mapping(method: str, warnings: list[str], candidates: list[tuple
         "verified_source_start_offset": None, "verified_source_end_offset": None,
         "paragraph_uid": None, "section_uid": None, "parent_section_uid": None, "paragraph_global_index": None,
         "paragraph_index_in_section": None, "section_outline_label": "", "section_heading": "",
+        "raw_heading": "", "normalized_heading": "",
+        "direct_section_type": "unknown", "direct_section_type_confidence": "low",
+        "inherited_section_type": None, "inherited_from_section_uid": None,
+        "inheritance_distance": None, "effective_section_type": "unknown",
+        "effective_section_type_confidence": "low",
         "section_type": "unknown", "document_region": "unknown",
         "document_relative_position": None, "section_relative_position": None,
         "candidate_offsets": [{"start_offset": a, "end_offset": b} for a, b in (candidates or [])],
@@ -430,12 +493,12 @@ def _candidate_sections(record: dict[str, Any], sections: list[dict[str, Any]]) 
     if start is not None and end is not None:
         exact = [item for item in sections if int(item["section_start_offset"]) == start and int(item["section_end_offset"]) == end]
         if exact: return exact
-    heading = normalize_span_text(record.get("section_heading") or "").casefold()
+    heading = normalize_heading(str(record.get("section_heading") or ""))
     if heading:
         return [item for item in sections if item.get("normalized_heading") == heading]
     path = normalize_section_path(record.get("section_path"))
     if path:
-        final_heading = path.split(" / ")[-1]
+        final_heading = normalize_heading(path.split(" / ")[-1])
         return [item for item in sections if item.get("normalized_heading") == final_heading]
     return []
 
@@ -477,7 +540,12 @@ def _source_order_key(outline: list[int], paragraph_index: int, anchor_index: in
 def _unknown_section(document_id: str, paper_id: str, index: int, body_length: int) -> dict[str, Any]:
     return {"section_uid": f"{document_id}_UNKNOWN", "paper_id": paper_id, "source_section_index": index,
             "section_start_offset": 0, "section_end_offset": body_length, "outline_index_path": [],
-            "outline_label": "", "heading_text": "", "section_type": "unknown", "document_region": "unknown"}
+            "outline_label": "", "heading_text": "", "raw_heading": "", "normalized_heading": "",
+            "direct_section_type": "unknown", "direct_section_type_confidence": "low",
+            "inherited_section_type": None, "inherited_from_section_uid": None,
+            "inheritance_distance": None, "effective_section_type": "unknown",
+            "effective_section_type_confidence": "low", "section_type": "unknown",
+            "document_region": "unknown"}
 
 
 def _ratio(numerator: int, denominator: int) -> float:

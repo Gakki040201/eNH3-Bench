@@ -53,6 +53,8 @@ def main() -> int:
         "verified_span_mapping_count", "unresolved_span_mapping_count", "multiple_exact_match_count",
         "source_locator_coverage", "duplicate_source_locator_count", "source_order_violation_count",
         "offset_overlap_violation_count", "source_span_id_changed_count",
+        "direct_unknown_count", "effective_unknown_count", "inherited_section_count",
+        "section_inheritance_warning_count", "unknown_reduction_rate",
     ):
         print(f"{key}: {summary[key]}")
     print(f"summary: {outputs['summary']}")

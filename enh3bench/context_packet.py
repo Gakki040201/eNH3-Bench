@@ -44,7 +44,7 @@ from enh3bench.span_context import (
 
 
 CONTEXT_PACKET_SCHEMA_VERSION = "1.1"
-ORDERED_CONTEXT_PACKET_SCHEMA_VERSION = "1.2"
+ORDERED_CONTEXT_PACKET_SCHEMA_VERSION = "1.3"
 LEGACY_CONTEXT_PACKET_SCHEMA_VERSION = "1.0"
 LOCATION_FIELDS = (
     "document_id", "source_start_offset", "source_end_offset", "section_start_offset",
@@ -77,15 +77,21 @@ ORDERED_PACKET_FIELDS = (
     "context_packet_schema_version", "context_profile", "context_packet_id", "run_name",
     "paper_id", "document_id", "document_ref", "document_body_sha256",
     "target_span_id", "target_stable_span_uid", "target_source_locator", "target_source_order_key",
-    "target_section_uid", "target_section_outline_label", "target_section_heading", "target_section_type",
+    "target_section_uid", "target_section_outline_label", "target_section_heading", "target_raw_heading",
+    "target_direct_section_type", "target_effective_section_type", "target_section_type_source",
+    "target_section_type",
     "target_paragraph_uid", "target_paragraph_global_index", "target_paragraph_index_in_section",
     "target_document_relative_position", "target_section_relative_position",
     "target_source_start_offset", "target_source_end_offset", "target_text", "target_text_class",
     "target_provenance_type", "target_reaction_family", "target_span_boundary",
-    "target_admissibility_status", "previous_paragraph", "target_paragraph", "next_paragraph",
+    "target_admissibility_status", "target_claim_type", "target_mapping",
+    "previous_paragraph", "target_paragraph", "next_paragraph",
     "section_context", "document_outline", "evidence_items", "evidence_role_index",
-    "classification_context_sufficient", "claim_support_applicable",
-    "claim_support_context_sufficient", "context_purpose", "context_sufficient",
+    "classification_context_sufficient", "claim_support_applicable", "claim_support_context_sufficient",
+    "packet_local_context_applicable", "packet_local_context_sufficient",
+    "packet_local_context_status", "packet_local_missing_types", "family_gate_coverage",
+    "paper_gate_coverage_observed", "paper_gate_coverage_missing", "paper_gate_coverage_status",
+    "context_purpose", "context_sufficient",
     "context_missing_types", "context_confidence", "linking_signals", "linking_diagnostics", "warnings",
 )
 LINK_PACKET_FIELDS = {
@@ -364,12 +370,17 @@ def _ordered_packet(
         None,
     )
     evidence_items, role_index = _unique_evidence_items(links, records_by_id, None)
-    classification, claim_support, purpose, missing, confidence = _context_sufficiency_v11(target, evidence_items)
-    applicable = _claim_support_applicable(target)
-    if not applicable:
-        claim_support = False
-        purpose = "classification"
-        missing = []
+    assessment = _packet_local_assessment(
+        target, paragraph, previous_paragraph, next_paragraph, section
+    )
+    family_coverage, paper_observed, paper_missing, paper_status = _family_gate_coverage(
+        target,
+        evidence_items,
+        previous_paragraph,
+        paragraph,
+        next_paragraph,
+        applicable=assessment["applicable"],
+    )
     diagnostics = dict(links.get("diagnostics") or {})
     diagnostics.update({
         "unique_evidence_count": len(evidence_items),
@@ -386,6 +397,9 @@ def _ordered_packet(
         "paragraph_id": target.get("paragraph_uid"),
         "section_heading": target.get("section_heading") or "",
         "section_path": target.get("section_path") or [],
+        "direct_section_type": target.get("direct_section_type") or "unknown",
+        "effective_section_type": target.get("effective_section_type") or target.get("section_type") or "unknown",
+        "section_type_source": _section_type_source(target),
         "warnings": target.get("source_mapping_warnings") or [],
     }
     warnings = _dedupe([
@@ -406,6 +420,10 @@ def _ordered_packet(
         "target_section_uid": target.get("section_uid"),
         "target_section_outline_label": target.get("section_outline_label") or "",
         "target_section_heading": target.get("section_heading") or "",
+        "target_raw_heading": target.get("raw_heading") or target.get("section_heading") or "",
+        "target_direct_section_type": target.get("direct_section_type") or "unknown",
+        "target_effective_section_type": target.get("effective_section_type") or target.get("section_type") or "unknown",
+        "target_section_type_source": _section_type_source(target),
         "target_section_type": target.get("section_type") or "unknown",
         "target_paragraph_uid": target.get("paragraph_uid"),
         "target_paragraph_global_index": target.get("paragraph_global_index"),
@@ -420,6 +438,7 @@ def _ordered_packet(
         "target_reaction_family": str(target.get("reaction_family") or "unclear"),
         "target_span_boundary": str(target.get("maximum_supported_boundary") or "unsupported_or_secondary"),
         "target_admissibility_status": str(target.get("admissibility_status") or ""),
+        "target_claim_type": str(target.get("claim_type") or ""),
         "target_mapping": target_mapping,
         "previous_paragraph": _compact_paragraph(previous_paragraph),
         "target_paragraph": _compact_paragraph(paragraph),
@@ -427,15 +446,27 @@ def _ordered_packet(
         "section_context": _compact_section_context(section, source_ledger, document_id),
         "document_outline": [
             {"section_uid": item["section_uid"], "outline_label": item["outline_label"],
-             "heading": item["heading_text"], "section_type": item["section_type"]}
+             "heading": item["heading_text"],
+             "direct_section_type": item.get("direct_section_type") or "unknown",
+             "effective_section_type": item.get("effective_section_type") or item["section_type"],
+             "section_type_source": _section_type_source(item),
+             "section_type": item["section_type"]}
             for item in source_ledger.sections_by_document.get(document_id, [])
         ],
         "evidence_items": evidence_items, "evidence_role_index": role_index,
-        "classification_context_sufficient": classification,
-        "claim_support_applicable": applicable,
-        "claim_support_context_sufficient": bool(applicable and claim_support),
-        "context_purpose": purpose, "context_sufficient": bool(applicable and claim_support),
-        "context_missing_types": missing, "context_confidence": confidence,
+        "classification_context_sufficient": assessment["classification_sufficient"],
+        "claim_support_applicable": assessment["applicable"],
+        "claim_support_context_sufficient": assessment["sufficient"],
+        "packet_local_context_applicable": assessment["applicable"],
+        "packet_local_context_sufficient": assessment["sufficient"],
+        "packet_local_context_status": assessment["status"],
+        "packet_local_missing_types": assessment["missing"],
+        "family_gate_coverage": family_coverage,
+        "paper_gate_coverage_observed": paper_observed,
+        "paper_gate_coverage_missing": paper_missing,
+        "paper_gate_coverage_status": paper_status,
+        "context_purpose": assessment["purpose"], "context_sufficient": assessment["sufficient"],
+        "context_missing_types": assessment["missing"], "context_confidence": assessment["confidence"],
         "linking_signals": links.get("linking_signals") or [], "linking_diagnostics": diagnostics,
         "warnings": warnings,
     }
@@ -582,6 +613,183 @@ def _family_gate_satisfied(gate: str, text: str, target: dict[str, Any]) -> bool
     return False
 
 
+def _packet_local_assessment(
+    target: dict[str, Any],
+    target_paragraph: dict[str, Any] | None,
+    previous_paragraph: dict[str, Any] | None,
+    next_paragraph: dict[str, Any] | None,
+    section: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Assess only evidence visible at the target and its local paragraph window."""
+
+    text = str(target.get("source_text") or "")
+    provenance = str(target.get("provenance_type") or "unknown").casefold()
+    text_class = str(target.get("text_class") or "unknown").casefold()
+    classification = bool(text.strip() and provenance != "unknown" and text_class != "unknown")
+    applicable = _claim_support_applicable(target)
+    if not applicable:
+        return {
+            "classification_sufficient": classification,
+            "applicable": False,
+            "sufficient": False,
+            "status": "not_applicable",
+            "missing": [],
+            "purpose": "classification",
+            "confidence": "high" if classification else "low",
+        }
+
+    missing: list[str] = []
+    mapping_method = str(target.get("source_mapping_method") or "unresolved")
+    mapping_confidence = str(target.get("source_mapping_confidence") or "unresolved")
+    if mapping_method == "unresolved" or mapping_confidence != "high" or not bool(target.get("offset_text_match")):
+        missing.append("verified_target_mapping")
+
+    if "is_primary_admissible" in target:
+        primary_admissible = bool(target.get("is_primary_admissible"))
+    else:
+        primary_admissible = (
+            provenance not in LOW_TRUST_PROVENANCE
+            and text_class in {"primary_performance", "primary_performance_with_validation"}
+        )
+    if not primary_admissible:
+        missing.append("primary_admissible_provenance")
+
+    raw_family = str(target.get("reaction_family") or "").strip()
+    family = normalize_reaction_family(raw_family)
+    family_token = re.sub(r"[^a-z0-9]+", "_", raw_family.casefold()).strip("_")
+    explicit_unclear = family == "unclear" and family_token in {
+        "unclear", "unknown", "not_specified", "ambiguous"
+    }
+    if not raw_family or (family == "unclear" and not explicit_unclear):
+        missing.append("reaction_family")
+    if bool(target.get("reaction_family_conflict")):
+        missing.append("reaction_family_conflict")
+    paper_family_raw = str(target.get("paper_level_reaction_family") or "").strip()
+    paper_family = normalize_reaction_family(paper_family_raw)
+    if (
+        paper_family_raw
+        and family not in {"mixed", "unclear"}
+        and paper_family not in {"mixed", "unclear"}
+        and family != paper_family
+    ):
+        missing.append("reaction_family_conflict")
+
+    paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
+    local_text = " ".join(str(item.get("text") or "") for item in paragraphs if item).casefold()
+    if not target_paragraph or not str(target_paragraph.get("text") or "").strip() or section is None:
+        missing.append("readable_local_context")
+
+    claim_type = str(target.get("claim_type") or "").casefold()
+    if claim_type == "validation_claim":
+        if not _explicit_validation_role(target):
+            missing.append("explicit_validation_role")
+        if _negative_target(text):
+            missing.append("positive_validation_evidence")
+    elif claim_type == "reactor_claim":
+        if not _reactor_signal(local_text):
+            missing.append("reactor_signal")
+    elif claim_type == "process_claim":
+        if not _process_signal(local_text):
+            missing.append("process_signal")
+    else:
+        if not _contains_performance_metric(local_text, target):
+            missing.append("performance_signal")
+
+    missing = _dedupe(missing)
+    sufficient = classification and not missing
+    return {
+        "classification_sufficient": classification,
+        "applicable": True,
+        "sufficient": sufficient,
+        "status": "sufficient" if sufficient else "insufficient",
+        "missing": missing,
+        "purpose": "both",
+        "confidence": "high" if sufficient else ("medium" if classification and len(missing) <= 2 else "low"),
+    }
+
+
+def _family_gate_coverage(
+    target: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+    previous_paragraph: dict[str, Any] | None,
+    target_paragraph: dict[str, Any] | None,
+    next_paragraph: dict[str, Any] | None,
+    *,
+    applicable: bool,
+) -> tuple[dict[str, dict[str, Any]], list[str], list[str], str]:
+    """Return family gates as an observational vector, never an admission verdict."""
+
+    family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
+    gates = [str(gate) for gate in get_reaction_profile(family).get("product_admission_gates") or []]
+    coverage: dict[str, dict[str, Any]] = {}
+    if not applicable:
+        for gate in gates:
+            coverage[gate] = {"status": "not_applicable", "supporting_span_ids": []}
+        return coverage, [], [], "not_evaluated"
+
+    target_text = str(target.get("source_text") or "").casefold()
+    local_paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
+    local_text = " ".join(str(item.get("text") or "") for item in local_paragraphs if item).casefold()
+    target_id = _span_id(target)
+    observed: list[str] = []
+    missing: list[str] = []
+    for gate in gates:
+        status = "missing"
+        supporting_ids: list[str] = []
+        if _family_gate_satisfied(gate, target_text, target):
+            status = "observed_in_target"
+            supporting_ids = [target_id] if target_id else []
+        elif _family_gate_satisfied(gate, local_text, {}):
+            status = "observed_in_local_context"
+            supporting_ids = _supporting_local_span_ids(gate, evidence_items, local_paragraphs)
+        else:
+            linked_ids = [
+                str(item.get("span_id") or "")
+                for item in evidence_items
+                if _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
+            ]
+            if linked_ids:
+                status = "observed_in_linked_evidence"
+                supporting_ids = _dedupe(linked_ids)
+        coverage[gate] = {"status": status, "supporting_span_ids": supporting_ids}
+        (observed if status != "missing" else missing).append(gate)
+    status = "apparently_complete_in_packet" if not missing else "partial_observed"
+    return coverage, observed, missing, status
+
+
+def _supporting_local_span_ids(
+    gate: str, evidence_items: list[dict[str, Any]], paragraphs: list[dict[str, Any] | None]
+) -> list[str]:
+    paragraph_ids = {str(item.get("paragraph_uid") or "") for item in paragraphs if item}
+    return _dedupe([
+        str(item.get("span_id") or "")
+        for item in evidence_items
+        if str(item.get("paragraph_uid") or "") in paragraph_ids
+        and _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
+    ])
+
+
+def _explicit_validation_role(target: dict[str, Any]) -> bool:
+    if str(target.get("claim_type") or "").casefold() == "validation_claim":
+        return True
+    if "validation" in str(target.get("text_class") or "").casefold():
+        return True
+    if str(target.get("validation_role") or "").strip():
+        return True
+    gates = target.get("validation_gates") if isinstance(target.get("validation_gates"), dict) else {}
+    return any(str(value or "").casefold() in {"yes", "explicit", "pass", "present"} for value in gates.values())
+
+
+def _section_type_source(record: dict[str, Any]) -> str:
+    direct = str(record.get("direct_section_type") or "unknown")
+    effective = str(record.get("effective_section_type") or record.get("section_type") or "unknown")
+    if direct != "unknown":
+        return "direct"
+    if effective != "unknown" and (record.get("inherited_section_type") or record.get("inherited_from_section_uid")):
+        return "inherited"
+    return "unknown"
+
+
 def summarize_context_packets(
     packets: list[dict[str, Any]], run_name: str, *, legacy_keyword_linking_comparison: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -599,12 +807,16 @@ def summarize_context_packets(
     duplicate_serialized = 0
     hint_overlap = 0
     family_missing: dict[str, Counter[str]] = defaultdict(Counter)
+    packet_local_status = Counter()
+    paper_gate_status = Counter()
     for packet in packets:
         paper_ids.add(str(packet.get("paper_id") or ""))
         missing_types = packet.get("context_missing_types") or []
         missing.update(missing_types)
         family = normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
         family_missing[family].update(missing_types)
+        packet_local_status[str(packet.get("packet_local_context_status") or "not_reported")] += 1
+        paper_gate_status[str(packet.get("paper_gate_coverage_status") or "not_reported")] += 1
         mapping = packet.get("target_mapping") or {}
         mapping_methods[str(mapping.get("method") or "unresolved")] += 1
         mapping_confidence[str(mapping.get("confidence") or "unresolved")] += 1
@@ -648,6 +860,20 @@ def summarize_context_packets(
         "claim_support_sufficient_among_applicable": applicable_sufficient,
         "claim_support_insufficient_among_applicable": len(applicable_packets) - applicable_sufficient,
         "claim_support_rate_among_applicable": round(applicable_sufficient / len(applicable_packets), 6) if applicable_packets else 0.0,
+        "packet_local_applicable_count": packet_local_status["sufficient"] + packet_local_status["insufficient"],
+        "packet_local_sufficient_count": packet_local_status["sufficient"],
+        "packet_local_insufficient_count": packet_local_status["insufficient"],
+        "packet_local_not_applicable_count": packet_local_status["not_applicable"],
+        "packet_local_sufficiency_rate": round(
+            packet_local_status["sufficient"]
+            / (packet_local_status["sufficient"] + packet_local_status["insufficient"]), 6
+        ) if packet_local_status["sufficient"] + packet_local_status["insufficient"] else 0.0,
+        "packet_local_status_distribution": dict(sorted(packet_local_status.items())),
+        "packet_local_missing_reason_distribution": dict(sorted(missing.items())),
+        "paper_gate_coverage_apparently_complete_count": paper_gate_status["apparently_complete_in_packet"],
+        "paper_gate_coverage_partial_count": paper_gate_status["partial_observed"],
+        "paper_gate_coverage_not_evaluated_count": paper_gate_status["not_evaluated"],
+        "paper_gate_coverage_status_distribution": dict(sorted(paper_gate_status.items())),
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
         "median_unique_evidence_per_packet": round(statistics.median(unique_counts), 4) if unique_counts else 0.0,
@@ -837,6 +1063,10 @@ def _render_report(summary: dict[str, Any]) -> str:
         "claim_support_context_insufficient_count", "claim_support_applicable_count",
         "claim_support_not_applicable_count", "claim_support_sufficient_among_applicable",
         "claim_support_insufficient_among_applicable", "claim_support_rate_among_applicable",
+        "packet_local_applicable_count", "packet_local_sufficient_count",
+        "packet_local_insufficient_count", "packet_local_not_applicable_count",
+        "packet_local_sufficiency_rate", "paper_gate_coverage_apparently_complete_count",
+        "paper_gate_coverage_partial_count", "paper_gate_coverage_not_evaluated_count",
         "unique_evidence_total", "role_assignment_total",
         "mean_unique_evidence_per_packet", "median_unique_evidence_per_packet", "p90_unique_evidence_per_packet",
         "p95_unique_evidence_per_packet", "packets_at_unique_limit", "packets_with_zero_evidence",
@@ -904,7 +1134,17 @@ def _compact_section_context(
     )
     return {
         "section_uid": section.get("section_uid"), "outline_label": section.get("outline_label"),
-        "heading": section.get("heading_text"), "section_type": section.get("section_type"),
+        "heading": section.get("heading_text"), "raw_heading": section.get("raw_heading"),
+        "normalized_heading": section.get("normalized_heading"),
+        "direct_section_type": section.get("direct_section_type"),
+        "direct_section_type_confidence": section.get("direct_section_type_confidence"),
+        "inherited_section_type": section.get("inherited_section_type"),
+        "inherited_from_section_uid": section.get("inherited_from_section_uid"),
+        "inheritance_distance": section.get("inheritance_distance"),
+        "effective_section_type": section.get("effective_section_type"),
+        "effective_section_type_confidence": section.get("effective_section_type_confidence"),
+        "section_type_source": _section_type_source(section),
+        "section_type": section.get("section_type"),
         "document_region": section.get("document_region"),
         "section_start_offset": section.get("section_start_offset"),
         "section_end_offset": section.get("section_end_offset"), "paragraph_count": paragraph_count,
@@ -945,7 +1185,17 @@ def _process_signal(text: str) -> bool:
 
 
 def _negative_target(text: str) -> bool:
-    folded = text.casefold(); return any(term in folded for term in ("false positive", "background ammonia", "extraneous ammonia", "ammonia contamination"))
+    folded = text.casefold()
+    return (
+        any(term in folded for term in (
+            "false positive", "background ammonia", "extraneous ammonia", "ammonia contamination"
+        ))
+        or bool(re.search(
+            r"\bno\s+(?:nh3|ammonia)\b|\b(?:nh3|ammonia)\b.{0,40}"
+            r"\b(?:not detected|undetected|absent|below (?:the )?detection limit)\b",
+            folded,
+        ))
+    )
 
 
 def _legacy_gate(gates: dict[str, Any], key: str, text: str, signals: tuple[str, ...]) -> bool:
