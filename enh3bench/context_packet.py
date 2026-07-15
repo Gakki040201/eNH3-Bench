@@ -12,6 +12,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
+from enh3bench.claim_ownership import assess_claim_ownership
+from enh3bench.claim_typing import classify_claim_type, has_ammonia_quantification_signal
 from enh3bench.document_context import (
     DocumentContextIndex,
     get_local_paragraph_context,
@@ -19,6 +21,7 @@ from enh3bench.document_context import (
     resolve_document_for_span,
     resolve_span_mapping,
 )
+from enh3bench.document_scope import assess_document_scope
 from enh3bench.evidence_linking import (
     DEFAULT_LINK_LIMITS,
     DEFAULT_MINIMUM_LINK_SCORE,
@@ -28,7 +31,11 @@ from enh3bench.evidence_linking import (
     LINK_TYPES,
     link_supporting_evidence,
 )
-from enh3bench.reaction_profiles import get_reaction_profile, normalize_reaction_family
+from enh3bench.reaction_profiles import (
+    get_reaction_profile,
+    infer_reaction_family_detailed,
+    normalize_reaction_family,
+)
 from enh3bench.source_ledger import (
     OrderedSourceLedger,
     attach_source_coordinates_to_spans,
@@ -44,7 +51,7 @@ from enh3bench.span_context import (
 
 
 CONTEXT_PACKET_SCHEMA_VERSION = "1.1"
-ORDERED_CONTEXT_PACKET_SCHEMA_VERSION = "1.3"
+ORDERED_CONTEXT_PACKET_SCHEMA_VERSION = "1.4"
 LEGACY_CONTEXT_PACKET_SCHEMA_VERSION = "1.0"
 LOCATION_FIELDS = (
     "document_id", "source_start_offset", "source_end_offset", "section_start_offset",
@@ -85,12 +92,25 @@ ORDERED_PACKET_FIELDS = (
     "target_source_start_offset", "target_source_end_offset", "target_text", "target_text_class",
     "target_provenance_type", "target_reaction_family", "target_span_boundary",
     "target_admissibility_status", "target_claim_type", "target_mapping",
+    "semantic_eligibility_schema_version", "document_scope", "document_scope_confidence",
+    "document_scope_signals", "document_scope_primary_applicable", "claim_ownership",
+    "claim_ownership_confidence", "claim_ownership_signals", "claim_ownership_primary_applicable",
+    "semantic_claim_type", "semantic_claim_type_signals", "ammonia_quantification_signal",
+    "gas_purification_trap_signal", "primary_applicability_hard_gate_failures",
+    "base_claim_support_applicable", "primary_semantic_eligibility",
     "previous_paragraph", "target_paragraph", "next_paragraph",
     "section_context", "document_outline", "evidence_items", "evidence_role_index",
     "classification_context_sufficient", "claim_support_applicable", "claim_support_context_sufficient",
     "packet_local_context_applicable", "packet_local_context_sufficient",
     "packet_local_context_status", "packet_local_missing_types", "family_gate_coverage",
+    "family_gate_coverage_any_source", "family_gate_coverage_primary_admissible",
     "paper_gate_coverage_observed", "paper_gate_coverage_missing", "paper_gate_coverage_status",
+    "paper_gate_coverage_any_source_observed", "paper_gate_coverage_any_source_missing",
+    "paper_gate_coverage_any_source_status", "paper_gate_coverage_primary_admissible_observed",
+    "paper_gate_coverage_primary_admissible_missing", "paper_gate_coverage_primary_admissible_status",
+    "local_reaction_family_conflict", "local_reaction_family_conflict_any_source",
+    "local_reaction_family_conflict_primary_admissible", "local_reaction_family_conflict_span_ids",
+    "local_reaction_family_conflict_signals",
     "context_purpose", "context_sufficient",
     "context_missing_types", "context_confidence", "linking_signals", "linking_diagnostics", "warnings",
 )
@@ -371,15 +391,25 @@ def _ordered_packet(
     )
     evidence_items, role_index = _unique_evidence_items(links, records_by_id, None)
     assessment = _packet_local_assessment(
-        target, paragraph, previous_paragraph, next_paragraph, section
+        target, paragraph, previous_paragraph, next_paragraph, section, evidence_items
     )
-    family_coverage, paper_observed, paper_missing, paper_status = _family_gate_coverage(
+    family_coverage_any, paper_observed_any, paper_missing_any, paper_status_any = _family_gate_coverage(
+        target,
+        evidence_items,
+        previous_paragraph,
+        paragraph,
+        next_paragraph,
+        applicable=assessment["base_applicable"],
+    )
+    family_coverage_primary, paper_observed_primary, paper_missing_primary, paper_status_primary = _family_gate_coverage(
         target,
         evidence_items,
         previous_paragraph,
         paragraph,
         next_paragraph,
         applicable=assessment["applicable"],
+        primary_admissible_only=True,
+        target_primary_admissible=assessment["applicable"],
     )
     diagnostics = dict(links.get("diagnostics") or {})
     diagnostics.update({
@@ -440,6 +470,22 @@ def _ordered_packet(
         "target_admissibility_status": str(target.get("admissibility_status") or ""),
         "target_claim_type": str(target.get("claim_type") or ""),
         "target_mapping": target_mapping,
+        "semantic_eligibility_schema_version": assessment["semantic_eligibility_schema_version"],
+        "document_scope": assessment["document_scope"],
+        "document_scope_confidence": assessment["document_scope_confidence"],
+        "document_scope_signals": assessment["document_scope_signals"],
+        "document_scope_primary_applicable": assessment["document_scope_primary_applicable"],
+        "claim_ownership": assessment["claim_ownership"],
+        "claim_ownership_confidence": assessment["claim_ownership_confidence"],
+        "claim_ownership_signals": assessment["claim_ownership_signals"],
+        "claim_ownership_primary_applicable": assessment["claim_ownership_primary_applicable"],
+        "semantic_claim_type": assessment["semantic_claim_type"],
+        "semantic_claim_type_signals": assessment["semantic_claim_type_signals"],
+        "ammonia_quantification_signal": assessment["ammonia_quantification_signal"],
+        "gas_purification_trap_signal": assessment["gas_purification_trap_signal"],
+        "primary_applicability_hard_gate_failures": assessment["hard_gate_failures"],
+        "base_claim_support_applicable": assessment["base_applicable"],
+        "primary_semantic_eligibility": assessment["applicable"],
         "previous_paragraph": _compact_paragraph(previous_paragraph),
         "target_paragraph": _compact_paragraph(paragraph),
         "next_paragraph": _compact_paragraph(next_paragraph),
@@ -461,10 +507,24 @@ def _ordered_packet(
         "packet_local_context_sufficient": assessment["sufficient"],
         "packet_local_context_status": assessment["status"],
         "packet_local_missing_types": assessment["missing"],
-        "family_gate_coverage": family_coverage,
-        "paper_gate_coverage_observed": paper_observed,
-        "paper_gate_coverage_missing": paper_missing,
-        "paper_gate_coverage_status": paper_status,
+        # Compatibility fields retain the pre-1.4 any-source observational meaning.
+        "family_gate_coverage": family_coverage_any,
+        "family_gate_coverage_any_source": family_coverage_any,
+        "family_gate_coverage_primary_admissible": family_coverage_primary,
+        "paper_gate_coverage_observed": paper_observed_any,
+        "paper_gate_coverage_missing": paper_missing_any,
+        "paper_gate_coverage_status": paper_status_any,
+        "paper_gate_coverage_any_source_observed": paper_observed_any,
+        "paper_gate_coverage_any_source_missing": paper_missing_any,
+        "paper_gate_coverage_any_source_status": paper_status_any,
+        "paper_gate_coverage_primary_admissible_observed": paper_observed_primary,
+        "paper_gate_coverage_primary_admissible_missing": paper_missing_primary,
+        "paper_gate_coverage_primary_admissible_status": paper_status_primary,
+        "local_reaction_family_conflict": assessment["local_reaction_family_conflict"],
+        "local_reaction_family_conflict_any_source": assessment["local_reaction_family_conflict_any_source"],
+        "local_reaction_family_conflict_primary_admissible": assessment["local_reaction_family_conflict_primary_admissible"],
+        "local_reaction_family_conflict_span_ids": assessment["local_reaction_family_conflict_span_ids"],
+        "local_reaction_family_conflict_signals": assessment["local_reaction_family_conflict_signals"],
         "context_purpose": assessment["purpose"], "context_sufficient": assessment["sufficient"],
         "context_missing_types": assessment["missing"], "context_confidence": assessment["confidence"],
         "linking_signals": links.get("linking_signals") or [], "linking_diagnostics": diagnostics,
@@ -483,6 +543,23 @@ def _unique_evidence_items(
             if not span_id:
                 continue
             original = records_by_id.get(span_id, {})
+            semantic_record = {**original, **linked}
+            semantic_record["source_text"] = str(linked.get("source_text") or original.get("source_text") or "")
+            document_scope = assess_document_scope(semantic_record)
+            claim_ownership = assess_claim_ownership(semantic_record, document_scope)
+            claim_typing = classify_claim_type(semantic_record)
+            if "is_primary_admissible" in original:
+                provenance_primary = bool(original.get("is_primary_admissible"))
+            else:
+                provenance_primary = not bool(linked.get("context_only")) and str(
+                    linked.get("provenance_type") or "unknown"
+                ).casefold() not in LOW_TRUST_PROVENANCE
+            gate_source_primary = bool(
+                provenance_primary
+                and document_scope["document_scope_primary_applicable"]
+                and claim_ownership["claim_ownership_primary_applicable"]
+                and not linked.get("context_only")
+            )
             mapping = resolve_span_mapping(original, document_index) if document_index else {
                 "confidence": original.get("source_mapping_confidence") or "unresolved"
             }
@@ -506,6 +583,17 @@ def _unique_evidence_items(
                 "provenance_type": str(linked.get("provenance_type") or "unknown"),
                 "text_class": str(linked.get("text_class") or "unknown"),
                 "reaction_family": str(linked.get("reaction_family") or "unclear"),
+                "reaction_family_confidence": str(original.get("reaction_family_confidence") or "unclear"),
+                "reaction_family_scope": str(original.get("reaction_family_scope") or "fallback"),
+                "is_primary_admissible": provenance_primary,
+                "document_scope": document_scope["document_scope"],
+                "document_scope_primary_applicable": document_scope["document_scope_primary_applicable"],
+                "claim_ownership": claim_ownership["claim_ownership"],
+                "claim_ownership_primary_applicable": claim_ownership["claim_ownership_primary_applicable"],
+                "semantic_claim_type": claim_typing["semantic_claim_type"],
+                "ammonia_quantification_signal": claim_typing["ammonia_quantification_signal"],
+                "gas_purification_trap_signal": claim_typing["gas_purification_trap_signal"],
+                "primary_admissible_gate_source": gate_source_primary,
                 "link_roles": [], "normalized_link_score": 0.0, "linking_signals": [],
                 "context_only": bool(linked.get("context_only")), "primary_support": False,
                 "mapping_confidence": str(mapping.get("confidence") or "unresolved"),
@@ -520,6 +608,9 @@ def _unique_evidence_items(
         item["link_roles"] = [role for role in LINK_TYPES if role in item["link_roles"]]
         if item["context_only"]:
             item["primary_support"] = False
+        item["primary_support"] = bool(
+            item["primary_support"] and item.get("primary_admissible_gate_source")
+        )
     if document_index is None:
         ordered_items = sorted(
             combined.values(),
@@ -592,8 +683,7 @@ def _family_gate_satisfied(gate: str, text: str, target: dict[str, Any]) -> bool
     if gate == "contamination_control":
         return bool(re.search(r"\b(?:ammonia )?contamination control\b|\bbackground (?:nh3|ammonia) control\b|\bimpurity screening\b", text))
     if gate == "ammonia_quantification":
-        method = r"ion chromatography|\bic\b|nmr|uv[- ]?vis|colorimetric|gas trap"
-        return bool(re.search(rf"(?:ammonia|nh3).{{0,80}}(?:{method})|(?:{method}).{{0,80}}(?:ammonia|nh3)", text))
+        return has_ammonia_quantification_signal(text)
     if gate == "operating_field_disclosure":
         return bool(re.search(r"\b(?:current density|cell voltage|applied potential|runtime|flow rate)\b", text))
     if gate == "nitrate_source_defined":
@@ -619,6 +709,7 @@ def _packet_local_assessment(
     previous_paragraph: dict[str, Any] | None,
     next_paragraph: dict[str, Any] | None,
     section: dict[str, Any] | None,
+    evidence_items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Assess only evidence visible at the target and its local paragraph window."""
 
@@ -626,9 +717,33 @@ def _packet_local_assessment(
     provenance = str(target.get("provenance_type") or "unknown").casefold()
     text_class = str(target.get("text_class") or "unknown").casefold()
     classification = bool(text.strip() and provenance != "unknown" and text_class != "unknown")
-    applicable = _claim_support_applicable(target)
+    base_applicable = _claim_support_applicable(target)
+    document_scope = assess_document_scope(target)
+    claim_ownership = assess_claim_ownership(target, document_scope)
+    claim_typing = classify_claim_type(target)
+    hard_gate_failures: list[str] = []
+    if base_applicable and not document_scope["document_scope_primary_applicable"]:
+        hard_gate_failures.append("document_scope_not_target_document")
+    if base_applicable and not claim_ownership["claim_ownership_primary_applicable"]:
+        hard_gate_failures.append("claim_not_owned_by_target_authors")
+    applicable = base_applicable and not hard_gate_failures
+    local_family = _local_reaction_family_assessment(
+        target,
+        evidence_items or [],
+        [previous_paragraph, target_paragraph, next_paragraph],
+        target_primary_admissible=applicable,
+    )
+    semantic = {
+        **document_scope,
+        **claim_ownership,
+        **claim_typing,
+        **local_family,
+        "base_applicable": base_applicable,
+        "hard_gate_failures": hard_gate_failures,
+    }
     if not applicable:
         return {
+            **semantic,
             "classification_sufficient": classification,
             "applicable": False,
             "sufficient": False,
@@ -662,16 +777,7 @@ def _packet_local_assessment(
     }
     if not raw_family or (family == "unclear" and not explicit_unclear):
         missing.append("reaction_family")
-    if bool(target.get("reaction_family_conflict")):
-        missing.append("reaction_family_conflict")
-    paper_family_raw = str(target.get("paper_level_reaction_family") or "").strip()
-    paper_family = normalize_reaction_family(paper_family_raw)
-    if (
-        paper_family_raw
-        and family not in {"mixed", "unclear"}
-        and paper_family not in {"mixed", "unclear"}
-        and family != paper_family
-    ):
+    if local_family["local_reaction_family_conflict_primary_admissible"]:
         missing.append("reaction_family_conflict")
 
     paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
@@ -698,6 +804,7 @@ def _packet_local_assessment(
     missing = _dedupe(missing)
     sufficient = classification and not missing
     return {
+        **semantic,
         "classification_sufficient": classification,
         "applicable": True,
         "sufficient": sufficient,
@@ -708,6 +815,114 @@ def _packet_local_assessment(
     }
 
 
+def _local_reaction_family_assessment(
+    target: dict[str, Any],
+    evidence_items: list[dict[str, Any]],
+    paragraphs: list[dict[str, Any] | None],
+    *,
+    target_primary_admissible: bool,
+) -> dict[str, Any]:
+    """Detect family disagreements only within the packet's local evidence window."""
+
+    target_family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
+    any_conflict = False
+    primary_conflict = False
+    conflict_span_ids: list[str] = []
+    signals: list[str] = []
+    if target_family in {"unclear", "mixed"}:
+        return {
+            "local_reaction_family_conflict": False,
+            "local_reaction_family_conflict_any_source": False,
+            "local_reaction_family_conflict_primary_admissible": False,
+            "local_reaction_family_conflict_span_ids": [],
+            "local_reaction_family_conflict_signals": [],
+        }
+
+    recorded_signals = [str(value) for value in target.get("reaction_family_signals") or []]
+    recorded_scope = str(target.get("reaction_family_scope") or "fallback")
+    locally_recorded_conflict = (
+        bool(target.get("reaction_family_conflict"))
+        and recorded_scope != "paper_consensus"
+        and (
+        not recorded_signals
+        or any(
+            value.startswith("reaction_family_conflict:")
+            and not value.startswith("paper_reaction_family_conflict:")
+            and not value.startswith("paper_consensus_conflict:")
+            for value in recorded_signals
+        )
+        )
+    )
+    if locally_recorded_conflict:
+        any_conflict = True
+        primary_conflict = target_primary_admissible
+        target_id = _span_id(target)
+        if target_id:
+            conflict_span_ids.append(target_id)
+        signals.append("target_explicit_local_reaction_family_conflict")
+
+    target_inferred = _conflicting_inferred_family(str(target.get("source_text") or ""), target_family)
+    if target_inferred:
+        any_conflict = True
+        primary_conflict = primary_conflict or target_primary_admissible
+        target_id = _span_id(target)
+        if target_id:
+            conflict_span_ids.append(target_id)
+        signals.append(f"target_text_family_conflict:{target_family}_vs_{target_inferred}")
+
+    paragraph_ids = {str(item.get("paragraph_uid") or "") for item in paragraphs if item}
+    for paragraph in paragraphs:
+        if not paragraph:
+            continue
+        inferred = _conflicting_inferred_family(str(paragraph.get("text") or ""), target_family)
+        if inferred:
+            any_conflict = True
+            locator = str(paragraph.get("source_locator") or paragraph.get("paragraph_uid") or "unknown")
+            signals.append(f"local_paragraph_family_conflict:{locator}:{target_family}_vs_{inferred}")
+
+    for item in evidence_items:
+        paragraph_uid = str(item.get("paragraph_uid") or "")
+        if paragraph_ids and paragraph_uid not in paragraph_ids:
+            continue
+        item_family = normalize_reaction_family(str(item.get("reaction_family") or "unclear"))
+        explicit_mismatch = (
+            item_family not in {"unclear", "mixed"}
+            and item_family != target_family
+            and str(item.get("reaction_family_scope") or "") in {"explicit_span", "section_context"}
+            and str(item.get("reaction_family_confidence") or "") in {"high", "medium"}
+        )
+        inferred = _conflicting_inferred_family(str(item.get("text") or ""), target_family)
+        conflict_family = item_family if explicit_mismatch else inferred
+        if not conflict_family:
+            continue
+        any_conflict = True
+        span_id = str(item.get("span_id") or "")
+        if span_id:
+            conflict_span_ids.append(span_id)
+        if bool(item.get("primary_admissible_gate_source")):
+            primary_conflict = True
+        signals.append(f"local_evidence_family_conflict:{span_id or 'unknown'}:{target_family}_vs_{conflict_family}")
+
+    return {
+        "local_reaction_family_conflict": primary_conflict,
+        "local_reaction_family_conflict_any_source": any_conflict,
+        "local_reaction_family_conflict_primary_admissible": primary_conflict,
+        "local_reaction_family_conflict_span_ids": _dedupe(conflict_span_ids),
+        "local_reaction_family_conflict_signals": _dedupe(signals),
+    }
+
+
+def _conflicting_inferred_family(text: str, target_family: str) -> str:
+    if not str(text or "").strip():
+        return ""
+    inferred = infer_reaction_family_detailed(text=str(text))
+    family = normalize_reaction_family(str(inferred.get("reaction_family") or "unclear"))
+    confidence = str(inferred.get("reaction_family_confidence") or "unclear")
+    if family not in {"unclear", "mixed", target_family} and confidence in {"high", "medium"}:
+        return family
+    return ""
+
+
 def _family_gate_coverage(
     target: dict[str, Any],
     evidence_items: list[dict[str, Any]],
@@ -716,42 +931,66 @@ def _family_gate_coverage(
     next_paragraph: dict[str, Any] | None,
     *,
     applicable: bool,
+    primary_admissible_only: bool = False,
+    target_primary_admissible: bool = False,
 ) -> tuple[dict[str, dict[str, Any]], list[str], list[str], str]:
-    """Return family gates as an observational vector, never an admission verdict."""
+    """Return any-source or primary-admissible observational gate coverage."""
 
     family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
     gates = [str(gate) for gate in get_reaction_profile(family).get("product_admission_gates") or []]
     coverage: dict[str, dict[str, Any]] = {}
+    source_eligibility = "primary_admissible" if primary_admissible_only else "any_source"
     if not applicable:
         for gate in gates:
-            coverage[gate] = {"status": "not_applicable", "supporting_span_ids": []}
+            coverage[gate] = {
+                "status": "not_applicable", "supporting_span_ids": [],
+                "source_eligibility": source_eligibility,
+            }
         return coverage, [], [], "not_evaluated"
 
     target_text = str(target.get("source_text") or "").casefold()
     local_paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
     local_text = " ".join(str(item.get("text") or "") for item in local_paragraphs if item).casefold()
     target_id = _span_id(target)
+    paragraph_ids = {str(item.get("paragraph_uid") or "") for item in local_paragraphs if item}
+    eligible_items = [
+        item for item in evidence_items
+        if not primary_admissible_only or bool(item.get("primary_admissible_gate_source"))
+    ]
     observed: list[str] = []
     missing: list[str] = []
     for gate in gates:
         status = "missing"
         supporting_ids: list[str] = []
-        if _family_gate_satisfied(gate, target_text, target):
+        if (not primary_admissible_only or target_primary_admissible) and _family_gate_satisfied(gate, target_text, target):
             status = "observed_in_target"
             supporting_ids = [target_id] if target_id else []
-        elif _family_gate_satisfied(gate, local_text, {}):
+        elif not primary_admissible_only and _family_gate_satisfied(gate, local_text, {}):
             status = "observed_in_local_context"
             supporting_ids = _supporting_local_span_ids(gate, evidence_items, local_paragraphs)
         else:
+            local_ids = [
+                str(item.get("span_id") or "")
+                for item in eligible_items
+                if str(item.get("paragraph_uid") or "") in paragraph_ids
+                and _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
+            ]
+            if local_ids:
+                status = "observed_in_local_context"
+                supporting_ids = _dedupe(local_ids)
             linked_ids = [
                 str(item.get("span_id") or "")
-                for item in evidence_items
+                for item in eligible_items
                 if _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
             ]
-            if linked_ids:
+            if status == "missing" and linked_ids:
                 status = "observed_in_linked_evidence"
                 supporting_ids = _dedupe(linked_ids)
-        coverage[gate] = {"status": status, "supporting_span_ids": supporting_ids}
+        coverage[gate] = {
+            "status": status,
+            "supporting_span_ids": supporting_ids,
+            "source_eligibility": source_eligibility,
+        }
         (observed if status != "missing" else missing).append(gate)
     status = "apparently_complete_in_packet" if not missing else "partial_observed"
     return coverage, observed, missing, status
@@ -809,6 +1048,11 @@ def summarize_context_packets(
     family_missing: dict[str, Counter[str]] = defaultdict(Counter)
     packet_local_status = Counter()
     paper_gate_status = Counter()
+    paper_gate_primary_status = Counter()
+    document_scope_distribution = Counter()
+    claim_ownership_distribution = Counter()
+    semantic_claim_type_distribution = Counter()
+    hard_gate_failures = Counter()
     for packet in packets:
         paper_ids.add(str(packet.get("paper_id") or ""))
         missing_types = packet.get("context_missing_types") or []
@@ -817,6 +1061,13 @@ def summarize_context_packets(
         family_missing[family].update(missing_types)
         packet_local_status[str(packet.get("packet_local_context_status") or "not_reported")] += 1
         paper_gate_status[str(packet.get("paper_gate_coverage_status") or "not_reported")] += 1
+        paper_gate_primary_status[str(
+            packet.get("paper_gate_coverage_primary_admissible_status") or "not_reported"
+        )] += 1
+        document_scope_distribution[str(packet.get("document_scope") or "not_reported")] += 1
+        claim_ownership_distribution[str(packet.get("claim_ownership") or "not_reported")] += 1
+        semantic_claim_type_distribution[str(packet.get("semantic_claim_type") or "not_reported")] += 1
+        hard_gate_failures.update(packet.get("primary_applicability_hard_gate_failures") or [])
         mapping = packet.get("target_mapping") or {}
         mapping_methods[str(mapping.get("method") or "unresolved")] += 1
         mapping_confidence[str(mapping.get("confidence") or "unresolved")] += 1
@@ -874,6 +1125,26 @@ def summarize_context_packets(
         "paper_gate_coverage_partial_count": paper_gate_status["partial_observed"],
         "paper_gate_coverage_not_evaluated_count": paper_gate_status["not_evaluated"],
         "paper_gate_coverage_status_distribution": dict(sorted(paper_gate_status.items())),
+        "paper_gate_primary_admissible_apparently_complete_count": paper_gate_primary_status["apparently_complete_in_packet"],
+        "paper_gate_primary_admissible_partial_count": paper_gate_primary_status["partial_observed"],
+        "paper_gate_primary_admissible_not_evaluated_count": paper_gate_primary_status["not_evaluated"],
+        "paper_gate_primary_admissible_status_distribution": dict(sorted(paper_gate_primary_status.items())),
+        "document_scope_distribution": dict(sorted(document_scope_distribution.items())),
+        "claim_ownership_distribution": dict(sorted(claim_ownership_distribution.items())),
+        "semantic_claim_type_distribution": dict(sorted(semantic_claim_type_distribution.items())),
+        "primary_applicability_hard_gate_failure_distribution": dict(sorted(hard_gate_failures.items())),
+        "local_reaction_family_conflict_any_source_count": sum(
+            bool(packet.get("local_reaction_family_conflict_any_source")) for packet in packets
+        ),
+        "local_reaction_family_conflict_primary_admissible_count": sum(
+            bool(packet.get("local_reaction_family_conflict_primary_admissible")) for packet in packets
+        ),
+        "ammonia_quantification_semantic_count": sum(
+            bool(packet.get("ammonia_quantification_signal")) for packet in packets
+        ),
+        "gas_purification_trap_semantic_count": sum(
+            bool(packet.get("gas_purification_trap_signal")) for packet in packets
+        ),
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
         "median_unique_evidence_per_packet": round(statistics.median(unique_counts), 4) if unique_counts else 0.0,
@@ -1073,7 +1344,11 @@ def _render_report(summary: dict[str, Any]) -> str:
         "links_below_threshold", "unresolved_mapping_count", "multiple_exact_match_count",
         "duplicate_serialized_span_count", "self_link_count", "cross_paper_link_count",
         "context_hint_positive_overlap_count", "reference_primary_support_count", "caption_primary_support_count",
-        "review_table_primary_support_count",
+        "review_table_primary_support_count", "paper_gate_primary_admissible_apparently_complete_count",
+        "paper_gate_primary_admissible_partial_count", "paper_gate_primary_admissible_not_evaluated_count",
+        "local_reaction_family_conflict_any_source_count",
+        "local_reaction_family_conflict_primary_admissible_count", "ammonia_quantification_semantic_count",
+        "gas_purification_trap_semantic_count",
     ):
         if key in summary: lines.append(f"- {key}: {summary[key]}")
     lines.extend(["", "## Missing context", "", *[f"- {k}: {v}" for k, v in summary.get("missing_type_distribution", {}).items()],

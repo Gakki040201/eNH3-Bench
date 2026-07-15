@@ -16,6 +16,7 @@ class StageBSemanticSampleTests(unittest.TestCase):
         packets.extend(_packets("n3quant", 15, "NO3RR", quantification=True))
         packets.extend(_packets("n2no", 10, "NO2RR"))
         packets.extend(_packets("process", 10, "mixed", claim="process_claim", applicable=True))
+        packets.extend(_packets("trap", 10, "eNRR", gas_trap=True))
         packets.extend(_packets("reference", 10, "eNRR", provenance="reference", text_class="reference_list"))
         packets[0]["previous_paragraph"] = {"text": "P" * 1000}
         packets[0]["target_paragraph"] = {"text": "T" * 1000}
@@ -28,8 +29,10 @@ class StageBSemanticSampleTests(unittest.TestCase):
         first = _semantic_closure_sample(packets, seed=13)
         second = _semantic_closure_sample(list(reversed(packets)), seed=13)
         self.assertEqual(first, second)
-        self.assertEqual(first.count("\n## "), 120)
-        self.assertEqual(first.count("- human_section_type_correct:"), 120)
+        self.assertEqual(first.count("\n## "), 130)
+        self.assertEqual(first.count("- human_section_type_correct:"), 130)
+        self.assertEqual(first.count("- human_document_scope_correct:"), 130)
+        self.assertEqual(first.count("- human_quantification_vs_trap_correct:"), 130)
         self.assertTrue(first.startswith("# Stage B Semantic Closure Review Sample\n"))
         self.assertNotIn("P" * 601, first)
         self.assertNotIn("T" * 801, first)
@@ -49,6 +52,7 @@ def _packets(
     provenance: str = "body",
     text_class: str = "unknown",
     quantification: bool = False,
+    gas_trap: bool = False,
 ) -> list[dict[str, object]]:
     records = []
     for index in range(count):
@@ -58,13 +62,22 @@ def _packets(
             "target_span_id": span_id, "target_reaction_family": family,
             "target_claim_type": claim, "packet_local_context_applicable": applicable,
             "target_provenance_type": provenance, "target_text_class": text_class,
+            "ammonia_quantification_signal": quantification,
+            "gas_purification_trap_signal": gas_trap,
             "family_gate_coverage": {
                 "ammonia_quantification": {
                     "status": "observed_in_target" if quantification else "missing",
                     "supporting_span_ids": [span_id] if quantification else [],
                 }
             },
-            "evidence_items": [], "target_text": "fixture target",
+            "family_gate_coverage_primary_admissible": {
+                "ammonia_quantification": {
+                    "status": "observed_in_target" if quantification else "missing",
+                    "supporting_span_ids": [span_id] if quantification else [],
+                }
+            },
+            "evidence_items": [],
+            "target_text": "gas passed through an acid trap" if gas_trap else "fixture target",
         })
     return records
 

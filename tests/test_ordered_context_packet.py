@@ -24,7 +24,7 @@ class OrderedContextPacketTests(unittest.TestCase):
             packets = build_context_packets(evidence, [], [], [], run_name="fixture", context_profile=ORDERED_SOURCE_PROFILE, source_ledger=ledger)
             target = next(packet for packet in packets if packet["target_span_id"] == "P1_S001")
             reference = next(packet for packet in packets if packet["target_span_id"] == "P1_S003")
-            self.assertEqual(target["context_packet_schema_version"], "1.3")
+            self.assertEqual(target["context_packet_schema_version"], "1.4")
             self.assertEqual(target["next_paragraph"]["text"], "15N isotope validation and Ar blank.")
             self.assertTrue(target["claim_support_applicable"])
             self.assertFalse(reference["claim_support_applicable"])

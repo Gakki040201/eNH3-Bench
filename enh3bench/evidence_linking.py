@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from enh3bench.claim_typing import has_ammonia_quantification_signal
 from enh3bench.reaction_profiles import normalize_reaction_family
 from enh3bench.span_identity import normalize_section_path, parse_legacy_span_order
 
@@ -48,7 +49,7 @@ SIGNALS = {
     ),
     "quantification": (
         "ion chromatography", "nmr", "uv-vis", "uv vis", "colorimetric",
-        "ammonia calibration", "nh3 calibration", "gas trap", "ammonia quantification",
+        "ammonia calibration", "nh3 calibration", "ammonia quantification",
     ),
     "reactor": (
         "flow cell", "gde", "gas diffusion electrode", "mea", "ssc", "active area",
@@ -74,7 +75,7 @@ LEGACY_SIGNALS = {
     ),
     "quantification": (
         "ion chromatography", "nmr", "uv-vis", "uv vis", "colorimetric", "calibration",
-        "gas trap", "ammonia quantification",
+        "ammonia quantification",
     ),
     "reactor": (
         "flow cell", "gde", "gas diffusion electrode", "mea", "ssc", "active area",
@@ -383,7 +384,7 @@ def _legacy_link_types(record: dict[str, Any]) -> list[str]:
 
 def _legacy_has_signal(text: str, role: str) -> bool:
     if role == "performance" and re.search(r"\bfe\b", text): return True
-    if role == "quantification" and re.search(r"\bic\b", text): return True
+    if role == "quantification" and has_ammonia_quantification_signal(text): return True
     return any(signal in text for signal in LEGACY_SIGNALS[role])
 
 
@@ -530,7 +531,7 @@ def _normalized_record_text(record: dict[str, Any]) -> str:
 def _has_signal(text: str, role: str) -> bool:
     if role == "performance" and re.search(r"\bfe\s*(?:=|of|was|:)?\s*\d", text):
         return True
-    if role == "quantification" and re.search(r"\bic\b.*(?:nh3|ammonia)|(?:nh3|ammonia).*\bic\b", text):
+    if role == "quantification" and has_ammonia_quantification_signal(text):
         return True
     return any(signal in text for signal in SIGNALS.get(role, ()))
 

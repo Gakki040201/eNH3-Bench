@@ -138,6 +138,24 @@ def main() -> int:
                 "paper_gate_coverage_not_evaluated_count: "
                 f"{summary['paper_gate_coverage_not_evaluated_count']}"
             )
+            print(
+                "paper_gate_primary_admissible_apparently_complete_count: "
+                f"{summary['paper_gate_primary_admissible_apparently_complete_count']}"
+            )
+            print(
+                "paper_gate_primary_admissible_partial_count: "
+                f"{summary['paper_gate_primary_admissible_partial_count']}"
+            )
+            print(
+                "paper_gate_primary_admissible_not_evaluated_count: "
+                f"{summary['paper_gate_primary_admissible_not_evaluated_count']}"
+            )
+            print(
+                "local_reaction_family_conflict_primary_admissible_count: "
+                f"{summary['local_reaction_family_conflict_primary_admissible_count']}"
+            )
+            print(f"ammonia_quantification_semantic_count: {summary['ammonia_quantification_semantic_count']}")
+            print(f"gas_purification_trap_semantic_count: {summary['gas_purification_trap_semantic_count']}")
     else:
         print(f"context_sufficient: {summary['packets_with_context_sufficient']}")
         print(f"context_insufficient: {summary['packets_with_context_insufficient']}")
