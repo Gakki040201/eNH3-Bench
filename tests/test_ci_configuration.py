@@ -12,6 +12,7 @@ class CIConfigurationTests(unittest.TestCase):
         self.assertIn("python -m unittest discover", text)
         self.assertIn("check_gold_integrity.py", text)
         self.assertIn("--require-baseline", text)
+        self.assertIn("hashfiles('data/gold/", text)
         self.assertIn('"3.10"', text)
         self.assertIn('"3.13"', text)
         for forbidden in ("api_key", "input_raw", "download", "contents: write", "git push", "secrets."):

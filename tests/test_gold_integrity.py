@@ -145,9 +145,13 @@ class GoldIntegrityTests(unittest.TestCase):
     def test_authoritative_gold_matches_versioned_exact_baseline(self) -> None:
         run_name = "enrr_round1_oa_20260712"
         gold_dir = ROOT / "data" / "gold" / run_name
+        jsonl_path = gold_dir / "human_gold_claim_rights.jsonl"
+        csv_path = gold_dir / "human_gold_claim_rights.csv"
+        if not jsonl_path.exists() or not csv_path.exists():
+            self.skipTest("authoritative Gold files are not distributed in the Git checkout")
         result = check_gold_integrity(
-            gold_dir / "human_gold_claim_rights.jsonl",
-            gold_dir / "human_gold_claim_rights.csv",
+            jsonl_path,
+            csv_path,
             run_name=run_name,
             baseline_path=DEFAULT_BASELINE_PATH,
             require_baseline=True,
