@@ -20,81 +20,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - Quotas: `{"LiNRR performance": 15, "NO2RR/NORR primary": 10, "NO3RR performance": 15, "NO3RR quantification": 15, "background": 4, "eNRR performance": 15, "eNRR validation": 15, "external_cited_claim": 6, "gas-purification trap (target-only, not quantification)": 7, "legacy_claim_type_conflict": 4, "off_target_reaction_conflict": 4, "quantification_false_negative_candidates": 4, "reactor/process": 10, "review_or_perspective": 6}`
 - Requested gas-trap quota: 10
 - 130-sample capacity for gas-trap stratum: 7
-- Unique target-level gas-trap records available: 9
+- Unique target-level gas-trap records available: 10
 - Gas-trap records sampled: 7
 - No duplicate or synthetic gas-trap samples were added.
 - 结构对齐不代表科学可比性。
 
 ## 1. eNRR performance
-
-- context_packet_id: `CP_d8a9524992c41c541dead1ba79e71b1c`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
-- source_span_id: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia_S086`
-- source_locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC013::PAR010::ANCHOR01`
-- raw_heading: Deactivation of the platinum catalyst under voltammetric conditions
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `reactor_claim`
-- legacy_claim_type: `reactor_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `False`
-- document_genre: `primary_research`
-- legacy_reaction_family: `mixed`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `high_confidence_document`
-- reaction_family_correction: `True`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: Increased salt concentration again changed the voltammetric behaviour of Pt/C in H2 saturated solutions in a negative manner with respect to the HOR activity (Figure S2). The HOR/HER redox couple can now be clearly observed, which appears to be controlled by the mass transport of other than H2 species towards the electrode surface. The effect of water follows similar trend to that observed in the experiments with 0.1 M LiNTf2, viz. progressively enhanced deactivation at higher [H2O]. Whether the observed negative effects of LiNTf2 and H2O concentrations are synergistic or…
-- target_paragraph: Although the deactivation of the catalyst during the extended voltammetric tests discussed above was obvious, some activity was still maintained in the final measurements (Figures 2 and S2). However, there is another important component of the lithium-mediated NRR that is likely to even further affect the HOR performance of platinum, viz. the proton carrier required for the ammonia formation. Most commonly, this source of protons is ethanol. 7, 23, 35-37 Hence, we assessed the impact of C2H5OH on the HOR in tetrahydrofuran. Optimistically, the initial response of Pt/C recorded at 0 rpm in the presence of 0.1 M ethanol and 2.0 M LiNTf2 was similar to that obtained under the same (dry) conditions with no NRR proton source added (Figure S4). At lower electrolyte concentra…
-- next_paragraph_preview: Overall, the degradation of platinum was found to occur more quickly in wet conditions, indicating the importance of water to the poisoning mechanism(s). Under dry conditions, the loss of activity occurred to a less significant degree and was dependent on the delivery of the electrolyte solution to the catalytic surface. This strongly suggests the interference of some of the dissolved species preferentially binding with catalytic sites. Most likely, these species are the anion NTf2 -and/or unidentified impurities present in the LiNTf2 salt, as concluded from the comparison…
-- evidence_roles: validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "FT ac voltammetric experiments were undertaken for Pt/C and PtRu/C catalysts at an amplitude Δ E = 0.080 V, which was sufficient to induce sufficiently high level of non-linearity in the currentpotential response, and a fundamental frequency f = 9.02 Hz. Measurements at higher frequencies did not produce any additional useful information due to the low charge-transfer rates of the investigated processes and high level of uncompensated resistance in the THF-based electrolyte solutions. To decrease the level of 'ringing noise' in the inverse FT data, a hybrid window based on…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia_S059"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In some experiments, Pt/C and PtRu/C were characterised by cyclic voltammetry in aqueous 0.1 M H2SO4 after chronoamperometric oxidation of H2. Due to the incompatibility of our gas-tight cell for the aqueous electrolyte solutions with the RRDE, a conventional glassy carbon electrode was used. The sequence of these experiments was as follows: (1) a freshly deposited 3 mm stationary electrode was used to perform HOR in H2-saturated dry 0.1 M LiNTf2 tetrahydrofuran solution for 6 h under continuous H2 bubbling through the solution, which was stirred with a Teflon-lined magnet…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia_S060"}]`
-- packet_local_context_status: `insufficient`
-- packet_local_missing_types: `["reaction_family_conflict"]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `True`
-- local_reaction_family_conflict_primary_admissible: `True`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 2. eNRR performance
 
 - context_packet_id: `CP_87338415f4b71270c701fce998f2498f`
 - sample_stratum_type: `primary`
@@ -112,9 +43,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `mixed`
@@ -130,6 +63,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -163,76 +98,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 3. eNRR performance
-
-- context_packet_id: `CP_ead2cf1507b5a5874bff73ed9ade517d`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical`
-- source_span_id: `P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S080`
-- source_locator: `P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical::SEC005::PAR018::ANCHOR01`
-- raw_heading: 2.2. In situ Proton Filtering Effect on Electrocatalytic Nitrogen Reduction Reaction
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: <!-- image -->
-- target_paragraph: The role of proton filtering was further probed using control samples, viz., Tab-Bda, Ru-Tab-Bda, Tab-Dfp and Ru-Tab-Dfp , synthesized from functional binding blocks that systematically lack nitrogen-rich triazine sites but retain the Ru-coordinating pyridine unit in Ru-Tab-Dfp whereas lack both triazine sites and the Ru-NC-binding pyridine units in Ru-Tab-Bda (details in Supporting Information, Schemes S2,S3, Figure S22A-E, and Table S6, Supporting Information). The LSV curves (Figure S23a, Supporting Information) of Ru-Tta-Dfp displayed higher activity in terms of both onset potential and current density than those of other catalysts. Further, CA experiments for Ru-Tab-Bda and RuTab-Dfp (Figure S23b, Supporting Information) under similar experimental conditions, were…
-- next_paragraph_preview: The superior activity of Ru-Tta-Dfp could be attributed to the synergy between the proton filtering COF framework ( Tta-Dfp ) and the NRR active Ru-NCs uniformly distributed within the COF skeleton (Figure 2f; Figure S10, Supporting Information). The concept of in situ proton filtration in the Ru-Tta-Dfp COF catalyst was further endorsed experimentally by the NRR activity trend of control samples (Table S7 and Figure S23d, Supporting Information). To verify the true source for NH 3 production over Ru-Tta-Dfp , 15 N-labeled isotope experiments were performed along with seve…
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The electrocatalytic nitrogen reduction reaction (NRR) driven by renewable electricity provides a green synthesis route for ammonia (NH 3 ) production under ambient conditions but suffers from a low conversion yield and poor Faradaic efficiency (F.E.) because of strong competition from hydrogen evolution reaction (HER) and the poor solubility of N 2 in aqueous systems. Herein, an in situ proton filter covalent organic framework catalyst (Ru-Tta-Dfp) is reported with inherent Ruthenium (Ru) sites where the framework controls reactant diffusion by suppressing proton supply a…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S005"}, {"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "responsible for 400 million tons of carbon dioxide (CO 2 ) emissions per year. [ 2-5] Moreover, the process requires the production of reactant H 2 via steam methane reforming, which consumes ≈ 1.5% of the total world's electric energy. [ 2,3] To address these issues, more scientific attention has been focused toward electrochemical N2 reduction as a potential greener and sustainable alternative due to the utilization of water as the proton source and ambient working conditions. [ 6] However, the low solubility of N2 in aqueous media and serious competition from the less e…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S039"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The potential efficacy of Ru-Tta-Dfp toward electrochemical NRR was investigated using a two-compartment H-cell. The control sample, i.e., Tta-Dfp was also studied for NRR side by side for comparison. Prior to any NRR experiment, the gas supplies such as Ar, 14 N2, and 15 N2 were tested for any NO x or NH4 + impurities, where the presence of ≈ 0.5-2 ppm of NO x/NH4 + contaminations (Table S2, Supporting Information) were quantified by UV-vis spectroscopy and gas chromatography-mass spectrometry (GC-MS), which could lead to the overestimation of NH 3 yield. This overestimat…", "primary_admissible_gate_source": true, "roles": ["reactor"], "span_claim_scope": "target_document", "span_id": "P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S064"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Initially, linear sweep voltammetry (LSV) experiments were performed for Ru-Tta-Dfp in Ar- and N 2 -saturated 0.1 m H 2SO4 (pH 1) electrolyte. The LSV curves of Ru-Tta-Dfp ( Figure 3 a) showed no appreciable increase in the reduction current density till -0.2 V (vs RHE) in the absence of N 2 , however, as soon as the electrolyte was purged with N 2 the current density increased sharply at -0.15 V and reached -15 mA cm -2 at -0.5 V (vs RHE), which is indicative of the possible nitrogen reduction reaction by Ru-Tta-Dfp . On the contrary, Tta-Dfp showed inferior NRR activity…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S065"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["local_text_isotope_15N"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["local_text_isotope_15N"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S064"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0717_Ranjeesh_2023_An_In_situ_Proton_Filter_Covalent_Organic_Framework_Catalyst_for_Highly_Efficient_Aqueous_Electrochemical_S064"]}}`
-- paper_gate_coverage_missing: `["blank_control", "NOx_control", "contamination_control"]`
-- paper_gate_coverage_primary_admissible_missing: `["blank_control", "NOx_control", "contamination_control"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 4. eNRR performance
+## 2. eNRR performance
 
 - context_packet_id: `CP_802e4e270e31bda652ea84dcbdc092ab`
 - sample_stratum_type: `primary`
@@ -250,9 +116,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -268,6 +136,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -301,145 +171,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 5. eNRR performance
-
-- context_packet_id: `CP_0ba3fe318a0f0307b1917aa00e619e9f`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH`
-- source_span_id: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S043`
-- source_locator: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH::SEC009::PAR004::ANCHOR01`
-- raw_heading: 2.4    Activity Descriptors
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `existing_reaction_family`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: <!-- formula-not-decoded -->
-- target_paragraph: The Faradaic efficiency (FE) is calculated using Eq. 3, where 3 is the number of electrons necessary to produce one NH3 molecule, F is the Faraday constant (96,485 C mol -1 ), M is the relative molar mass of NH 3 (M = 17 g mol -1 ), and the Q is the total charge passed through the electrodes ( C ).
-- next_paragraph_preview: <!-- formula-not-decoded -->
-- evidence_roles: performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "crowding effect aid the protonation steps of NRR via an associative alternating pathway, which gives a sufficiently high yield of ammonia (211.5 μg h -1 mgcat -1 ) on the optimized BNCO (1000) catalyst with a Faradaic efficiency of 34.7% at - 0.1 V vs RHE. This work thus offers a cost-effective electrode material and provides a contemporary idea about reinforcing the charging effect over the secured active sites for NRR by selectively choosing the electrolyte anions and functionalizing the active edges of the BNCO (1000) catalyst.", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S010"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Prior to each electrolysis, the electrolyte in the cathode compartment was continuously fed with pure Ar and N 2 (99.99% purity) gases for 30 min each using properly positioned spargers so that the cathode could sufficiently get access to the gas bubbles. To ensure that pure N 2 gas was fed into the electrolyte, it was passed subsequently through 0.05 M H 2 SO4 (acid trap) and 0.1 M KOH (base trap) for extracting any adventitious NH 3 or NO x present in the gas. All presented polarization curves were steady-state ones after 10 cycles and were measured at 10 mV s -1 scan ra…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The NH 3 yield rate ( R NH3 ), normalized to mass, given by μg h -1 mgcat -1 can be calculated using Eq. 2, where C is the measured NH 3 concentration (μg mL -1 ), V is the volume of the catholyte (mL), t is the electrolysis time (h), and mg cat is the mass of the catalyst loaded on the electrode surface.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S041"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In summary, this work displayed the significant role of O and C doping within BN architecture to promote NRR on the edge B sites via associative alternating mechanism. The gradual formation of the ideal structure was systematically studied by means of XPS and the electronic properties were investigated from NEXAFS. A greater impact was found on the charging effect of B centres due to O-functionalized edges that induced a greater charge density from B to the adsorbed N 2 , overcoming the potential determining steps for NRR. This work simultaneously highlighted the importanc…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S107"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 6. eNRR performance
-
-- context_packet_id: `CP_dc6e467a103dafdfcc14f35794dc1c76`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de`
-- source_span_id: `P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S022`
-- source_locator: `P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de::SECUNK007::PAR004::ANCHOR01`
-- raw_heading: A B S T R A C T
-- direct_section_type: `abstract`
-- effective_section_type: `abstract`
-- section_type_source: `direct`
-- target_claim_type: `unsupported_claim`
-- legacy_claim_type: `unsupported_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `unclear`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `high_confidence_document`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: enzymes is that no redox mediator has to be added to the electrolyte or immobilized on the electrode surface to allow efficient electron transfer between both elements, which allows mechanistic studies of redox enzymes [5] and simplifies the design of electroenzymatic devices for different applications [4,6].
-- target_paragraph: This strategy of nano-confinement on porous electrodes could also suit for redox enzymes with two or more component proteins that must form transient complexes for catalytic activity. In that case, their entrapment would provide a high local concentration of the enzyme components with the necessary mobility for allowing transient protein complex formations and wiring to the electrode. One of such multicomponent enzymes that currently attracts great interest is Monitrogenase, which consists in two metalloproteins: the MoFe-protein and the Fe-protein. The MoFe-protein is an α 2 β 2-heterotetramer with two metalloclusters in each αβ dimer: the P-cluster (8Fe7S) located in the interface between the αβ subunits and the FeMo-co, where the N2 binds and is reduced to NH3. The…
-- next_paragraph_preview: <!-- image -->
-- evidence_roles: validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Nitrogenases accomplish the energetically challenging reduction of nitrogen to produce ammonia under mild conditions. Co-immobilization of both components of the Mo-nitrogenase from Azotobacter vinelandii on porous low-density graphite electrodes has allowed studying the electroenzymatic ammonia production in absence of any redox mediator. The entrapment of both nitrogenase proteins in an electrode with adequate pore size distribution has allowed direct electron transfer at the electrode while preserving enough mobility for their association and dissociation, which is requ…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S020"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The major interest in nitrogenases comes from being the only enzyme able to catalyze the reduction of the triple bond of N2 to NH3 [10], which is a high value commodity essential to several sectors, such as chemical, pharmaceutical and agro-food industries. Nowadays, ~90 % of industrially-produced ammonia is by the Haber -Bosch process, which is very energy-demanding and is responsible for 1 -3 % of the total CO2 emissions per year [11]. Therefore, biological production of ammonia is extensively studied because nitrogenases catalyze this reaction at ambient conditions [12]…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S028"}]`
-- packet_local_context_status: `insufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S020"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S020"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0695_García-Molina_2025_Electroenzymatic_N2_reduction_to_ammonia_by_nitrogenase_from_Azotobacter_vinelandii_immobilized_on_low_de_S020"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 7. eNRR performance
+## 3. eNRR performance
 
 - context_packet_id: `CP_1ec6a4191000243dccc6843e2043bfa8`
 - sample_stratum_type: `primary`
@@ -457,9 +189,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -475,6 +209,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -508,145 +244,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 8. eNRR performance
-
-- context_packet_id: `CP_b1d98b26a5e16b76f5fc923e4ad64ddb`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots`
-- source_span_id: `P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S048`
-- source_locator: `P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots::SEC005::PAR013::ANCHOR01`
-- raw_heading: Methods
-- direct_section_type: `methods`
-- effective_section_type: `methods`
-- section_type_source: `direct`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `existing_reaction_family`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: Determination of hydrazine . The produced hydrazine concentration was determined by the method of Watt and Chrisp. In detail, a mixture of para (dimethylamino) benzaldehyde (5.99 g), HCl (concentrated, 30 mL) and ethanol (300 mL) were used as the color reagent. 100 μ L of sample was acidized with 10 mL of 1.0 M HCl solution, and then 5.0 mL of color reagent added to the above sample solution with rapid stirring for several times. After standing at room temperature for 20 min, the UV-Vis absorption spectrum was obtained at a wavelength of 455 nm. The concentration-absorbanc…
-- target_paragraph: Calculations of NH3 yield rate (RNH3) and faradaic efficiency (FE) . The calculation of NH3 yield rate ( R NH3) is as following equation:
-- next_paragraph_preview: <!-- formula-not-decoded -->
-- evidence_roles: validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Ti plate-based two-electrode con fi gured fl ow-type electrochemical reactor . Except for high-ef fi cient electrocatalysts, design and development of high-performance electrochemical NRR reactors are also critically important for NH3 production. Several reported works have veri fi ed that the fl ow-type electrochemical reactors are very favorable for improving the NRR performance due to ef fi cient mass transport and high coverage of N2 on the catalyst 31,58,59 . In this work, a Ti plate-based two-electrode confi gured fl ow-type electrochemical reactor was therefore deve…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S025"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Isotope labeling experiments . The 14 N and 15 N isotopic labeling experiments were conducted using 14 N2 and 15 N2 as the feeding gases (99% enrichment of 15 N in 15 N 2 feeding gas, Supplied by Hefei Ninte Gas Management Co., LTD). Prior to use, 14 N 2 and 15 N2 feeding gases were pre-purged by the Cu-Fe-Al catalyst, CrO3 column, 1.0 mM H2SO4 solution (20 mL) and distilled water (20 mL) to eliminate the potential NOx and NH3 contaminants based on the reported protocols 45,46 . After the electrochemical reaction at -0.25 V ( vs . RHE) for 1 h, the reaction solution of bot…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots_S053"]}}`
-- paper_gate_coverage_missing: `["blank_control", "NOx_control"]`
-- paper_gate_coverage_primary_admissible_missing: `["blank_control", "NOx_control"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 9. eNRR performance
-
-- context_packet_id: `CP_791142977e242598569c09f23c441932`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re`
-- source_span_id: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S011`
-- source_locator: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re::SEC002::PAR006::ANCHOR01`
-- raw_heading: Understanding potential-dependent competition between electrocatalytic dinitrogen and proton reduction reactions
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `unsupported_claim`
-- legacy_claim_type: `unsupported_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: A mmonia, the main source of nitrogen fertilizers, is one of the most produced chemicals in the world (e.g., 150 million metric tons in 2019) 1 . Ammonia has been primarily produced by the Haber -Bosch process, proceeding via the net reaction of N2 + 3H2 → 2NH3. To dissociate the strong N ≡ N triple bond of N and shift the equilibrium towards ammonia, the Haber -Bosch process typically requires harsh conditions of ~400 °C and ~150 bar 2 . Hence, ammonia production is responsible for 1~2% of worldwide energy consumption. Also, a large amount of fossil fuel is consumed to pr…
-- target_paragraph: Electrochemical N2 reduction reaction (NRR) produces ammonia cleanly and sustainably via the net reaction of N2 + (6H + + e -) → 2NH3 at ambient conditions. Various catalysts have demonstrated NRR activity at room temperatures, but the yield rate and the faradaic ef fi ciency (&lt;10%) are too low for the economic production, due mainly to unwanted side reactions, i.e., hydrogen evolution reaction (HER) 5 . Theoretical studies have suggested that the theoretical limiting potential ( U L), where the all electrochemical elementary reaction steps become exothermic, for NRR, is about -1 V for various catalysts and is much more negative than U L of HER 6 . Thus, HER is expected to proceed before NRR when lowering the potential.
-- next_paragraph_preview: More quantitatively, however, potential-dependent measurements often showed that the NRR activity (NH3 yield rate) begins to decrease even at a low overpotential region 7 . For numerous catalysts (Supplementary Note 1 and Supplementary Table S1), including transition metal 8 -11 , single-atom catalyst (SAC) 12 -17 , transition metal oxides 18,19 , and non-metal catalysts 20 -22 , the maximum NRR activity (both faradaic ef fi ciency and yield rate) has been generally observed with insigni fi cant overpotentials, i.e., ~200 mV, then decreased at large overpotentials before r…
-- evidence_roles: context_hint, performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The potential-dependent NRR activity is also different from other electrochemical reactions such as an electrochemical CO2 reduction reaction (CO2RR). CO2RR also competes with HER during the reaction. We compare the catalytic activity for NRR and CO2RR at Fe single-atomic site embedded at N-doped graphene (denoted as Fe@N4), which was reported as an active catalyst for both NRR and CO2RR 13,23,24 . Here we estimate CO2RR activity and NRR activity by using turnover frequency of CO formation and NH3 yield rate, respectively. From our density functional theory (DFT) calculati…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S013"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The premature decrease of NRR activity indeed hampers to obtain reasonable NH3 yield rate at the potential region where the NRR is expected to be suf fi ciently facilitated and should be the reason for the signi fi cantly lower NH 3 yield rates in all reported cases compared to other electrochemical reactions such as CO2RR. In the case of Fe@N4, e.g., the reported yield rate of CO formation and NH3 formation is ~21 mmol h -1 m -2.24 and 0.562 mmol h -1 m -2.13 , respectively. To understand such an unusual behavior of NRR, a fundamental understanding of potential-dependent…", "primary_admissible_gate_source": false, "roles": ["performance", "validation"], "span_claim_scope": "target_document", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S014"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 1 Comparison of onset potential for CO2RR and that for NRR on Fe@N4 catalysts. a U L for CO2RR (black, CO formation) and NRR (red, NH3 formation) obtained on the Fe single-atom-embedded N-doped graphene using DFT calculations with the CHE model. b Potential-dependent measurements of turnover frequency (TOF) of CO in CO2RR (black) and NH3 yield rate in NRR (red) taken from the literature; CO TOF (pH = 6.8) is taken from Ju et al. 24 and NH3 yield rates at pH = 7.2 and 13 are taken from Lü et al. 23 and Zhang et al. 13 , respectively. Normalized CO TOF and NH3 yield rat…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S018"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 10. eNRR performance
+## 4. eNRR performance
 
 - context_packet_id: `CP_8445907ac92b6755b88015e21543c155`
 - sample_stratum_type: `primary`
@@ -664,9 +262,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -682,6 +282,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -715,76 +317,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 11. eNRR performance
-
-- context_packet_id: `CP_f81de2c66bdca057bc9ff65c4073f8b5`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m`
-- source_span_id: `P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S057`
-- source_locator: `P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m::SEC013::PAR004::ANCHOR01`
-- raw_heading: Electrocatalytic ENRR performances
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: electrolyte. The divided cells were used to carry out the experiments, and a proton conductive cation exchange membrane (Nafion 117) was adopted to separate the cathode and anode chamber. Ahead of the electrochemical tests, the 2 h electrolysis of N 2 -saturated electrolytes and Ar-saturated electrolytes with the working electrode was conducted at open circuit potential and - 0.7 V vs RHE, respectively. After that, the resulting solutions were examined by Nessler's reagent with no obvious NH 4 + detection, thus proving that there are no ammonia-like impurities in the feedi…
-- target_paragraph: At first, we explored the performances of the N@ZnS/ Zn electrodes in ENRR through the comparison of the linear sweep voltammetry (LSV) curves under Ar- and N2-saturated electrolytes (Fig. 4a). The increasing current density along with the increasing potentials is due to the competing hydrogen reduction reaction (HER) that is enhanced gradually in both LSV tests. A higher current density in N 2 -saturated electrolytes was then observed compare to the Ar-saturated ones when the applied potential was more negative than - 0.55 V vs RHE, which indicates the electrosynthesis of ammonia proceeding in the N2-saturated cell. This phenomenon further proves the effectiveness of the N@ZnS/Zn electrode in the electrocatalytic ENRR process.
-- next_paragraph_preview: Fig. 4 Electrocatalytic performance of N@ZnS/Zn electrode for ENRR. a LSV in N 2 - and Ar-saturated electrolytes; b It-curves from chronoamperometry tests under different potentials; c Calculated FE
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "electrolyte. The divided cells were used to carry out the experiments, and a proton conductive cation exchange membrane (Nafion 117) was adopted to separate the cathode and anode chamber. Ahead of the electrochemical tests, the 2 h electrolysis of N 2 -saturated electrolytes and Ar-saturated electrolytes with the working electrode was conducted at open circuit potential and - 0.7 V vs RHE, respectively. After that, the resulting solutions were examined by Nessler's reagent with no obvious NH 4 + detection, thus proving that there are no ammonia-like impurities in the feedi…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S056"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 4 Electrocatalytic performance of N@ZnS/Zn electrode for ENRR. a LSV in N 2 - and Ar-saturated electrolytes; b It-curves from chronoamperometry tests under different potentials; c Calculated FE", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S058"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "and NH 3 yield rate values at controlled potentials; d Comparison of the ammonia-sensitive selecting electrode and Nessler reagent-based colorimetric method for the quantitative analysis of FE values", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S060"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "With the evaluation of electrocatalytic performance for ENRR in hand, the long-term stability and robustness of the N@ZnS/Zn electrocatalyst were then examined. At first, a 24 h durability test was conducted at - 0.7 V vs RHE in alkaline electrolyte, and the It-curve was shown in Fig. 5a. The few fluctuations along the current density curve and a final 2.86% FE value illustrated the consistent durability of the N@ZnS/Zn electrocatalyst over a long time. Furthermore, to estimate the catalytic effectiveness of the N@ZnS/Zn electrode, five times parallel tests for 2 h each we…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S065"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S056"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S056"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_local_context", "supporting_span_ids": ["P0425_Feng_2021_Ampoule_method_fabricated_sulfur_vacancy-rich_N-doped_ZnS_electrodes_for_ammonia_production_in_alkaline_m_S056"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 12. eNRR performance
+## 5. eNRR performance
 
 - context_packet_id: `CP_57bd82bfb2787a6f23db397c222ea912`
 - sample_stratum_type: `primary`
@@ -801,10 +334,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `mixed`
@@ -820,6 +355,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -853,7 +390,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 13. eNRR performance
+## 6. eNRR performance
 
 - context_packet_id: `CP_e74a54c5593918807b6da5087ab5446a`
 - sample_stratum_type: `primary`
@@ -870,10 +407,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -889,6 +428,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -922,7 +463,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 14. eNRR performance
+## 7. eNRR performance
 
 - context_packet_id: `CP_8f41c47a61fbb8c5eb57fc1f5383a074`
 - sample_stratum_type: `primary`
@@ -940,9 +481,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `mixed`
@@ -958,6 +501,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -991,7 +536,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 15. eNRR performance
+## 8. eNRR performance
 
 - context_packet_id: `CP_2ba10faf611e8499cfea04302e6ca829`
 - sample_stratum_type: `primary`
@@ -1009,9 +554,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1027,6 +574,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1042,6 +591,517 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
 - paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
 - paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 9. eNRR performance
+
+- context_packet_id: `CP_3474e325e881365a3994701808e7c3a2`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F`
+- source_span_id: `P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S036`
+- source_locator: `P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F::SEC004::PAR004::ANCHOR01`
+- raw_heading: 3. Electrochemical performances for e-NRR
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Figure 4a shows the linear sweep voltammetry (LSV) curves of FeCoMOFP 2 W 18 in N 2 - and Ar-saturated electrolytes. The reduction current density is enhanced under N 2 atmosphere when compared with Ar within a potential window of -0.2 to 0.7 V ( vs . RHE), suggesting that in this potential range, electrocatalytic N 2 reduction occur. As depicted in the chronoamperometry test (Figure 4b and S37), the current density of FeCoMOF-P 2 W 18 increases with the increasing working potential. We have tested the e-NRR performances for all the Fe x Co y MOF-P 2 W 18 samples (Figures…
+- target_paragraph: The much lower NH 3 yield rates and FEs shown by the two homometallic samples (FeMOF-P 2 W 18 and CoMOF-P 2 W 18 ) strongly support the idea that there is a synergistic effect between Fe and Co in the bimetallic Fe x Co y MOF-P 2 W 18 materials. To further confirm this synergistic effect of Fe and Co and check the need of the P 2 W 18 in these catalyst systems for e-NRR, we have also tested the catalytic activity of P 2 W 18 and of the three Fe x Co y MOF samples (that do not contain the P 2 W 18 ). As shown in Figures 4e-f and Figures S43-S45, the performance of the bimetallic FeCoMOF sample is much lower than that of the FeCoMOF-P 2 W 18 sample, indicating that the P 2 W 18 POM is needed to obtain a good catalyst for e-NRR. Furthermore, as expected, the FeCoMOF sampl…
+- next_paragraph_preview: Figure 4. Electrocatalytic performances of FeCoMOF-P 2 W 18 : (a) LSV curves in Arand N 2 -saturated 0.1 M HCl. (b) Chronoamperometry test at various potentials. (c) UV-Vis absorption spectra. (d) NH 3 yield rates and FE obtained by the indophenol blue method. (e) NH 3 yield rates and (f) FEs for Fe x Co y MOF-P 2 W 18 and Fe x Co y MOF samples obtained by the indophenol blue method.
+- evidence_roles: context_hint, performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Precise design and construction of catalysts with satisfied performance for ambient electrolytic nitrogen reduction reaction (e-NRR) is extremely challenging. By in situ integrating an electron-rich polyoxometalate into stable metal organic frameworks, five POMOFs formulated as [Fe x Co y (Pbpy) 9 (ox) 6 (H 2 O) 6 ][P 2 W 18 O 62 ]·3H 2 O (abbreviated as Fe x Co y MOF-P 2 W 18 ) are created and directly used as catalysts for e-NRR. Their electrocatalytic performances are remarkably improved thanks to complementary advantages and promising possibilities of MOFs and POMs. In…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S006"}, {"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "When compared with these heterogeneous metal catalysts, metal-organic frameworks (MOFs) present some unique advantages as: (i) accessible Lewis acids metal sites, (ii) high porosity and large surface area for nitrogen adsorption, (iii) welldefined metal coordination environments that is beneficial to the accurate construction of the mechanism models, (iv) adjustable composition and ratio of metallic catalytic active sites. [27] This last advantage allows the preparation of bimetallic MOFs with different compositions and metal ratios with a greater potential to improve nitr…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "external_or_cited_work", "span_id": "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S010"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 4a shows the linear sweep voltammetry (LSV) curves of FeCoMOFP 2 W 18 in N 2 - and Ar-saturated electrolytes. The reduction current density is enhanced under N 2 atmosphere when compared with Ar within a potential window of -0.2 to 0.7 V ( vs . RHE), suggesting that in this potential range, electrocatalytic N 2 reduction occur. As depicted in the chronoamperometry test (Figure 4b and S37), the current density of FeCoMOF-P 2 W 18 increases with the increasing working potential. We have tested the e-NRR performances for all the Fe x Co y MOF-P 2 W 18 samples (Figures…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S035"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 4. Electrocatalytic performances of FeCoMOF-P 2 W 18 : (a) LSV curves in Arand N 2 -saturated 0.1 M HCl. (b) Chronoamperometry test at various potentials. (c) UV-Vis absorption spectra. (d) NH 3 yield rates and FE obtained by the indophenol blue method. (e) NH 3 yield rates and (f) FEs for Fe x Co y MOF-P 2 W 18 and Fe x Co y MOF samples obtained by the indophenol blue method.", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S037"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S035", "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S037"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S043"]}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S035", "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S037"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S043"]}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S043", "P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S047"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0448_Yang_2023_Efficient_Electron_Transfer_from_an_Electron_Reservoir_Polyoxometalate_to_Dual_Metal_Site_Metal_Organic_F_S043"]}}`
+- paper_gate_coverage_missing: `["blank_control", "NOx_control", "contamination_control"]`
+- paper_gate_coverage_primary_admissible_missing: `["blank_control", "NOx_control", "contamination_control"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 10. eNRR performance
+
+- context_packet_id: `CP_d797ad9ebd94c3fc26d64bff07c9c1f7`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis`
+- source_span_id: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S010`
+- source_locator: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis::SEC002::PAR005::ANCHOR01`
+- raw_heading: Salting-out effect promoting highly efficient ambient ammonia synthesis
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `mixed`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: <!-- image -->
+- target_paragraph: C onsidering the great impact of ammonia (NH3) on modern society, the ef fi cient activation of dinitrogen (N2) is currently among the most important topics 1,2 . In this context, the electrochemical nitrogen reduction reaction (NRR) under ambient conditions, as a sustainable alternative to the century-old Haber -Bosch process, has attracted growing research interest in recent years 3,4 . Despite tremendous efforts, however, ef fi cient NRRs still face great practical challenges. One of the major concerns lies in the poor accessibility of N2 molecules to the electrocatalyst, which limits the ammonia yield rate to a lower level 5 . Another signi fi cant issue arises from the intense competition with the hydrogen evolution reaction (HER), leaving nitrogen fi xation with…
+- next_paragraph_preview: The salting-out effect is a modern phenomenon, and its basic mechanism involves a change in the solubility of a nonelectrolyte in an aqueous solution with the addition of a salt 9 . Speci fi cally, when solute ions are added into the solution of a nonelectrolyte, there will be competition among them for H2O molecules. Since ions are able to attract polar H2O molecules via Coulombic interactions, this competition is won by the solute ions, and nonelectrolytes with less af fi nity for H2O molecules lose. The H2O molecules preferentially move away from the nonelectrolytes tow…
+- evidence_roles: validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The electroreduction of nitrogen to ammonia offers a promising alternative to the energyintensive Haber -Bosch process. Unfortunately, the reaction suffers from low activity and selectivity, owing to competing hydrogen evolution and the poor accessibility of nitrogen to the electrocatalyst. Here, we report that deliberately triggering a salting-out effect in a highly concentrated electrolyte can simultaneously tackle the above challenges and achieve highly efficient ammonia synthesis. The solute ions exhibit strong affinity for the surrounding H2O molecules, forming a hydr…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S008"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Here we report a strategy in which the salting-out effect in a highly concentrated electrolyte solution plays a critical role in promoting ambient ammonia synthesis. Simulations suggest both enhanced nitrogen fl ux and optimized H2O diffusibility at the reaction interface, creating an ideal environment for highly selective and active NRR. The deactivation of H2O and corresponding suppression of HER, as well as the induced nitrogen enrichment on the electrocatalyst surface, were experimentally veri fi ed by in situ observations, affording clear insight into the mechanism of…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S012"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 11. eNRR performance
+
+- context_packet_id: `CP_d51e84af411e7e0d4e12c7725f1fbfc3`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH`
+- source_span_id: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S010`
+- source_locator: `P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH::SEC002::PAR005::ANCHOR01`
+- raw_heading: HIGHLIGHTS
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: <!-- image -->
+- target_paragraph: crowding effect aid the protonation steps of NRR via an associative alternating pathway, which gives a sufficiently high yield of ammonia (211.5 μg h -1 mgcat -1 ) on the optimized BNCO (1000) catalyst with a Faradaic efficiency of 34.7% at - 0.1 V vs RHE. This work thus offers a cost-effective electrode material and provides a contemporary idea about reinforcing the charging effect over the secured active sites for NRR by selectively choosing the electrolyte anions and functionalizing the active edges of the BNCO (1000) catalyst.
+- next_paragraph_preview: KEYWORDS C-doped boron nitride; O-functionalization; Density-functional theory (DFT); Charging effect; Nitrogen reduction reaction; Ambient ammonia synthesis
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "Nitrogen reduction reaction (NRR) performed electrochemically is regarded as a green and legitimate approach of ammonia synthesis and it has been intrinsically into limelight over the world-wide research community, not only because of the immense use of ammonia in the agriculture and transportation sector, but also due to urge to resolve the fallacies associated with the process [1-3]. Primarily, the eternal problem persisting with NRR is the predominance of the combative hydrogen evolution reaction (HER) at the same potential range, which overpowers NRR over most of the c…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "unclear", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S022"}, {"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "active site yielding 211.5 μg h -1 mgcat -1 NH3 and with a FE of 34.7% at - 0.1 V vs RHE. H 2 SO4 and H 3 PO4 caused a crowding effect because of the bulkiness of anions hindering the passage of N 2 and also bound with the B site through O end (SO 4 2and PO 4 3serving as better Lewis bases than N2), partly poisoning the active site. This study thus brings to the fore the importance of catalyst development as well as selectivity of electrolyte for an unperturbed and high yield of ammonia.", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S027"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Prior to each electrolysis, the electrolyte in the cathode compartment was continuously fed with pure Ar and N 2 (99.99% purity) gases for 30 min each using properly positioned spargers so that the cathode could sufficiently get access to the gas bubbles. To ensure that pure N 2 gas was fed into the electrolyte, it was passed subsequently through 0.05 M H 2 SO4 (acid trap) and 0.1 M KOH (base trap) for extracting any adventitious NH 3 or NO x present in the gas. All presented polarization curves were steady-state ones after 10 cycles and were measured at 10 mV s -1 scan ra…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In summary, this work displayed the significant role of O and C doping within BN architecture to promote NRR on the edge B sites via associative alternating mechanism. The gradual formation of the ideal structure was systematically studied by means of XPS and the electronic properties were investigated from NEXAFS. A greater impact was found on the charging effect of B centres due to O-functionalized edges that induced a greater charge density from B to the adsorbed N 2 , overcoming the potential determining steps for NRR. This work simultaneously highlighted the importanc…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S107"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0962_Biswas_2022_Oxygen_Functionalization-Induced_Charging_Effect_on_Boron_Active_Sites_for_High-Yield_Electrocatalytic_NH_S035"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 12. eNRR performance
+
+- context_packet_id: `CP_fe2ea5b096df0bd306144ce0b3d28936`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re`
+- source_span_id: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S037`
+- source_locator: `P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re::SEC003::PAR018::ANCHOR01`
+- raw_heading: Results
+- direct_section_type: `results`
+- effective_section_type: `results`
+- section_type_source: `direct`
+- target_claim_type: `unsupported_claim`
+- legacy_claim_type: `unsupported_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: We note that the bulk pH and pH near the active site (i.e., local pH) are different due to the accumulated ions (e.g., OH -) at the interface during the reaction. To fully investigate the effect of local pH on energetics, pH should be explicitly considered in the DFT calculations, yet highly challenging due to the computational cost in large-scale explicit simulations. Instead, previous studies assessed the pH effect by considering the change in the activity of ions (the method used in our study) and were able to reproduce the experimental trend 58 -60 . Here we use relati…
+- target_paragraph: For all reaction conditions, we fi nd that the relative NH 3 yield rate (denoted as r NH3 ) has a volcano shape at the low overpotential region (Fig. 6a), similar to the experiments (Fig. 1). The maximum r NH3 is obtained at -0.275 (pH = 13), -0.575 V (pH = 7.2), and -0.20 V (pH = 0). Interestingly, this U at maximum r NH3 ( -0.20 ~ -0.575 V) is highly more positive than theoretical limiting potential ( U L) for NRR of -1.29 V (Supplementary Fig. 11), indicating that the r NH3 decreases prematurely even before reaching the theoretical limiting potential needed to drive the reaction. Noticeably, the θ N2 also has a volcano shape and the U at maximum θ N2 is very similar, differing by ~0.1 V from the U at maximum r NH3 (Supplementary Table 5). This result indicates that…
+- next_paragraph_preview: To further estimate the effect of HER on potential-dependent behavior of NRR, we performed the MKM simulations without considering HER, corresponding to an ideal environment in which NRR proceeds without competing with HER. The r NH3 without HER is obtained by normalizing the values with the maximum value of r NH3 with HER. Without the HER, the premature decrease of r NH3 and θ N2 are not observed (Fig. 6a). We fi nd that the r NH3 and θ N2 continuously increases with negative U in all reaction conditions, clearly suggesting that the occurrence of early maximum in r NH3 or…
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The premature decrease of NRR activity indeed hampers to obtain reasonable NH3 yield rate at the potential region where the NRR is expected to be suf fi ciently facilitated and should be the reason for the signi fi cantly lower NH 3 yield rates in all reported cases compared to other electrochemical reactions such as CO2RR. In the case of Fe@N4, e.g., the reported yield rate of CO formation and NH3 formation is ~21 mmol h -1 m -2.24 and 0.562 mmol h -1 m -2.13 , respectively. To understand such an unusual behavior of NRR, a fundamental understanding of potential-dependent…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S014"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Microkinetic modeling . To further investigate how the surface coverages and NRR activity change by U , we performed an MKM based on the potential-dependent energetics of NRR and HER obtained from the CEP model (Fig. 6a) described above. For HER, only the Volmer -Heyrovsky reaction is considered, as the Volmer -Tafel pathway is much less active on Fe@N4 (Supplementary Note 5 and Supplementary Figs. 14 and 15). The details on the MKM and energetics are in Supplementary Note 6. As the NRR activity was measured at pH = 13 (0.1 M KOH) 13,14 and pH = 7.2 (0.1 M PBS) 23 in the e…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S035"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "We note that the bulk pH and pH near the active site (i.e., local pH) are different due to the accumulated ions (e.g., OH -) at the interface during the reaction. To fully investigate the effect of local pH on energetics, pH should be explicitly considered in the DFT calculations, yet highly challenging due to the computational cost in large-scale explicit simulations. Instead, previous studies assessed the pH effect by considering the change in the activity of ions (the method used in our study) and were able to reproduce the experimental trend 58 -60 . Here we use relati…", "primary_admissible_gate_source": true, "roles": ["performance", "validation"], "span_claim_scope": "target_document", "span_id": "P0245_Choi_2021_Understanding_potential-dependent_competition_between_electrocatalytic_dinitrogen_and_proton_reduction_re_S036"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 13. eNRR performance
+
+- context_packet_id: `CP_e218be1367f4ea28110a54e1d8dbbaaa`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr`
+- source_span_id: `P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr_S014`
+- source_locator: `P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr::SEC002::PAR007::ANCHOR01`
+- raw_heading: TOC
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Electrocatalytic tests were undertaken in aqueous 0.5 M K2SO4 having initial pH of 3.5 as in Ref. 12 . In agreement with our previous report, 13 bismuth and Au/C provided unmeasurable rates of the electroreductive synthesis of NH3 (Figure S2). Thus, we conclude that both are catalytically inactive for the NRR in aqueous 0.5 M K2SO4.
+- target_paragraph: To reconcile the above conclusion 13 with the literature reporting the opposite, 12 we examined alternative pathways for electrochemical NH3 generation at rates in excess of 100 pmol s -1 cm -2 , viz. through the reduction of ionic and/or gaseous NO x species. Electrocatalytic tests were undertaken under the same conditions as for the NRR, but in the presence of intentionally introduced nitrite, nitrate, NO, or NO2. When tested in this manner, Bi did not show evidence of NO3 reduction to NH3 over 1 h chronoamperometric tests at -0.65 V vs. reversible hydrogen electrode (hereinafter, all potentials are reported vs. RHE) (Figure 1a-c, g). Under the same conditions, NO2 -was reduced to NH3 over Bi, though with the rate of only 0.9 ± 0.2 × 10 2 pmol s -1 cm -2 (faradaic ef…
+- next_paragraph_preview: Further experiments focused on the reduction of gaseous NO, synthesised chemically by the reaction of copper metal and HNO3, and then introduced through the electrolyte solution using Ar carrier gas; this provided a concentration of dissolved NO of ca 1 mM (Figure S4). Efficient reduction of NO was detected by voltammetry and chronoamperometry for both Bi (Figure 1ab) and Au/C (Figure 1d-e). During potentiostatic experiments, ammonia was produced (Figure 1c and f) via the NO reduction at a yield rate of 6 ± 2 × 10 2 pmol s -1 cm -2 at -0.65 V for Bi and 8.1 ± 0.9 × 10 2 pm…
+- evidence_roles: context_hint, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The results presented herein unambiguously demonstrate that neither nanoparticulate carbonsupported gold, nor bismuth powder are active catalysts for the electrocatalytic dinitrogen reduction, but both can efficiently catalyse the electroreduction of NO2 - , NO3 -, NO and NO2 to ammonia in an aqueous electrolyte solution. Importantly, reduction of gaseous oxidised forms of nitrogen to NH3 is more facile and occurs at significantly less negative potentials than that of nitrate and nitrite anions.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr_S007"}, {"claim_ownership": "general_literature", "document_genre": "primary_research", "document_scope": "background_or_review", "preview": "Electrochemical nitrogen reduction reaction (NRR) is a sustainable technology for the production of ammonia. However, the NRR field currently struggles to achieve practical yield rates beyond the background levels of adventitious NH3 and oxidised forms of nitrogen (NO x ). 1-2 Electroreduction of the latter is both thermodynamically and kinetically more facile than that of N2 3-7 and is likely to be the origin of many recent reports on 'successful' NRR. 1-2, 8-9", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "background_or_review", "span_id": "P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr_S010"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Electrocatalytic tests were undertaken in aqueous 0.5 M K2SO4 having initial pH of 3.5 as in Ref. 12 . In agreement with our previous report, 13 bismuth and Au/C provided unmeasurable rates of the electroreductive synthesis of NH3 (Figure S2). Thus, we conclude that both are catalytically inactive for the NRR in aqueous 0.5 M K2SO4.", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr_S013"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Bismuth powder was additionally tested for its activity towards the NO2 reduction (Figure S4). In this case, the NH3 formation rate was lower than that for the NO reduction and did not exceed 3 × 10 2 pmol s -1 cm -2 (Figure S5). We also noted that NO2 interferes with the Berthelot analysis, which is another way this gas can contribute to false positive NRR results (Figure S6).", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0006_Choi_2020_Electroreduction_of_nitrates_nitrites_and_gaseous_nitrogen_oxides_a_potential_source_of_ammonia_in_dinitr_S016"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 14. eNRR performance
+
+- context_packet_id: `CP_1522975652fed3aece2dfaf3e0b85849`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient`
+- source_span_id: `P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012`
+- source_locator: `P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient::SEC002::PAR008::ANCHOR01`
+- raw_heading: Ef fi cient ammonia synthesis from the air using tandem non-thermal plasma and electrocatalysis at ambient conditions
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `mixed`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: <!-- image -->
+- target_paragraph: With an annual production of more than 175 million tonnes, ammonia(NH3)synthesized by the Haber-Bosch process at elevated temperatures and pressures has underpinned the population boom over the past century and is considered a promising carbon-neutral energy vector 1,2 . The huge energy consumption and carbon footprint of the Haber-Bosch process call for sustainable NH3 production methods that can operate under ambient conditions and make use of renewable energy sources 3,4 . One such alternative -electrochemical N2 reduction (eNRR) -has gained a surge of attention by its potential for decarbonizing NH3 production 5 -8 . While encouraging, eNRR in aqueous solution generally encounters poor NH3 yield rate (~10 -1 nmol s -1 cm -2 ) as a result of high activation barrier…
+- next_paragraph_preview: 1 AXJTU-OxfordInternational Joint Laboratory for Catalysis, School of Chemical Engineering and Technology, Xi ' anJiaotong University, Xi ' an, Shaanxi 710049, China. e-mail: guidongyang@xjtu.edu.cn Inspired by natural lightning, non-thermal plasma (NTP)-enabled N2 oxidation reaction (pNOR) has been recently studied in the fi eld of electrocatalytic NH3 synthesis 16 -20 . For example, a spark discharge NTP was used to oxidize N2 into NOx, then the generated NOx species were captured to obtain an electrolyte containing NOx -, which underwent electrochemical reduction to syn…
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "While electrochemical N2 reduction presents a sustainable approach to NH3 synthesis, addressing the emission- and energy-intensive limitations of the Haber-Bosch process, it grapples with challenges in N2 activation and competing with pronounced hydrogen evolution reaction. Here we present a tandem air-NOx-NOx --NH3 system that combines non-thermal plasma-enabled N2 oxidation with Ni(OH)x/Cu-catalyzed electrochemical NOx -reduction. It delivers a high NH3 yield rate of 3 mmol h -1 cm -2 and a corresponding Faradaic ef fi ciency of 92% at -0.25 V versus reversible hydrogen…", "primary_admissible_gate_source": true, "roles": ["performance", "validation"], "span_claim_scope": "target_document", "span_id": "P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S010"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Herein, we demonstrate an ef fi cient tandem NH3 synthesis route of pNOR-eNOx -RR by combining a spark discharge NTP for air-to-NOx conversion with Ni(OH)x/Cu-catalyzed NOx --to-NH3 electroreduction. Kinetic isotopic effect (KIE) evaluation, electron paramagnetic resonance (EPR) measurement, molecular dynamics (MD) simulations, DFT, and in situ Raman spectra results reveal that the deposition of Ni(OH)x induces improved water activation and NOx -adsorption at the interface between Ni(OH)x and Cu. The enriched Had cater to the hydrogenation needs of nitrogenous intermediate…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S014"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The spark discharge NTP was generated by a high voltage power supply (HB-C06, Foshan Hongba Electronics Co., Ltd, China), enabled by a manual contacting voltage regulator (TDGC2-0.5KVA, Zhejiang Chengqiang Electric Co., Ltd, China). The spark discharge NTP reactor consisted of a ' T ' -shaped glass tube with an inner diameter of 2 mm and two stainless-steel tubes with an inner diameter of 0.5 mm for gas inlet and plasma generation. Pure air was used as the feeding gas. 300mL and 1000mL of 1M KOH were used as electrolytes in the cathode and anode chambers, respectively. The…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S095"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_NOx_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S014"]}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_NOx_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S014"]}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_NOx_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S012"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_isotope_15N", "structured_explicit_15N"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0105_Liu_2024_Efficient_ammonia_synthesis_from_the_air_using_tandem_non-thermal_plasma_and_electrocatalysis_at_ambient_S014"]}}`
+- paper_gate_coverage_missing: `["blank_control", "ammonia_quantification"]`
+- paper_gate_coverage_primary_admissible_missing: `["blank_control", "ammonia_quantification"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 15. eNRR performance
+
+- context_packet_id: `CP_fae652f76ff73ac88308201d5767549c`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction`
+- source_span_id: `P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S008`
+- source_locator: `P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction::SEC002::PAR005::ANCHOR01`
+- raw_heading: The underappreciated role of low-energy facets in nitrogen electroreduction
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `eNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `eNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: ‡ Department of Physical and Environmental Sciences, Department of Chemistry, University of Toronto, Scarborough, Ontario, M1C 1A4, Canada
+- target_paragraph: ABSTRACT: Electrocatalytic nitrogen reduction reaction (NRR) is a promising route to replace the energy-intensive HaberBosch process. However, weak nitrogen-surface interaction impedes the reaction efficiency and demands better understanding of the catalyst surface chemistry. Here, we expand the design rules for NRR to include the low-energy smooth surfaces, in contrast to conventional wisdom favoring irregular or high-index facets, grain boundaries, and edge sites. Our Ni3S4 catalyst with low-energy facets achieves a 6.8±3.3% Faradaic efficiency (FE) for NRR, compared to 1.9±3.6% for a control of the same crystal structure and composition but with a more disordered surface. First-principles calculations reveal that the synthetic conditions allow choosing whether Ni-ri…
+- next_paragraph_preview: The electrochemical synthesis of ammonia from nitrogen using renewable electricity is an attractive alternative to the energy-intensive Haber-Bosch process, which accounts for ∽ 2% of the world's annual energy consumption and ∽ 1.5% of all greenhouse gas production. 1 However, poor nitrogen solubility in water, inertness of the nitrogen molecules, and competition with a much more efficient hydrogen evolution remain significant challenges towards finding an NRR catalyst with high FE. 2-3
+- evidence_roles: context_hint, performance, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The electrochemical synthesis of ammonia from nitrogen using renewable electricity is an attractive alternative to the energy-intensive Haber-Bosch process, which accounts for ∽ 2% of the world's annual energy consumption and ∽ 1.5% of all greenhouse gas production. 1 However, poor nitrogen solubility in water, inertness of the nitrogen molecules, and competition with a much more efficient hydrogen evolution remain significant challenges towards finding an NRR catalyst with high FE. 2-3", "primary_admissible_gate_source": false, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S009"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Surface chemistry is a key player in the catalytic activity of a material, responsible for modulating the interaction of reactant molecules and their conversion to products thereafter. 4 Yet there exist no universal design rules to achieve the highest yield for any chemical reaction of choice, especially when multiple competing catalytic pathways, yielding various orthogonal products, are possible. 5-6 Successes in electrocatalytic water splitting, hydrogen evolution or CO2 reduction are not directly transferable to NRR. 7 Sabatier principle clearly states that optimal bin…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S010"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 1. Characterization of Ni3S4 powders. (a) SEM image of Ni3S4 powder with flat facets. (b) SEM image of the control Ni3S4 powder with irregular surfaces. (c) XRD", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S012"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "at different biases; (c) comparison of FEs for samples and blank controls used for subtraction of the spurious signal; (d) the chronoamperometry results at potentials from 0.05 to -0.4 V vs. RHE.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S020"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S020"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S020"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0780_Hao_2021_Underappreciated_Role_of_Low-Energy_Facets_in_Nitrogen_Electroreduction_S020"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "NOx_control", "contamination_control", "ammonia_quantification"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "NOx_control", "contamination_control", "ammonia_quantification"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -1077,10 +1137,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `validation_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1096,6 +1158,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1147,9 +1211,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1165,6 +1231,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1215,10 +1283,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `validation_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1234,6 +1304,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1284,10 +1356,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `validation_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `none`
+- performance_evidence_signals: `[]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1303,6 +1377,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1354,9 +1430,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1372,6 +1450,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1423,9 +1503,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1441,6 +1523,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1492,9 +1576,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1510,6 +1596,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1561,9 +1649,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1579,6 +1669,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1630,9 +1722,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1648,6 +1742,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1698,10 +1794,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `validation_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1717,6 +1815,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1768,9 +1868,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1786,6 +1888,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1836,10 +1940,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `validation_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1855,6 +1961,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1906,9 +2014,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1924,6 +2034,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -1975,9 +2087,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -1993,6 +2107,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2044,9 +2160,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -2062,6 +2180,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2113,13 +2233,15 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
 - effective_reaction_family_source: `explicit_high_confidence_target_span`
 - reaction_family_correction: `False`
@@ -2131,6 +2253,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2166,75 +2290,6 @@ Gas purification or trapping is not ammonia quantification without analytical me
 
 ## 32. LiNRR performance
 
-- context_packet_id: `CP_4e6cfe9b749f168707953157767b3dcb`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac`
-- source_span_id: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S047`
-- source_locator: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac::SEC006::PAR008::ANCHOR01`
-- raw_heading: Effects of the [P6,6,6,14] + and LiNTf2 concentrations on the Li-NRR
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `LiNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: (A) Viscosity (black pluses ) and conductivity ( blue crosses ) of the 2 M LiNTf2 + [P6,6,6,14][NTf2] tetrahydrofuran solutions at 25 °C. Lines are guides to the eye. -1 th
-- target_paragraph: (B-D) Cyclic voltammetry (0.020 V s ; 20 scan; arrows show the sweep direction) (B), chronoamperograms ( E = -0.55 V vs. Li app . 0/+ ) (C), and the resulting NH3 yield rate ( diamonds ) and Li-NRR faradaic efficiencies ( bars ) (C) obtained using a one-compartment cell at 23 ± 2 °C with an isolated nickel electrode and stirred (600 rpm) 2 M LiNTf2 (THF) saturated with N2 (15 bar) and containing 0.01 ( black ), 0.05 ( red ), 0.1 ( green ) or 0.2 M ( blue ) [P6,6,6,14][NTf2]. Horizontal and vertical dashed lines in panels B-C show j = 0 mA cm -2 and E = 0 V vs. Li app . 0/+ , respectively; dashed curves in panel A are guides to the eye. Data are normalised to the geometric surface area of the electrode (0.05 ± 0.01 cm 2 ). In panels C and D, data for 0.05 and 0.1 M [P6,…
-- next_paragraph_preview: Next, we examined the effects of the LiNTf2 concentration, within the 1.0-2.5 M range, on the Li-NRR while keeping the [P6,6,6,14][NTf2] concentration fixed at a suboptimal value of 0.1 M (Figure S16). While an increase in the Li + and NTf2 concentrations can improve the electrochemical stability of the system by increasing the proportion of the cation-coordinated solvent molecules 23 and formation of dense ionic assemblies at the electrode surface, 10 it also increases the number of Li + available for the reduction and notably influences the masstransport characteristics…
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "demand. 28,29,40 by renewable electricity. 28 only, 1,14,21,28 faradaic efficiency (FE), and especially stability during long-term operation. 14,15,20,22,25,42 One of the key factors defining the Li-NRR performance is the effectiveness of the proton transfer from the anode to the cathode, which is most commonly provided by ethanol. 10,15,46 A broad range of other proton carriers has been examined and attempts to rationalise their effects on the Li-NRR productivity in terms of their p K a, Kamlet-Taft parameters and diffusion coefficients have been made, though only a few e…", "primary_admissible_gate_source": false, "roles": ["reactor"], "span_claim_scope": "external_or_cited_work", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S011"}, {"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "100 % FE of the Li-NRR generating ammonia at rates up to 500 nmol s -1 cm -2 in combination with the conventional ethanol proton carrier. 10 The preliminary short-term (6 h) tests reported in the same study also suggest that the Li-NRR performance provided by the use of the phosphonium-based proton shuttle with a 1 M LiNTf2 electrolyte (YR = 430 ± 40 nmol s -1 cm -2 ; FE = 77 ± 2%) substantially surpasses that with 0.1 M LiBF4. Moreover, unlike ethanol and other alcohols, the phosphonium cation does not generate side products through tetrahydrofuranylation and related reac…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S013"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "During the 6 h potentiostatic tests at -0.55 V vs. Li app . 0/+ under 15 bar N2, the current density transients were comparable to each other for all investigated [P6,6,6,14] + concentrations, except for 0.01 M, although 0.05 and 0.1 M provided slightly higher reduction rate during the initial hour, as compared to 0.2 M (Figure 3C). Both key Li-NRR performance metrics also achieved their highest values at the intermediate phosphonium concentrations (Figure 3D). This bellshaped dependence is consistent with previous studies on the alcohol proton carriers, 11,16,19,21 which…", "primary_admissible_gate_source": true, "roles": ["performance", "validation"], "span_claim_scope": "target_document", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "During the Li-NRR tests at -0.55 V vs. Li app . 0/+ undertaken for 6 h (Figure S16C), as also used in all experiments discussed above, a bell-shaped dependence of the ammonia yield rate on the LiNTf2 concentration was obtained with the best result of 360 ± 70 nmol s -1 cm -2 achieved at 2.0 M (Figure S18 and Table S14). However, the FE did not follow this trend and progressively increased from ca 61 to 78 ± 5 % with the decrease in the lithium salt concentration from 2.5 to 1.0 M (Figure S18 and Table S14), which was opposite to the behaviour previously found for ethanol.…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S049"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S050"]}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S050"]}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S050"]}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 33. LiNRR performance
-
 - context_packet_id: `CP_4d02e0a9600eec28c13ba865219d871a`
 - sample_stratum_type: `primary`
 - secondary_stratum_reason: `not_applicable`
@@ -2251,9 +2306,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `mixed`
@@ -2269,6 +2326,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2302,7 +2361,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 34. LiNRR performance
+## 33. LiNRR performance
 
 - context_packet_id: `CP_bed6492aa2a70a7c8f02587d54b3c74b`
 - sample_stratum_type: `primary`
@@ -2319,14 +2378,16 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
 - effective_reaction_family_source: `explicit_high_confidence_target_span`
 - reaction_family_correction: `False`
@@ -2338,6 +2399,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2371,7 +2434,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 35. LiNRR performance
+## 34. LiNRR performance
 
 - context_packet_id: `CP_50227ad4f4ceb12d6822f877c39797d5`
 - sample_stratum_type: `primary`
@@ -2389,9 +2452,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "current_study_comparative_result"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `eNRR`
@@ -2407,6 +2472,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2440,7 +2507,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 36. LiNRR performance
+## 35. LiNRR performance
 
 - context_packet_id: `CP_dafa08e065c8ba94a483d157879c8f08`
 - sample_stratum_type: `primary`
@@ -2458,9 +2525,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `mixed`
@@ -2476,6 +2545,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2509,7 +2580,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 37. LiNRR performance
+## 36. LiNRR performance
 
 - context_packet_id: `CP_a31bf1f00e4f79c426b70667fe816057`
 - sample_stratum_type: `primary`
@@ -2527,13 +2598,15 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
 - effective_reaction_family_source: `explicit_high_confidence_target_span`
 - reaction_family_correction: `False`
@@ -2545,6 +2618,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2578,145 +2653,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 38. LiNRR performance
-
-- context_packet_id: `CP_c04d987bd388d9259e271a9d918f8041`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance`
-- source_span_id: `P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S038`
-- source_locator: `P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance::SEC004::PAR011::ANCHOR01`
-- raw_heading: Electrochemical characterization of the Li-NRR system
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `LiNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: <!-- formula-not-decoded -->
-- target_paragraph: Where φ s and φ e are the solution and electrode potential, L SEI the SEI thickness, ρ SEI the resistivity of the SEI, a   the speci fi c interfacial area of the cathode and j int the interfacial current density. The third term in Equation (1) is related to SEI characteristics, which suggests that the presence of nitrogen in the SEI (most likely in the form of Li3N) has a signi fi cant effect on the SEI ' s properties 26 . We expect that the heterogeneity of multiple SEI species may result in a geometric expansion of L SEI , which increases the η Li . Similarly, previous literature reports observed an increase in the L SEI when EtOH is present in the electrolyte 27,28 . This falls in line with our voltammograms (Fig. 3a, c), wherethe η Li increases by ~0.15 V (at -60 m…
-- next_paragraph_preview: Relationship between the potential and the Li-NRR performance Chronoamperometry (CA) measurements at different E we (-3.0 V to -4.6 V) and salt concentrations (1 M and 2 M LiTFSI) under Li-NRR operation conditions were performed over the course of 4 h to study its impact on the reaction stability, R NH3 and FENH3. Due to the high solubility of NH3 in the electrolyte, the amount of volatile NH3 in the headspaceis typically negligible in autoclave systems 6,15 . Therefore, we did not use a downstream acid trap and decided to only consider the quanti fi ed NH3 in the electrol…
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "All Li-NRR experiments were carried out in a batch-type three-electrode autoclave cell (Fig. 2a and Supplementary Fig. 1), with a Cu wire as a working electrode, Pt wire as counter electrode and a delithiated sheet of LixFePO4 as reference electrode (LFP-RE). The main part of the analysis will be done with 2 M LiTFSI dissolved in 0.1 M EtOH/THF as this electrolyte was earlier identi fi ed by Du et al. as a high-performance electrolyte 6 . Additionally, we performed Li-NRR experiments with 1 M LiTFSI to analyse any possible correlations between the electrolyte concentration…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S029"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Relationship between the potential and the Li-NRR performance Chronoamperometry (CA) measurements at different E we (-3.0 V to -4.6 V) and salt concentrations (1 M and 2 M LiTFSI) under Li-NRR operation conditions were performed over the course of 4 h to study its impact on the reaction stability, R NH3 and FENH3. Due to the high solubility of NH3 in the electrolyte, the amount of volatile NH3 in the headspaceis typically negligible in autoclave systems 6,15 . Therefore, we did not use a downstream acid trap and decided to only consider the quanti fi ed NH3 in the electrol…", "primary_admissible_gate_source": true, "roles": ["performance", "validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S039"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Within the moderate E we regime between -3.2 V and -4.0 V, the FENH3 and R NH3 gradually increases to ~50% and 350 nmol s -1 cm -2 . Initial signs of breakdown and the complete breakdown of the Li-NRR starts to occur close to and below -4.0 V (high E we regime), where the j starts declining after 3 min at -4.6 V. Interestingly, the FENH3 keeps increasing with respect to E we. A similar relationship between the potential and the performance is observed using 1 M LiTFSI, but with signi fi cantly lower FENH3 and R NH3 at all examined E we (see Fig. 4e, f). To verify that NH3…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S040"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 4 | Potential dependency of the Li-mediated nitrogen reduction performance. a Chronoamperometry measurements using 2 M LiTFSI (with 0.1 M EtOH) as electrolyte. b Effect of the E we on the R NH3 and the FENH3 with 2 M LiTFSI. c Photographs of the 2 M LiTFSI electrolyte solutions post-measurement. d Photographs of different Cu electrodes with and without a SEI layer and the", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S052"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S040"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["target_text_operating_field_disclosure"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S038"]}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S040"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["target_text_operating_field_disclosure"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S038"]}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_blank_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S040"]}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["target_text_operating_field_disclosure"], "gate_detection_source": "target_text", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance_S038"]}}`
-- paper_gate_coverage_missing: `["isotope_15N", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 39. LiNRR performance
-
-- context_packet_id: `CP_1f41761e51b78c9e59b317ec35635f8e`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac`
-- source_span_id: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S034`
-- source_locator: `P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac::SEC005::PAR009::ANCHOR01`
-- raw_heading: Phosphonium alkyl chain length effects on the Li-NRR
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `LiNRR`
-- document_reaction_family: `eNRR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: and 2 M LiNTf2 to confirm that the best results are provided by 600 rpm (Figure S13, Table S12 and accompanying discussions).
-- target_paragraph: All in all, the findings summarised above imply that the Li-NRR performance with different phosphonium proton carriers cannot be interpreted only in terms of the mass-transport characteristics of the ionic species participating in the reaction. Another important parameter affecting the NH3 yield rates and faradaic efficiency in general is the composition and thickness of the solid-electrolyte interphase (SEI) layer, the importance of which has been recognised in previous research from us 7,10,11,44 and others. 15,22,25,30,48 Hence, we explored the electrode state after the experiments with different phosphonium cations using X-ray photoelectron spectroscopy (XPS).
-- next_paragraph_preview: First, it is important to highlight that no extensive, detectable with a naked eye, deposits on the working electrode surface were observed with any of the phosphonium cations examined, after the 6 h Li-NRR experiments at -0.55 V vs. Li app . 0/+ with stirring at 600 rpm (Figure S9). The relatively low thickness and/or non-uniform nature of the SEI was circumstantially confirmed by well-defined Ni 2p signals detected after the N2 reduction tests (Figure S19). Depth-profiling XPS analysis of some of the tested electrodes also demonstrated that the composition of the SEI is…
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "demand. 28,29,40 by renewable electricity. 28 only, 1,14,21,28 faradaic efficiency (FE), and especially stability during long-term operation. 14,15,20,22,25,42 One of the key factors defining the Li-NRR performance is the effectiveness of the proton transfer from the anode to the cathode, which is most commonly provided by ethanol. 10,15,46 A broad range of other proton carriers has been examined and attempts to rationalise their effects on the Li-NRR productivity in terms of their p K a, Kamlet-Taft parameters and diffusion coefficients have been made, though only a few e…", "primary_admissible_gate_source": false, "roles": ["reactor"], "span_claim_scope": "external_or_cited_work", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S011"}, {"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "100 % FE of the Li-NRR generating ammonia at rates up to 500 nmol s -1 cm -2 in combination with the conventional ethanol proton carrier. 10 The preliminary short-term (6 h) tests reported in the same study also suggest that the Li-NRR performance provided by the use of the phosphonium-based proton shuttle with a 1 M LiNTf2 electrolyte (YR = 430 ± 40 nmol s -1 cm -2 ; FE = 77 ± 2%) substantially surpasses that with 0.1 M LiBF4. Moreover, unlike ethanol and other alcohols, the phosphonium cation does not generate side products through tetrahydrofuranylation and related reac…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S013"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "First, the Li-NRR performance was compared for different phosphonium cations introduced at the same concentration of 0.1 M to 2 M LiNTf2 tetrahydrofuran electrolyte solutions, which were intensively stirred during the experiments unless stated otherwise. At potentials more negative than 0 V vs . Li 0/+ (apparent potential of the Li + reduction under examined conditions determined as explained elsewhere 7,10,44 ), quasi-stabilised cyclic voltammograms demonstrated highest reduction rates with the smallest phosphonium cation [P1,2,2,2] + , followed by [P1,4,4,4] + ( Error! R…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S027"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 2. Effects of the phosphonium alkyl chain length on the Li-NRR performance. (A-C) Cyclic voltammetry (0.020 V s -1 ; 20 th cycles; arrows show scan direction) (A), chronoamperometry at -0.55 V vs. Li app . 0/+ (B), and differential capacitance measured before the Li-NRR tests in panels A-B ( crosses and circles show data for positive- and negative-going potential directions, respectively) (C) recorded at 23 ± 2 °C in a one-compartment cell for an isolated nickel electrode in contact with stirred (600 rpm) 2 M LiNTf2 (THF) solutions saturated with N2 (15 bar) and con…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S028"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S027", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042"]}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S027", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042"]}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S027", "P0081_Nguyen_2024_Nitrogen_electroreduction_to_ammonia_with_phosphonium_proton_shuttles_Mass-transport_vs._electrode_surfac_S042"]}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 40. LiNRR performance
+## 37. LiNRR performance
 
 - context_packet_id: `CP_458e5ebeba2cdcc4957ef8d3be97fda6`
 - sample_stratum_type: `primary`
@@ -2734,15 +2671,17 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `existing_reaction_family`
+- effective_reaction_family_source: `high_confidence_document`
 - reaction_family_correction: `False`
 - document_target_reaction_family_conflict: `False`
 - span_claim_scope: `target_document`
@@ -2752,6 +2691,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2785,7 +2726,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 41. LiNRR performance
+## 38. LiNRR performance
 
 - context_packet_id: `CP_aaa42afe03d25847dbc56ef176509691`
 - sample_stratum_type: `primary`
@@ -2802,14 +2743,16 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
 - effective_reaction_family_source: `explicit_high_confidence_target_span`
 - reaction_family_correction: `False`
@@ -2821,6 +2764,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2854,7 +2799,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 42. LiNRR performance
+## 39. LiNRR performance
 
 - context_packet_id: `CP_d675268b9baf46248021e0be09fae050`
 - sample_stratum_type: `primary`
@@ -2872,9 +2817,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `eNRR`
@@ -2890,6 +2837,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -2923,76 +2872,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 43. LiNRR performance
-
-- context_packet_id: `CP_0da073d474344bdbd613949f798dd747`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r`
-- source_span_id: `P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S130`
-- source_locator: `P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r::SEC002::PAR113::ANCHOR01`
-- raw_heading: Results and Discussion
-- direct_section_type: `results_and_discussion`
-- effective_section_type: `results_and_discussion`
-- section_type_source: `direct`
-- target_claim_type: `reactor_claim`
-- legacy_claim_type: `reactor_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `False`
-- document_genre: `primary_research`
-- legacy_reaction_family: `LiNRR`
-- document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: As a complementary proof-of-concept we also showed that the LiNx layer on the Li-NRR side can be hydrogenated without the need for electrochemical steps on the PMR side. To this end, we disconnected the PMR electrochemical cell and instead bubbled H2 through the H2SO4 electrolyte. In this case, the H 2 could spontaneously dissociate into 2H* species and similarly diffuse through the Pd membrane to hydrogenate the LiNx layer. Using this method, we also recorded a measurable increase in the NH3 production rate, though not as high as when a constant current was applied on the…
-- target_paragraph: In this work, we purposely kept to very standard parameters with minimal modi fi cations to simply demonstrate the concept of enhancing Li-NRR with a PMR reactor. While the performance of this system, in terms of throughput or Faradaic ef fi ciency, does not compete with the state-of-the-art, there is plenty of unexplored avenues to further boost this. For example, increasing the pressure to the 20 Bar commonly used in Li-NRR systems stands to boost reactivity as N2 concentration is increased 15 . Further, exploring nanostructuring/thickness of the Pd or additives like H2O, O2 and other solvent/electrolyte molecules to modulate SEI properties are other readily pursuable follow up endeavors 19,20,41,42 .
-- next_paragraph_preview: Looking ahead, while Li is used in the fi eld because of the functional SEI that forms at the electrode surface in LiNRR systems but in theory other metals can also be used 43 . In practice, Ca 44 and Mg 45 were recently demonstrated as viable alternatives to Li. Other metals like Al have also been hypothesized to be active, though a substantial challenge lies in the formation of an SEI that is suf fi ciently conductive and porous towards N2, H-atom donors and NH3 43 . We believe that the expansion of the M-NRR + PMR concept may enable the use of such metals because H-tran…
-- evidence_roles: context_hint, validation
-- linked_evidence_previews: `[{"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 2 | PMR-LiNRR and solo-LiNRR system performance. a The effects of alcohol identity on the ammonia yield. The application of current to both the aqueous compartment (JPMR) ( b ) and organic compartment (JLiNRR) ( c ) were essential to maximize NH3 production. The system ' s performance was stable for the fi rst 24 h, after which the NH3 concentration reached a plateau ( d ). Finally, NH3 production", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S075"}, {"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "While our typical reaction run lasted 1 h, suf fi cient to result in a NH 3 concentration that can be reliably measured, we next attempted to probethelongevityoftheinitialiterationofthePMR-LiNRRsetup.When ( -3mAcm -2 ) was applied to both sides of the Pd foil (PMR-LiNRR), the concentration of NH3 continuously increased within a 24-hr period (Fig. 2d) and plateaued afterwards (Fig. S8), potentially due to reaching equilibrium in the batch reactor, deactivation of Pd foil or deactivation of SEI. Pd foil during PMR sustains physical deformation possibly due to microcracksform…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "external_or_cited_work", "span_id": "P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S115"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Our next endeavor entailed obtaining a mechanistic understanding of the PMR-LiNRR process and providing evidence of the function of the PMR component. To this end, we took to X-Ray diffraction (XRD) to probe the structural dynamics of the Pd layer. We fi rst acquired an XRD pattern of the pre-catalysis XRD foil, which showed the expected re fl ections of the Pd structure (Fig. 3a, bottom). Wenextplacedthe Pd foil in the PMR-LiNRR reactor and turned on the PMR current only (60 min, -3mAcm -2 ). Taking an XRD pattern immediately after this showed that the foil consisted of b…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S127"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S127"]}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S127"]}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r_S127"]}}`
-- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 44. LiNRR performance
+## 40. LiNRR performance
 
 - context_packet_id: `CP_addb4ee78968b19e3e73682b63fd930a`
 - sample_stratum_type: `primary`
@@ -3010,9 +2890,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `mixed`
@@ -3028,6 +2910,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3061,15 +2945,88 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 45. LiNRR performance
+## 41. LiNRR performance
 
-- context_packet_id: `CP_09d9b9d0e2ec847a306c6ff36e84e1ff`
+- context_packet_id: `CP_26611f276b86826c10dc1e2af801f1c1`
 - sample_stratum_type: `primary`
 - secondary_stratum_reason: `not_applicable`
-- paper_id: `P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i`
-- source_span_id: `P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i_S023`
-- source_locator: `P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i::SEC002::PAR016::ANCHOR01`
-- raw_heading: 2.2. Method to Calculate the Energy Efficiency of ENRR Works
+- paper_id: `P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis`
+- source_span_id: `P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S047`
+- source_locator: `P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis::SEC014::PAR003::ANCHOR01`
+- raw_heading: Electrochemical Alloying to Prepare LiGa in a Single-Chamber electrolyzer
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `LiNRR`
+- document_reaction_family: `LiNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `LiNRR`
+- effective_reaction_family_source: `existing_reaction_family`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Inside a single-chamber cell (Fig. 1a), t h e Ga-In-Sn liquid alloy cathode in an alumina porous crucible and the Pt (thickness: 0.5 μm)-coated Ti plate (50 mm × 15 mm × 1 mm) anode were immersed in the organic EC:DEC electrolyte containing 1.5 mol/L LiClO 4 . Before conducting the electrolysis, the ohmic resistance of the cell between the anode and the cathode was measured to be 41 Ω based on the electrochemical impedance spectroscopy (EIS) measurement (Fig. 2a). The linear sweep voltammetry (LSV) scan between the anode and the cathode was also performed in a two-electrod…
+- target_paragraph: During the electrolysis, N 2 was bubbled to stir the liquid alloy cathode at 7 cm 3 /min. As the electrolysis proceeded, the current decreased in the first few hours due to the mass transfer limitation and then gradually increased over time likely due to the solvent degradation (Fig. 2c), and the cell ohmic resistance was measured to be approximately 27 Ω at the end of the electrolysis. Meanwhile, the electrolyte color gradually turned from transparent to yellow (Fig. 2d), and then to dark brown (Fig. 2e), which was attributed to the electrochemical oxidation of the organic solvent at the anode under the high applied voltage [40, 41]. Note that, in addition to EC-DEC, we have also tried the EC-EMC (volume ratio 3:7) electrolyte, where EMC stands for the ethyl methyl ca…
+- next_paragraph_preview: Fig. 2 Preparation of LiGa by electrochemical alloying in singlechamber electrolyzer and the characterization of the cathode product. N2 gas was bubbled into the Ga-based liquid alloy cathode. a Electrochemical impedance spectroscopy results and b linear sweep voltammetry results before and after the 100-h electrolysis. Scan rate: 30 mV/s. c Time dependence of the current during the electrolysis
+- evidence_roles: context_hint, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "A desired amount of the nitridated product was transferred into a quartz crucible (ID: 35 mm; OD: 40 mm; depth: 48 mm) inside the glovebox. The quartz crucible was placed into a glass reactor (ID: 49 mm; OD: 55 mm; depth: 71 mm) with a plastic tube (OD: 3 mm) inserted for adding the proton source (e.g., 10 mL deionized water). Ar was used as the flush gas to direct the gas product into the 0.05 mol/L", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S036"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "at 6 V. Digital photographs of the reactor taken after conducting the electrolysis for d 16.5 h and e 41.5 h, respectively. f Solid product formed at the cathode inside the porous alumina crucible. g XRD and h-j high-resolution XPS characterization results of the solid product collected from the cathode. The XRD peaks for LiGa (PDF No. 09-0043) and LiOH (PDF No. 32-0564) are labeled in ( g )", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S050"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "After disassembling the reactor, dark solid product was observed inside the porous alumina crucible (Fig. 2f). Some of the solid product even adhered to the inner wall. After the separation, cleaning and drying, the solid product was characterized. The XRD pattern shows the characteristic diffraction peaks of the LiGa intermetallic alloy (Fig. 2g). Based on a previous work [43], the Ga-based liquid alloy has a high theoretical capacity for Li. During the electrolysis, the Li + in the electrolyte were reduced to metallic Li on the top surface and the side surfaces of the ca…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S052"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "To evaluate the feasibility of ammonia synthesis in such an electrolyzer, we conducted another experiment using a setup similar to that illustrated in Fig. 1a, except that the electrolyte was added with 1.4 mL ethanol as the proton source and the cathode was 1.7 mL Ga-In (weight ratio 78.6:21.4) liquid alloy inside a thinner porous alumina tube (ID: 8 mm, OD: 12 mm, height: 50 mm). During the 110-h electrolysis at 6 V, the N 2 could be reduced by the Li at the cathode to form Li 3 N, which would then react with the ethanol to produce NH 3 . The exit gas was passed to the H…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S054"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S054"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S052"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S054"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_contamination_control"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0870_Wang_2024_Preparation_of_the_LiGa_Intermetallic_Alloy_by_Electrochemical_or_Thermal_Method_for_Ammonia_Synthesis_S052"]}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "operating_field_disclosure"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification", "operating_field_disclosure"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 42. LiNRR performance
+
+- context_packet_id: `CP_ba1babd2bef4c057a317455efe6b7097`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis`
+- source_span_id: `P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S028`
+- source_locator: `P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis::SEC004::PAR015::ANCHOR01`
+- raw_heading: Chemical nature and concentration effects
 - direct_section_type: `unknown`
 - effective_section_type: `unknown`
 - section_type_source: `unknown`
@@ -3078,10 +3035,85 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `LiNRR`
+- document_reaction_family: `LiNRR`
+- document_reaction_family_confidence: `high`
+- effective_reaction_family: `LiNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: A recent study by Krishnamurthy et al. demonstrated a lack of correlation between the Li-NRR metrics and the p K a of a proton source, 15 as also observed herein (Figure S10). As alternative descriptors, Krishnamurthy et al. suggested Kamlet-Taft parameters reflecting the hydrogen bond donating ( α ) and accepting ( β ) ability. 15 Indeed, a correlation between the Li-NRR performance achieved with the compounds examined herein and their α parameters seems to exist, with an apparent maximum achieved at α ≈ 0.8-0.9 typical for alcohols (Figure 1c), though the correlation bet…
+- target_paragraph: Changing c PC of EtOH, n -PrOH, i -PrOH, [P6,6,6,14] + and HNTf2 produced qualitatively similar bell-shaped dependencies of the Li-NRR FE and yield rate (Figure S18). Obviously, this reflects the lack of protons to convert Li3N into NH3 and Li + at low concentrations and oversupply of H + promoting its reduction rather than the Li-NRR at high concentrations, respectively. Optimal c PC in terms of both Li-NRR performance metrics was the same (0.1 M) for the examined alcohols, confirming similarities in their proton donating properties. For HNTf2, the highest FE ( ca 40%) and yield rate (70 ± 30 nmol s -1 cm -2 ) were achieved at different concentrations (Figure S18), which highlights the limitations of this system due to the excessive acidity of HNTf2.
+- next_paragraph_preview: The performance of the [P6,6,6,14] + carrier could not be improved by changing the c PC with respect to the results obtained at 0.1 M (Figure S18). In our recent study undertaken in parallel with the present work, we have ascribed this to the insufficiently effective mass-transport of this bulky proton carrier in the more viscous electrolyte solution. 16 Hence, improved results might emerge from decreasing the amount of LiNTf2 -an approach that was further examined herein (Figure S15; Table S2). The highest NH3 yield rate of ca 170 nmol s -1 cm -2 ( ca 66% FE) was achieved…
+- evidence_roles: context_hint, performance, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Except for the electrolyte optimisation studies, the LiNTf2 concentration was 2 M, which provides the highest Li-NRR performance reported so far with flat electrodes. 16 Specifically, when using a bare Ni electrode and 0.1 M EtOH proton carrier, the reaction mediated by 2 M LiNTf2 produces ammonia at a rate of 230 ± 20 nmol s -1 cm -2 and FE of 86 ± 9 % during 6 h experiments at -0.55 V vs. Li app 0/+ (apparent potential of the Li 0/+ redox couple; hereinafter, all potentials are vs. this reference). With an isolated Ni electrode, the yield rate is 530 ± 20 nmol s -1 cm -2…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S013"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Voltammograms recorded after potentiostatic Li-NRR with 0.1 M H2O revealed substantial suppression of the lithiummediated reduction (Figure S5a). This is attributed to the formation of a substantial deposit on the electrode (Figure 1d) containing lithium (hydr)oxide and hydride detected by XPS 20 (Figure S20). Similar results were obtained for 0.1 M HNTf2 (Figure S21). Consistent with this degradation, ammonia was formed at low yield rates and minuscule FE in these experiments (Figure 1c).", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S019"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 1. Li-NRR performance vs. chemical nature of the proton source. (a) Cyclic voltammetry (0.020 V s -1 ; 20 th cycle; arrows show scan direction) and (b) chronoamperometry at -0.55 V vs. Li app 0/+ (note the logarithmic current density scale) with 0.1 M EtOH ( blue ), NH4NTf2 ( grey ), [P 6,6,6,14 ][eFAP] ( purple ), HNTf2 ( red ) and H2O ( red ) as proton carrier. (c) NH 3 yield rate ( diamonds ) and Li-NRR faradaic efficiency ( triangles ) plotted against Kamlet-Taft hydrogen bond donation parameter 15, 21 of the proton carrier (except NH4NTf2) added at 0.1 M concen…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S022"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "75 ± 4 % (at 140 ± 3 nmol s -1 cm -2 ) was produced with 1 M LiNTf2. Importantly, the faradaic efficiency provided by 0.1 M EtOH at 1 M LiNTf2 was only ca 45%, 16 indicating that phosphonium cation is the preferred proton carrier under these conditions, not ethanol. Even better results with the [P6,6,6,14] + and LiNTf2 electrolyte are likely to be achievable through further optimisation of the concentrations of both components and/or the use of faster-diffusing phosphonium cations with shorter alkyl chains, which is the focus of our ongoing studies.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S030"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S036"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S022"]}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S036"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_operating_field_disclosure"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S022"]}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0027_Du_2023_The_chemistry_of_proton_carriers_in_high-performance_lithium-mediated_ammonia_electrosynthesis_S036"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "operating_field_disclosure"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 43. LiNRR performance
+
+- context_packet_id: `CP_86c786ee72b231a3b918d460d7cb09c0`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient`
+- source_span_id: `P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient_S041`
+- source_locator: `P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient::SEC003::PAR020::ANCHOR01`
+- raw_heading: Mg-mediated electrochemical N2 reduction
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `eNRR`
@@ -3097,14 +3129,162 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: <!-- formula-not-decoded -->
-- target_paragraph: where W (NH3) is the electrical work (kJ mol   1 ), n is the number of moles of ammonia, N is the number of electrons transferred per molecule of ammonia (which is 3), F represents Faraday ' s constant, and FE is Faradaic efficiency. For aqueous systems, the energy efficiency can be approximated as
-- next_paragraph_preview: <!-- formula-not-decoded -->
-- evidence_roles: performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Here, Equation (3) was used to calculate W (NH3) of a nitrogen electrolyzer in nonaqueous media, where an estimate of E anode in nonaqueous media was provided. In anhydrous systems, where hydrogen was used at the anode, E anode in Equation (2) was set to 0.05 V versus RHE. [21] For systems using ethanol as sacrificial proton/electron donor, E anode in Equation (2) of 0.4 V versus RHEwas used. [20] The real-cell potential would be to some extent larger in a fully assembled electrochemical cell. [4,18] More reliable estimates for the electrical energy losses in a working dev…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i_S033"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In view of the comparison of Equation (6) with the recently published study, LHV-based energy efficiency is also real and not pseudoenergy efficiency, but it is, by definition, lower as it uses a lower value in the numerator term (LHV = 317 kJ mol \u0000 1 , which is lower than 339 kJ mol \u0000 1 ). Equation (6) does not contain electrical work created during the ammonia formation from nitrogen and hydrogen in the denominator term (see Section S6, page S32, Supporting Information for clarification and ref. [18]). Briefly, this work amounts to \u0000 16.5 kJ mol \u0000 1 ammonia and is neglig…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i_S034"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "On a higher technology readiness level, Lazouski and coworkers [4] used stainless steel cloth-based (SSCs) support as cathode and anode support to overcome hydrogen and nitrogen gas diffusion limitation of Li-mediated ENRR, respectively. They electrodeposited platinum onto the SSCs to be used as anode, as stainless steel is a poor hydrogen oxidation catalyst, and lithium metal was plated in situ onto SSC substrate applied as cathode. Despite the high FE of 47.5% at ambient conditions, the cell potential was high 20 -30 V, and the system was only stable for a short time. Hi…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i_S063"}]`
+- previous_paragraph_preview: A high level of variability was observed in the ammonia yield rates and faradaic efficiencies in repeated experiments under otherwise identical conditions ( Figure 4b-c ), which might be associated with the lack of control over the Mg 0 growth, as evidenced by differences in the current transients (Figure S12S13). This variation affects the active surface area of freshly produced Mg 0 available for the interaction with N2, and thereby the amount of NH4 + obtained. Indeed, experiments that produced the highest ammonia yields among the data shown as blue symbols in Figure 4b…
+- target_paragraph: situation where growth of fragile extended deposits occurred. Aiming to facilitate the growth of such Mg 0 dendrites, some of the experiments were undertaken with the auxiliary electrode positioned at a decreased distance from the working electrode to provide more favourable electric field arrangement (Figure S14). Although the reproducibility was not perfect, the amount of NH4 + derived from these tests and the faradaic efficiency were above average (Table S2 and purple symbols in Figure 4b-d ). However, moving the electrodes too close to each other might have also resulted in short-circuiting (Figure S14b). Although none of the experiments was observed to produce a permanent hard short-circuit, some have produced anomalous charge values higher than that required to r…
+- next_paragraph_preview: added (Table S2); this might indicate transient soft shortcircuiting ( i.e. via a very high ohmic resistance) and the corresponding high-current spikes observed in some of the most productive tests (Figures S12-S13). In the absence of notable short-circuiting, the best NH4 + yield achieved herein was ca 48 μmol, which corresponds to a yield rate of ca 66 nmol s -1 cm -2 and a faradaic efficiency of ca 7 %.
+- evidence_roles: performance, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The Li-mediated nitrogen reduction enables practical synthesis of ammonia, but its energy efficiency is limited by the Li 0/+ redox potential. To improve on this, a mediator with a more positive potential, like Mg 0/2+ , is required. Herein, we demonstrate that electrodeposited Mg 0 reacts with N2 at a close-to-ambient temperature, and the resulting material can be converted into NH4 + . This two-step process can produce ammonium with faradaic efficiency of up to 7% and yield rate up to 66 nmol s -1 cm -2 .", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient_S003"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "added (Table S2); this might indicate transient soft shortcircuiting ( i.e. via a very high ohmic resistance) and the corresponding high-current spikes observed in some of the most productive tests (Figures S12-S13). In the absence of notable short-circuiting, the best NH4 + yield achieved herein was ca 48 μmol, which corresponds to a yield rate of ca 66 nmol s -1 cm -2 and a faradaic efficiency of ca 7 %.", "primary_admissible_gate_source": true, "roles": ["performance", "validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient_S042"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In this proof-of-concept study, the Mg 0/2+ -based N2 reduction enabled formation of NH4 + with yield rates of the order of dozens nmol s -1 cm -2 and faradaic efficiency &lt; 10%. While the rate of the reaction is reasonably high, the current-to-product efficiency is lower than for the Li-NRR. 13-20 However, one can hope that future research might bring the selectivity of the Mgbased process to a practical level. Specifically, further work should focus on the optimisation of the electrolyte to avoid BH4 and thereby allow the introduction of the proton carrier into the cat…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0965_Krebsz_2024_Reduction_of_dinitrogen_to_ammonium_through_a_magnesium-based_electrochemical_process_at_close-to-ambient_S047"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification", "operating_field_disclosure"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "ammonia_quantification", "operating_field_disclosure"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 44. LiNRR performance
+
+- context_packet_id: `CP_96104cc308ae5dbb613fae448db78e47`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes`
+- source_span_id: `P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S175`
+- source_locator: `P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes::SEC015::PAR006::ANCHOR01`
+- raw_heading: Conclusion
+- direct_section_type: `conclusion`
+- effective_section_type: `conclusion`
+- section_type_source: `direct`
+- target_claim_type: `reactor_claim`
+- legacy_claim_type: `reactor_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `unclear`
+- document_reaction_family: `LiNRR`
+- document_reaction_family_confidence: `high`
+- effective_reaction_family: `LiNRR`
+- effective_reaction_family_source: `high_confidence_document`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Interestingly, the lithium salt concentration emerged as the most impactful factor in the system, supporting the importance of electrolyte environment at the interface and consequent SEI layer formation. Moreover, the results from the statistical analysis confirmed a sharp variation in the FE with changes in EtOH vol% and the anion chemistry, coherently with the different SEI layer composition observed with chemical-physical characterizations. The pivotal role of the SEI layer was confirmed, as well as the necessity to control all the cell parameters when designing its for…
+- target_paragraph: Moreover, the benefits of employing LiFOB as salt in the electrolyte were assessed for the batch setup, reaching a FE higher than the one obtained with LiBF4. These improvements are ascribed to the tailoring of a different SEI layer with LiFOB, characterized by a sufficient N2 permeability for batch systems, but without compromising the threshold of the necessary mechanical stability of this layer to avoid the continuous electrolyte degradation. Indeed, LiFOB decomposition was expected to form both fluorinated species, desired to stabilize the layer, and organic and oxygenated species, enhancing the affinity to N 2 of the SEI layer, to achieve the proper reactants ratio on the cathode towards NH3 production. Thanks to the response surface methodology analysis, it was p…
+- next_paragraph_preview: In conclusion, LiFOB is presented as a promising substitute for LiBF4 and Doehlert design as an adequate statistical tool to investigate and optimize the electrolyte. As future outlook, this tool could be further implemented to study the effect on the system of additional (up to five) parameters. Interesting parameters that could be deepened to achieve a better understanding of the system are the H2O content and the applied electrochemical protocol, which were maintained constant in this study, but resulted to strongly affect the system from preliminary tests. The combinat…
+- evidence_roles: performance, process, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To investigate the role of LiF in the SEI layer, the use of FEC as an additive to enrich the SEI layer with LiF was initially evaluated. FEC 5 wt% was added to a standard LiNRR electrolyte (LiBF4 1 M with EtOH 1 vol% in tetrahydrofuran, THF) and tested employing the batch cell system pressurized at 20 bar. As shown in the linear sweep voltammetry (LSV) graph ( Figure S1 ), the addition of FEC in the electrolyte resulted in an expected additional reduction peak between 1.0 and 1.4 V vs. Li + /Li, ascribed to FEC reduction, as already reported in lithium batteries-related li…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S048"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The total charge passed was also controlled in all tests and set to 20 C, as this value ensured sufficient NH3 production for accurate and precise IC detection. Higher charges would extend the test duration without necessarily increasing the total NH3 accumulated in the electrolyte. Considering that the experiments were performed in a single-compartment glass batch cell with a platinum mesh anode, the produced NH3 could be oxidized at the anode during the current imposition step. [12] As a matter of fact, a test using the same protocol with LiBF4 1 M and EtOH 1 vol% in THF…", "primary_admissible_gate_source": true, "roles": ["reactor"], "span_claim_scope": "target_document", "span_id": "P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S128"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "215213773O22025O28O2Downloaded2from2https://onlinelibrary.wiley.com/doi/10.1002/anie.2024160272by2Politecnico2Di2Torino2Sist.2Bibl2Del2Polit2Di2TorinoO2Wiley2Online2Library2on2[25/02/2025].2See2the2Terms2and2Conditions2-https://onlinelibrary.wiley.com/terms-and-conditions02on2Wiley2Online2Library2for2rules2of2use;2OA2a the selected range. The presence of a maximum in the LiFOB concentration could be related to the presence of double bonds in the LiFOB molecule (i.e., two C = O groups). As previously hypothesized, the double bonds could lead to a continuous electrolyte degr…", "primary_admissible_gate_source": true, "roles": ["reactor"], "span_claim_scope": "target_document", "span_id": "P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S140"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Interestingly, the lithium salt concentration emerged as the most impactful factor in the system, supporting the importance of electrolyte environment at the interface and consequent SEI layer formation. Moreover, the results from the statistical analysis confirmed a sharp variation in the FE with changes in EtOH vol% and the anion chemistry, coherently with the different SEI layer composition observed with chemical-physical characterizations. The pivotal role of the SEI layer was confirmed, as well as the necessity to control all the cell parameters when designing its for…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S174"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S128"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S128"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0059_Mangini_2025_Multivariate_approaches_boosting_lithium-mediated_ammonia_electrosynthesis_in_different_electrolytes_S128"]}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "operating_field_disclosure"]`
+- paper_gate_coverage_primary_admissible_missing: `["isotope_15N", "blank_control", "NOx_control", "contamination_control", "operating_field_disclosure"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 45. LiNRR performance
+
+- context_packet_id: `CP_b2b703882e0606898cee94e834ab02af`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0115_Goyal_2025_LiVO_3_LiZnVO_4_Nanocomposite_High_Performance_Electrocatalyst_for_Ambient_Nitrogen_Reduction_to_Ammonia`
+- source_span_id: `P0115_Goyal_2025_LiVO_3_LiZnVO_4_Nanocomposite_High_Performance_Electrocatalyst_for_Ambient_Nitrogen_Reduction_to_Ammonia_S005`
+- source_locator: `P0115_Goyal_2025_LiVO_3_LiZnVO_4_Nanocomposite_High_Performance_Electrocatalyst_for_Ambient_Nitrogen_Reduction_to_Ammonia::SEC001::PAR003::ANCHOR01`
+- raw_heading: LiVO3/LiZnVO4 Nanocomposite: High Performance Electrocatalyst for Ambient Nitrogen Reduction to Ammonia
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `LiNRR`
+- document_reaction_family: `eNRR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `LiNRR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Naina Goyal, Dhamotharan Dharmasigamani, Fabio Pires, Ravi Kumar, and Sanjay Mathur*
+- target_paragraph: The electrocatalytic nitrogen reduction reaction (e-NRR) has emerged as a sustainable alternative to the energy-intensive Haber -Bosch process for ammonia (NH3) synthesis. Lithium-based electrocatalysts are particularly promising due to the high thermodynamic affinity of lithium toward nitrogen, which facilitates spontaneous N2 adsorption to lower the activation energy required for dinitrogen dissociation. By promoting proton-coupled electron transfer and stabilizing NRR intermediates, the composite catalyst enhances reaction kinetics, enabling efficient NH3 production. While nonaqueous lithiumcontaining electrolytes suppress the hydrogen evolution reaction, lithium deposition from electrolyte decomposition inhibits e-NRR. This study addresses the challenge by structur…
+- next_paragraph_preview: ## 1. Introduction
+- evidence_roles: none
+- linked_evidence_previews: `[]`
 - packet_local_context_status: `sufficient`
 - packet_local_missing_types: `[]`
 - family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
@@ -3132,144 +3312,6 @@ Gas purification or trapping is not ammonia quantification without analytical me
 
 ## 46. NO3RR performance
 
-- context_packet_id: `CP_56c2c815d109f939dca8bf5b36946c6f`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction`
-- source_span_id: `P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction_S026`
-- source_locator: `P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction::SEC003::PAR005::ANCHOR01`
-- raw_heading: NO3RR performance evaluation
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `NO3RR`
-- document_reaction_family: `NO2RR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `NO3RR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: To further elucidate intrinsic activity differences, the electrochemical active surface area (ECSA) of each catalyst was evaluated via double-layer capacitance (Cdl) measurements within the non-faradaic potential region, while interfacial charge transfer kinetics were probed by electrochemical impedance spectroscopy (EIS). As shown in Figs. S4-S6 and Fig. 2d, the C dl value of Fe2Co1/NC (34.0 mF cm -2 ) signi fi cantly exceeds that of Fe/NC (11.1 mF cm -2 ) and Co/NC (14.2 mF cm -2 ), for different scanning rates from50 mV s -1 to 100 mV s -1 . This indicates a larger ECSA…
-- target_paragraph: Catalyst stability, a critical metric for practical implementation, was rigorously evaluated for Fe 2 Co1/NC. Cyclic electrolysis tests at -1.0 V vs . RHE over six cycles (Fig. 2f) demonstrate almost constant FEs and NH3 production rates, indicating exceptional cycling stability. Furthermore, a 40hour durability test (Fig. 2g) reveals stable current density without decay, con fi rming long-term operational robustness. After the catalytic reaction, the Fe2Co1/NCcatalyst maintains its original porous morphology (Fig. S7), with no noticeable structural changes observed. Additionally, a comparison of the pre- and post-reaction XPS spectra (Fig. S8) shows no signi fi cant differences. These fi ndings collectively demonstrate the excellent electrochemical stability of Fe2Co1…
-- next_paragraph_preview: Fig. 2 | Electrocatalytic NO3RR assessment. a The LSV curves for Fe2Co1/NC, Fe/ NCandCo/NC. b Comparative FEs and NH3 production rate of FeXCoY/NC, Fe/NC and Co/NC at different potentials. c Potential-dependent FEs and NH3 yield for
-- evidence_roles: context_hint, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To evaluate the NO3RR performance of the synthesized catalysts, a series of electrochemical measurements were conducted using a conventional threeelectrode system in an H-battery con fi guration. Linear sweep voltammetry (LSV, Fig. 2a) tests in 0.1 M K 2 SO4 and 0.1 M KNO3 electrolytes reveals that the Fe2Co1/NC catalyst exhibits a more rapid increase in current density with negative potential progression compared to Co/NC and Fe/NC counterparts, demonstrating superior catalytic activity for NO3RR.Notably, Fe2Co1/NC achieves a signi fi cantly enhanced current density of -8…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction_S023"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To further elucidate intrinsic activity differences, the electrochemical active surface area (ECSA) of each catalyst was evaluated via double-layer capacitance (Cdl) measurements within the non-faradaic potential region, while interfacial charge transfer kinetics were probed by electrochemical impedance spectroscopy (EIS). As shown in Figs. S4-S6 and Fig. 2d, the C dl value of Fe2Co1/NC (34.0 mF cm -2 ) signi fi cantly exceeds that of Fe/NC (11.1 mF cm -2 ) and Co/NC (14.2 mF cm -2 ), for different scanning rates from50 mV s -1 to 100 mV s -1 . This indicates a larger ECSA…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction_S025"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 2 | Electrocatalytic NO3RR assessment. a The LSV curves for Fe2Co1/NC, Fe/ NCandCo/NC. b Comparative FEs and NH3 production rate of FeXCoY/NC, Fe/NC and Co/NC at different potentials. c Potential-dependent FEs and NH3 yield for", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0747_Yang_2025_Dual-function_FeCo_bimetallic_nanoclusters_for_ammonia_electrosynthesis_from_nitrate_nitrite_reduction_S027"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 47. NO3RR performance
-
-- context_packet_id: `CP_847075d09bb912823e41fc24388801f8`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film`
-- source_span_id: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S059`
-- source_locator: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film::SEC013::PAR002::ANCHOR01`
-- raw_heading: Electrochemical performance
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `NO3RR`
-- document_reaction_family: `NO3RR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `NO3RR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: ## Electrochemical performance
-- target_paragraph: We investigated the electrocatalytic activity of the material with cyclic voltammetry in 1.0 mol L - 1 NaOH and subsequently in the presence of 20 mmol L - 1 NaNO 3 . In alkaline solution without nitrate, the voltammogram shows an initially low current density that gradually increases from + 0.1 V vs. RHE (Fig. 2a), associated with hydrogen adsorption on the surface [53]. A pronounced rise in current is observed from 0.0 V vs. RHE, corresponding to the hydrogen evolution reaction (HER), which competes with the nitrate reduction reaction (NO 3 RR) under these conditions [9, 27 ]. In the presence of nitrate, a significant increase in current density is detected from + 0.3 V vs. RHE, indicating the onset of electrocatalytic activity toward NO 3 RR, since no Faradaic proce…
-- next_paragraph_preview: <!-- image -->
-- evidence_roles: performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "Recent strategies for engineering Ru-based electrocatalysts have focused on precise control of morphology, electronic structure, and oxidation state to maximize the activity toward NO 3 RR. Wang and co-workers prepared structurally disordered RuO 2 nanosheets rich in oxygen vacancies via a defect-engineering strategy and achieved markedly enhanced nitrate electroreduction performance, which was attributed to promoted charge transfer and optimized adsorption of nitrogen-containing intermediates at vacancy sites [23]. Ji and collaborators synthesized atomically dispersed Ru…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "external_or_cited_work", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S019"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "+ 0.1, 0.0, and - 0.1 V vs. RHE for 1 h in 1.0 mol L - 1 NaOH containing 20 mmol L - 1 NaNO 3 to evaluate the Faradaic efficiency (FE) and yield rate (YR) for ammonia production. The FE for ammonia reached a maximum of 71.20 ± 11.81% at 0.0 V vs. RHE (Fig. 2b), a value comparable with other Ru-based oxide materials recently reported in the literature (Table S1). The YR for ammonia reached the maximum of 39.25 ± 0.92 µmol h - 1 cm - 2 at 0.0 V vs. RHE and remained constant at -0.1 V vs. RHE (Fig. 2c). Although the YR at", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S066"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To evaluate the stability of the Ru-RuO 2 composite, we performed consecutive chronoamperometry experiments at 0.0 V vs. RHE, the potential with the highest Faradaic effi -ciency for ammonia, under identical conditions. The electrolyte was renewed for each electrolysis, and FE and YR were determined to monitor catalytic performance (Fig. 2d). The first 1 h cycle exhibited a FE of approximately 73%. In the following six cycles, each lasting 2 h, the FE stabilized at an average of 40 ± 2.9%, while the YR remained around 14.3 ± 6.7 µmol h - 1 cm - 2 . The current density prof…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S069"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The highly roughened Ru-RuO 2 electrocatalyst was successfully synthesized by a cost-effective electrodeposition route under mild conditions, yielding a surface composed of intimately distributed metallic and oxidized Ru species. Under optimized conditions at 0.0 V vs. RHE, the catalyst achieved a maximum Faradaic efficiency of 71% for ammo -nia production and a yield rate of 39.2 µmol h - 1 cm - 2 . During prolonged electrolysis at the same applied potential, the catalytic surface evolved toward a stabilized Ru(0)/Ru(IV) proportion, sustaining nitrate to ammonia conversio…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S075"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 48. NO3RR performance
-
 - context_packet_id: `CP_9cd5a28fd68024b1ac04082eac72df50`
 - sample_stratum_type: `primary`
 - secondary_stratum_reason: `not_applicable`
@@ -3285,10 +3327,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -3304,6 +3348,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3337,7 +3383,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 49. NO3RR performance
+## 47. NO3RR performance
 
 - context_packet_id: `CP_541c756918185040855b03dbed33f11d`
 - sample_stratum_type: `primary`
@@ -3354,10 +3400,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -3373,6 +3421,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3406,7 +3456,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 50. NO3RR performance
+## 48. NO3RR performance
 
 - context_packet_id: `CP_083bdcbd796e54eaaec806bd6730b2ea`
 - sample_stratum_type: `primary`
@@ -3424,9 +3474,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -3442,6 +3494,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3475,145 +3529,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 51. NO3RR performance
-
-- context_packet_id: `CP_bbac6ad597ba15bfd56e1cf589262cf1`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets`
-- source_span_id: `P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S284`
-- source_locator: `P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets::SEC021::PAR081::ANCHOR01`
-- raw_heading: Investigations of the catalytic activity on Fe-MoS2
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `NO3RR`
-- document_reaction_family: `NO3RR`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `NO3RR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: We assessed the charge transfer resistance (R CT) at the interface between Fe-MoS 2 and the electrolyte using electrochemical impedance spectroscopy (EIS) ( Supplementary Figure 12a ). The Nyquist plots of different catalysts exhibit the typical semicircle shape, which reflects the interface resistance on the electrode surface. By modeling the EIS responses with the Randles equivalent circuit, the values of R CT are found to be low in the case of Fe-MoS 2 at 13.1 Ω compared to 24.8 Ω for MoS2 and 9.8 Ω for Cu. This points to faster kinetics for electron transfer at the sur…
-- target_paragraph: We explored the isotopic effect on the NO3RR by investigating the electrochemical responses of Fe-MoS2 in presence of Na 14 NO3 and Na 15 NO3 respectively. 56 Using Na 15 NO3, we observe a decrease in the current density together with an increase of the overpotential of ~40 mV ( Figure 3a ). The LSV and chronoamperometry responses were recorded for each nitrate isotope with increasing temperatures from 25 °C to 65 °C and the apparent activation energies were obtained by fitting the Arrhenius plot of the specific current density j NH3 as a function of T -1 ( Figure 3a ). The slope of the Arrhenius plot was estimated to be 0.18 and 0.21 for Na 14 NO3 and Na 15 NO3 respectively. The apparent difference between the two isotopes is in agreement
-- next_paragraph_preview: 248
-- evidence_roles: context_hint, performance, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Electrochemical synthesis of NH3 is a carbon-free alternative to the traditional Haber-Bosch process. The challenge with nitrogen reduction reaction (NRR) to NH3 is cleavage of the inert N≡N triple bond of nitrogen gas. Obtaining NH3 from environmental pollutants, such as nitrates or nitrites, is a more practical route than NRR. However, reduction of nitrates or nitrites to ammonia is currently hampered by modest Faradaic efficiencies, typically below 10 %. Here, we report a novel heterogeneous catalyst based on iron (Fe) single-atoms supported on two-dimensional MoS2 (Fe-…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S066"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "7 The electrocatalytic properties of Fe-MoS 2 catalyst for the reduction of \u0000\u0000 \u0000 \u0000 were investigated in an H-cell reactor using a 0.1 M of K2SO4 + 0.1 M NaOH electrolyte solution (See the Methods section for details about the electrochemical measurements). Figure 2a shows linear sweep voltammetry (LSV) curves measured with and without 0.1 M NaNO3 for MoS2, and Fe-MoS2 nanosheets compared to results from carbon support used as reference. Higher current density and lower onset potential were detected in the presence of \u0000\u0000 \u0000 \u0000 . To prove that the change in current density ori…", "primary_admissible_gate_source": true, "roles": ["reactor"], "span_claim_scope": "target_document", "span_id": "P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S205"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "increase compared to MoS2 and Cu, respectively. The onset potential for NO3RR - measured at -1 mA cm -2 - was found to be ≈ 100 mV vs. RHE for Fe-MoS2 compared to 200 mV vs. RHE for Cu ( Figure 2d ). The j NH3 and onset potential on Fe-MoS2 are comparable with those from Cu50Ni50 alloy. To further quantify the catalytic properties of Fe-MoS 2 , we estimated the cathodic energy efficiency ( \u0000\u0000 \u0000\u0000 \u0000 \u0000\u0000 ) of the different catalysts. The \u0000\u0000 \u0000\u0000 \u0000 \u0000\u0000 for Fe-MoS2 was found to be the highest at 31 % for a cathodic potential of -0.28 V vs. RHE, which is at least 4 times higher than…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S257"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "We then sought to better understand the behavior of Fe-MoS 2 by exploring the influence of Fe loading and the nitrate concentration in the electrolyte. At -0.48 V vs . RHE, the Faradaic efficiency continuously increases from 30.1 % up to 95.8 % as the Fe content is increased from 0 % (i.e. pristine MoS 2 ) to 2.13% ( Supplementary Figure 11a,b ). The effect of nitrate concentration on catalytic properties was explored by varying the \u0000\u0000 \u0000 \u0000 concentration from 10 mM up to 100 mM. Remarkably we observed that the FE for NH3 on Fe-MoS2 is largely maintained in presence of dilut…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S258"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_nitrate_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S258"]}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_nitrate_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S258"]}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_nitrate_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0981_Li_2021_3.4_solar-to-ammonia_efficiency_from_nitrate_using_Fe_single_atomic_catalyst_supported_on_MoS2_nanosheets_S258"]}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrogen_balance", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["nitrogen_balance", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 52. NO3RR performance
-
-- context_packet_id: `CP_205f6eaa5166e4c592aeb205943076f1`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera`
-- source_span_id: `P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera_S027`
-- source_locator: `P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera::SEC003::PAR023::ANCHOR01`
-- raw_heading: Revealing catalyst restructuring and composition during nitrate electroreduction through correlated operando microscopy and spectroscopy
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `NO3RR`
-- document_reaction_family: `NO3RR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `NO3RR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: Two Cu2O cubes were captured in the images acquired at -0.6 V RHE (Fig. 2e). One cube shrank and restructured into a smaller cube with a void in the centre and then became rougher due to small NPs attaching to its surface, while another completely dissolved within the same time frame. We also highlight that the intensity of the cubes in the TEM images obtained from -0.3 to -0.5 V RHE gradually decrease, whereas the intensity of the cube at -0.6 V RHE is brighter, implying that the cube-like frame at -0.6 V RHE is metallic. Moreover, the interplay of dissolution/ redepositi…
-- target_paragraph: Next, we repeated the NO 3 RR experiments in an H-type cell with Cu2O cubes electrodeposited on carbon paper to compare the consistency of the EC-TEM results versus standard reaction geometries. Figure 2f,g shows lower-magnification images of samples from the EC-TEM experiments with scanning electron microscopy (SEM) images of samples extracted from H-type cell experiments after 2 h of reaction at three different applied potentials, -0.2, -0.4 and -0.6 V RHE . Electron diffraction patterns taken from samples extracted after the reaction show that the cubes did not undergo extensive restructuring at -0.2 V RHE and remain Cu 2 O, whereas samples reacted at -0.6 V RHE were largely metallic (Supplementary Fig. 4). Conversely, samples reacted at -0.4 V RHE show a mixture of…
-- next_paragraph_preview: To obtain unambiguously the oxidation state of the catalyst species present during reaction and rule out the possibility that the ex situ identified Cu 2 O phase is the result of reoxidation during the return to open circuit potential 30,31 (OCP), we performed operando EC-TXM measurements on the Cu2O cubes by transferring our EC-TEM holder into a TXM at the BESSY II synchrotron facility as illustrated in Supplementary Fig. 8. This unique arrangement maintains the same reaction environment between the two experiments, while enabling time-resolved operando measurements of co…
-- evidence_roles: context_hint, reactor, validation
-- linked_evidence_previews: `[{"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "chips via electrodeposition 28,29 as shown schematically in Fig. 1a. The as-prepared Cu2O cubes have an average size of 250 nm and consist of six {100} facets without the exposure of other minor facets such as {110} or {111} (Supplementary Fig. 1). All voltages indicated in this paper are referenced against a Ag/AgCl electrode and then converted to the reversible hydrogen electrode scale (RHE) using the Nernst equation and the bulk pH of the electrolyte. Intriguingly, the image sequences show that the cubes do not undergo obvious change in a typical 0.1 M Na 2 SO4 + 8 mM N…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera_S022"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To obtain unambiguously the oxidation state of the catalyst species present during reaction and rule out the possibility that the ex situ identified Cu 2 O phase is the result of reoxidation during the return to open circuit potential 30,31 (OCP), we performed operando EC-TXM measurements on the Cu2O cubes by transferring our EC-TEM holder into a TXM at the BESSY II synchrotron facility as illustrated in Supplementary Fig. 8. This unique arrangement maintains the same reaction environment between the two experiments, while enabling time-resolved operando measurements of co…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera_S028"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "We further verified that the slow reduction of the copper oxide cubes extends to larger reaction volumes with operando hard XAS measurements of samples electrodeposited on carbon paper in our home-built electrochemical XAS cell 33 . In Fig. 3q, we plot the changes in the copper K-edge valence states (from 8,950 to 9,105 eV) that were obtained from operando XAS. The weight of the copper valence state is extracted by LCF of the X-ray absorption near-edge structure (XANES) of the oxide-derived copper catalyst collected at a constant potential of -0.4 V RHE in 0.1 M Na 2 SO4 +…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera_S030"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 4 | Temporal evolution of oxidic and metallic copper phases and its impact on NH3 selectivity. a , The fractions of the cubes within the EC-TEM images are calculated by dividing the area of the reacted cubes at time t by the initial projected area of Cu 2 O precatalysts at time 0. b , Plot depicting the majority copper phase at different applied potentials and reaction times. The solid line indicates the estimated time to reduce the size of a Cu 2 O cube by 50%. The vertical dashed line denotes 2 h of the NO 3 RR. The diagonal dash line extrapolates from 60 min at -0.…", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera_S035"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 53. NO3RR performance
+## 49. NO3RR performance
 
 - context_packet_id: `CP_27b17cdcba675298ba80cad8895053cf`
 - sample_stratum_type: `primary`
@@ -3630,10 +3546,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -3649,6 +3567,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3682,7 +3602,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 54. NO3RR performance
+## 50. NO3RR performance
 
 - context_packet_id: `CP_8516ccdd167cd69bb19b74ee870f045b`
 - sample_stratum_type: `primary`
@@ -3699,10 +3619,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -3718,6 +3640,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3751,7 +3675,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 55. NO3RR performance
+## 51. NO3RR performance
 
 - context_packet_id: `CP_b6019d782cc45e3e73cd65e8f23d3e38`
 - sample_stratum_type: `primary`
@@ -3769,9 +3693,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -3787,6 +3713,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3820,7 +3748,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 56. NO3RR performance
+## 52. NO3RR performance
 
 - context_packet_id: `CP_0b7d4cfb51a69e0420285f8fd5070eed`
 - sample_stratum_type: `primary`
@@ -3837,10 +3765,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -3856,6 +3786,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -3889,76 +3821,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 57. NO3RR performance
-
-- context_packet_id: `CP_2459fc9e6dbbace352941f5a9d203558`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets`
-- source_span_id: `P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S058`
-- source_locator: `P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets::SEC018::PAR002::ANCHOR01`
-- raw_heading: 3.2. Electrocatalytic performance for the NORR
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `performance_claim`
-- legacy_claim_type: `performance_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `unclear`
-- document_reaction_family: `NO3RR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `NO3RR`
-- effective_reaction_family_source: `high_confidence_document`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: ## 3.2. Electrocatalytic performance for the NORR
-- target_paragraph: The electrochemical activity of the Mo2C electrocatalyst toward nitrate reduction was performed in a three-electrode system. The working electrode was a carbon paper containing catalyst powder. Linear sweep voltammetry (LSV) curves were recorded in a 1.0 M NaOH solution with or without 0.1 M NO3 -. In the pure NaOH electrolyte, the Mo2C NSs catalyst exhibited poor performance for low current response between 0.4 and -0.4 V versus RHE, indicating that Mo2C catalyst could not effectively catalyze water reduction (Fig. 4a). The poor activity for H2 evolution might be bene fi cial to chemisorption and activation of the proposed NO3 -. However, after adding 0.1 M NO3 -, the current density signi fi cantly increased, indicating the occurrence of substantial NO3 -reduction (F…
-- next_paragraph_preview: Subsequently, to identify and quantify the yield rate and Faradaic effi ciency (FE) of produced NH3 over the catalysts, chronoamperometric analysis was conducted at different working potentials. The amount of produced NH3 at different potentials was measured via the indophenol blue reagent method using ultraviolet-visible (UV -Vis) spectrophotometry. Fig. 4b showed the time-resolved current density of Mo2C NSs during an operation period of 1.0 h at a series of applied potentials from 0.1 to -0.4 V versus RHE. The current density was remarkably elevated when the applied pot…
-- evidence_roles: context_hint, performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Subsequently, to identify and quantify the yield rate and Faradaic effi ciency (FE) of produced NH3 over the catalysts, chronoamperometric analysis was conducted at different working potentials. The amount of produced NH3 at different potentials was measured via the indophenol blue reagent method using ultraviolet-visible (UV -Vis) spectrophotometry. Fig. 4b showed the time-resolved current density of Mo2C NSs during an operation period of 1.0 h at a series of applied potentials from 0.1 to -0.4 V versus RHE. The current density was remarkably elevated when the applied pot…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S059"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 4. LSV curves of (a) Mo2C NSs and (d) the Mo2C NPs in 1 M KOH electrolyte with and without 0.1 M nitrate. Chronoamperometric curves of (b) Mo2C NSs and (e) the Mo2C NPs at each given potential in 1 M KOH electrolyte with 0.1 M nitrate. Potential-dependent Faradaic ef fi ciency (left axis) and NH3 yield rates (right axis) of (c) Mo2C NSs and (f) the Mo2C NPs in 1 M KOH electrolyte with 0.1 M nitrate. (g) 1 HNMRspectra of generated 14 NH4 + and 15 NH4 + for the Ru NCs/MoO2 NSs. (h) The cyclic stability test of the Mo2C NSs.", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S060"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "81.4 %. The NORR performance of Mo2C NSs was also comparable with the other materials (Table S1). Besides, the time-resolved current density of Mo2C NPs was also presented in Fig. 4e. The NH3 yield rate and FE of the Mo2C NPs were also detected and calculated at various potentials, indicating the same trend as the Mo2C NSs (Fig. 4f). The maximum NH3 yield rate and FE of the Mo2C NSs were determined to be 25.2 mg h -1 mg -1 cat. at -0.4 V versus RHE and 81.4 % at -0.3 V versus RHE, respectively, which were obviously lower than those of Mo2C NPs (13.5 mg h -1 mg -1 cat. at -…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S062"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To con fi rm the chemical origin of the NH3 product from the supplied NO3 -ions, an isotope labelling experiment using 15 N-labelled NO3 -as the feedstock was carried out on Mo2C NSs. The 1 HNMRspectra were featured by an obvious triplet with a coupling constant of 52 Hz, corresponding to 14 NH4 + (Fig. 4g) (Wang et al., 2022). In addition, the 15 Nnuclear spin produced a fi ne 15 Ndoublet at 72 Hz, which could be detected as the 1 HNMR signal of 15 NH4 + in the region near 6.80 -7.20 ppm, while no triple coupling of 14 NH4 + could be detected (Fig. 4g) (Zheng et al., 2021…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S063"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S059"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_nitrate_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S063"]}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["local_text_ammonia_quantification"], "gate_detection_source": "local_text", "source_eligibility": "any_source", "status": "observed_in_local_context", "supporting_span_ids": ["P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S059"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_nitrate_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0723_Zhu_2023_Electrochemical_nitrate_reduction_to_high-value_ammonia_on_two-dimensional_molybdenum_carbide_nanosheets_S063"]}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrogen_balance", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `True`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 58. NO3RR performance
+## 53. NO3RR performance
 
 - context_packet_id: `CP_8b8e3958220b2745306c318a63055bc9`
 - sample_stratum_type: `primary`
@@ -3976,9 +3839,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `mixed`
@@ -3994,6 +3859,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4027,7 +3894,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 59. NO3RR performance
+## 54. NO3RR performance
 
 - context_packet_id: `CP_cbed9800e973a43b99914f9036eddc47`
 - sample_stratum_type: `primary`
@@ -4045,9 +3912,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4063,6 +3932,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4096,7 +3967,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 60. NO3RR performance
+## 55. NO3RR performance
 
 - context_packet_id: `CP_1f3dbfa65667ed2fde27403df0d26aa1`
 - sample_stratum_type: `primary`
@@ -4114,9 +3985,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4132,6 +4005,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4147,6 +4022,371 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
 - paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
 - paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 56. NO3RR performance
+
+- context_packet_id: `CP_e9b30170a82a39eb9ad30cb2c3de42aa`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror`
+- source_span_id: `P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror_S012`
+- source_locator: `P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror::SEC002::PAR008::ANCHOR01`
+- raw_heading: Steering the catalyst structure and intermediates adsorption con fi guration during pulsed nitrate electroreduction
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `performance_claim`
+- legacy_claim_type: `performance_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `unclear`
+- document_reaction_family: `NO3RR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `NO3RR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: <!-- image -->
+- target_paragraph: Nitrate (NO3 -) electroreduction into ammonia (NH3) via intermittent renewable electricity holds great promise for ef fl uent treatment and ammonia production under mild conditions 1 -3 . Most of the reported works have focused on designing novel catalysts to improve the NO3 --to-NH3 reaction performance through potentiostatic electrolysis. However, these catalysts would undergo complex synthesis procedures, the use of noble metal and deactivation issues unavoidably 4 -8 , which drives researchers to develop alternative electrolysis techniques. Pulsed electrolysis method has emerged as a simple and responsive ' knob ' to affect product selectivity and electrode durability 9 -16 . For NO3 -reduction, the alternate application of two different pulse potentials over a sin…
+- next_paragraph_preview: NO3 -electroreduction reaction involves two key steps: NO3 -deoxygenation and nitrite hydrogenation. Currently, 3d transition metal-based catalysts, especially copper, have been intensively studied for NO3 -reduction 17,18 . Cu has a favorable ability to bind NO3 -and produce active *H, but it usually suffers from rapid deactivation due to the strong adsorption of N-bound intermediates, like *NO2 and *NO 9,19 -21 . It is important to develop an appropriate strategy to regulate the structural properties of the Cu catalyst and thus alleviate the limitation above. Rational mo…
+- evidence_roles: performance, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "NO3 -electroreduction reaction involves two key steps: NO3 -deoxygenation and nitrite hydrogenation. Currently, 3d transition metal-based catalysts, especially copper, have been intensively studied for NO3 -reduction 17,18 . Cu has a favorable ability to bind NO3 -and produce active *H, but it usually suffers from rapid deactivation due to the strong adsorption of N-bound intermediates, like *NO2 and *NO 9,19 -21 . It is important to develop an appropriate strategy to regulate the structural properties of the Cu catalyst and thus alleviate the limitation above. Rational mo…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror_S013"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Herein, we used Cu nanoparticles as a model catalyst to investigate the dynamic behavior of catalyst structural changes and reaction intermediates during NO3 -reduction under pulsed conditions (Fig. 1A). NH3 Faradaic ef fi ciency (FE) and yield rate were signi fi cantly enhanced under different pulsed conditions compared to potentiostatic electrolysis. Notably, we achieved an NH3 FE of 94.1% with a corresponding yield rate of 2.3 mg h -1 cm -2 . Both in situ experimental data and theoretical calculations provided compelling evidence that within the potential range where re…", "primary_admissible_gate_source": true, "roles": ["performance", "validation"], "span_claim_scope": "target_document", "span_id": "P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror_S016"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Twodifferent electrolysis methods were carried out in our work, including potentiostatic potential electrolysis and pulsed electrolysis. During potentiostatic electrolysis, the FE of NH3 exhibited a characteristic volcanic shape. The maximum value was 57.2% at -1.4 V, corresponding to a yield rate of 0.7 mg h -1 cm -2 and a partial current density of 5.3 mA cm -2 (Figs. 1B, S5 and S6). The by-products were NO2 -and H2 (Figs. S7 and S8). During pulsed electrolysis, a periodic potential sequence was applied, consisting of a brief pulse at a relatively positive potential ( EP…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0358_Wu_2025_Steering_the_catalyst_structure_and_intermediates_adsorption_configuration_during_pulsed_nitrate_electror_S019"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 57. NO3RR performance
+
+- context_packet_id: `CP_a0219adaf066bc24e748fb23b3a538a3`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia`
+- source_span_id: `P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S010`
+- source_locator: `P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia::SEC002::PAR006::ANCHOR01`
+- raw_heading: Fe/Cu diatomic catalysts for electrochemical nitrate reduction to ammonia
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `NO3RR`
+- document_reaction_family: `NO3RR`
+- document_reaction_family_confidence: `high`
+- effective_reaction_family: `NO3RR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Shuo Zhang 1,2,3 , Jianghua Wu 2 , Mengting Zheng 4 , Xin Jin 2 , Zihan Shen 1 , Zhonghua Li 2 , Yanjun Wang 2 , Quan Wang 2 , Xuebin Wang 2 , Hui Wei 2 , Jiangwei Zhang 5 , Peng Wang 2,6 , Shanqing Zhang 4 , Liyan Yu 3 , Lifeng Dong 3 , Qingshan Zhu 1,7 , Huigang Zhang 1,2,7 &amp; Jun Lu 8
+- target_paragraph: Electrochemical conversion of nitrate to ammonia offers an ef fi cient approach to reducing nitrate pollutants and a potential technology for low-temperature and low-pressure ammonia synthesis. However, the process is limited by multiple competing reactions and NO3 -adsorption on cathode surfaces. Here, we report a Fe/Cu diatomic catalyst on holey nitrogen-doped graphene which exhibits high catalytic activities and selectivity for ammonia production. The catalyst enables a maximum ammonia Faradaic ef fi ciency of 92.51% ( -0.3 V(RHE)) and a high NH3 yield rate of 1.08 mmol h -1 mg -1 (at -0.5 V(RHE)). Computational and theoretical analysis reveals that a relatively strong interaction between NO3 -and Fe/Cu promotes the adsorption and discharge of NO3 -anions. Nitrogen-…
+- next_paragraph_preview: Ammonia is a common and important chemical in agriculture, plastic, pharmaceutical industries, etc 1,2 . Since the invention of the Haber -Bosch process, large-scale synthesis and application of ammonia dramatically increase the crop yield and sustain the growing human population 3,4 . However, the Harber-Bosch process consumes extravagant resources and energy (1 -2% of the annual global energy supply) and produces 1% of CO2 emission (1.8 tons CO2 for 1 ton NH3) 5 , causing severe environmental impact. Therefore, clean and energyef fi cient technologies for ammonia synthes…
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "## Fe/Cu diatomic catalysts for electrochemical nitrate reduction to ammonia", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S005"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Ammonia is a common and important chemical in agriculture, plastic, pharmaceutical industries, etc 1,2 . Since the invention of the Haber -Bosch process, large-scale synthesis and application of ammonia dramatically increase the crop yield and sustain the growing human population 3,4 . However, the Harber-Bosch process consumes extravagant resources and energy (1 -2% of the annual global energy supply) and produces 1% of CO2 emission (1.8 tons CO2 for 1 ton NH3) 5 , causing severe environmental impact. Therefore, clean and energyef fi cient technologies for ammonia synthes…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S011"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In this work, we propose a dual atoms catalyst for high-ef fi ciency NO3 -RR. Active metal atoms (Fe/Cu) are anchored to the holey edge sites of nitrogen-doped graphene (HNG), forming a ' Y-type ' ML3 coordination with two nitrogen atoms and one metal atom. Fe and Cu atoms bind together to form a dimer structure inside the holes (Fig. 1a). The resultant catalyst, Fe/Cu-HNG, demonstrates high activity (~38.5 mA cm -2 at -0.3 V vs reversible hydrogen electrode (RHE)) and selectivity (maximum Faradaic ef fi ciency (FE) of 92.51%) for the reduction of NO3 -towards NH3 under al…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S020"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Electrochemical reduction of nitrate to ammonia could reduce nitrate pollution and concurrently realize low-temperature and low-pressure ammonia synthesis. The slow kinetics of the nitrateto-ammonia reaction requires ef fi cient catalysts. We synthesized a Fe/Cu diatomic catalyst on holey nitrogen-doped graphene for nitrate reduction. Fe/Cu is coordinated with two nitrogen atoms and one metal, which is similar to a ' Y-type ' ML3 structure. Dual metal sites are bonded to form a metal -metal dimer with a local con fi guration of N2Fe-CuN2. Owing to the relatively strong ads…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S064"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S020"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S020"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_ammonia_quantification"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0234_Zhang_2023_Fe_Cu_diatomic_catalysts_for_electrochemical_nitrate_reduction_to_ammonia_S020"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 58. NO3RR performance
+
+- context_packet_id: `CP_82ca67c684d7052f803d957f940c7f92`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti`
+- source_span_id: `P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S010`
+- source_locator: `P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti::SEC002::PAR006::ANCHOR01`
+- raw_heading: Stabilizing Cu 0 -Cu δ + sites via ohmic contact interface engineering for ampere-level nitrate electroreduction to ammonia
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `NO3RR`
+- document_reaction_family: `NO3RR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `NO3RR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: Zeyu Li 1 , Ming Zheng 1 , Chunshuang Yan 1 , Dongqi Yang 2 , Ruyu Yang 3 , Chu Zhang 1 , Hengjie Liu 4 , Pin Song 5 , Chenhui Yin 6 , Zeming Qi 4 , Daobin Liu 3 , Xin Zhou 1 , Li Song 4 , Chade Lv 1 &amp; Guihua Yu 2
+- target_paragraph: The synergistic Cu 0 -Cu δ + sites are found as the active sites for NH3 synthesis through nitrate electroreduction reaction, but still face signi fi cant challenges in stabilizing the Cu δ + due to its self-reduction. Here we propose an Ohmic contact interface engineering strategy by loading copper nano-islands on indium hydroxide nanocubes. Attributed to the lower work function of Cu than that of In(OH)3 with n-type semiconductor nature, the electrons in Cu can transfer unimpededly to In(OH)3 at the interface of Ohmic junction, triggering and stabilizing polarized Cu 0 -Cu δ + active sites. Cu@In(OH)3 sustains both high NH3 yield rate (4.28 mmol h -1 mgcat. -1 ) and Faradaic ef fi ciency (97.35%) at -0.6 V vs. RHE, while maintaining stability for at least 120 h under…
+- next_paragraph_preview: Check for updates
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Ammonia is a widely utilized industrial chemical in pharmaceuticals, synthetic fi bers, fertilizer manufacturing, and energy storage with signi fi cant worldwide relevance 1 -3 . It is critical to the advancement of human society 4 . Currently, the Haber-Bosch process is the principal technique for generating ammonia, which demands high temperature (400 -500°C) and pressure (130 -170 bar) 5 . This process uses around 1.4% of the world ' s energy and accounts for roughly 1% of global CO2 emissions from energy consumption 6 . Producing NH3 from NO3 -driven by renewable power…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S012"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Herein, we developed a Cu@In(OH)3 electrocatalyst through loading Cu with lower work function on the n-type semiconductor In(OH)3 nanocubes,inwhichtheCu 0 -Cu δ + active sites were successfully triggered and stabilized due to the Ohmic contact interface engineering. Driven by the difference in the work function, the interfacial charge transfer from Cu to In(OH)3 is facilitated to maintain the presenceofCu δ + , whichis evidenced by the X-ray absorption fi ne structure spectroscopic analysis. In such elegant catalyst, In(OH)3 not only serves as suitable n-type semiconductor…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S016"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "To highlight the activity of as-engineered Cu 0 -Cu δ + sites, the electrochemical NO3RR performance of the Cu@In(OH)3 catalyst was evaluated using a standard three-electrode H-type cell with the 0.1 M KOH+0.1M KNO3 electrolyte under ambient conditions. The colorimetric method was employed to quantify NH3 and NO2 -with ultraviolet-visible (UV-vis) spectrophotometry (Supplementary Figs. 11, 12) 48 . As shown in the linear sweep voltammetry (LSV) curves (Fig. 3a), the current density of Cu@In(OH)3 increases markedly upon the addition of 0.1 M NO3 -to the electrolyte. In shar…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S027"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Isotope-labeling nitrate reduction experiments were performed using a Bruker 400 MHz Nuclear Magnetic Resonance (NMR) System. For these experiments, 0.1 M K 15 NO3 or/and K 14 NO2 was used as the nitrogen source, while 0.1 M KOH served as the electrolyte. Following the electroreduction process, the resulting electrolytes containing 15 NH4 + or/and 14 NH4 + were collected and adjusted to a weakly acidic condition using H2SO4. Subsequently, 50 µ L of deuterium oxide (D2O) was added to 0.5 mL of the adjusted solution for NMR detection.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S093"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S027", "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S093"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S027", "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S093"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S027", "P0413_Li_2025_Stabilizing_Cu0-Cuδ_sites_via_ohmic_contact_interface_engineering_for_ampere-level_nitrate_electroreducti_S093"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 59. NO3RR performance
+
+- context_packet_id: `CP_b8a3a738f0a25873d85abbc173f94e97`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film`
+- source_span_id: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S075`
+- source_locator: `P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film::SEC015::PAR002::ANCHOR01`
+- raw_heading: Conclusion
+- direct_section_type: `conclusion`
+- effective_section_type: `conclusion`
+- section_type_source: `direct`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `NO3RR`
+- document_reaction_family: `NO3RR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `NO3RR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: ## Conclusion
+- target_paragraph: The highly roughened Ru-RuO 2 electrocatalyst was successfully synthesized by a cost-effective electrodeposition route under mild conditions, yielding a surface composed of intimately distributed metallic and oxidized Ru species. Under optimized conditions at 0.0 V vs. RHE, the catalyst achieved a maximum Faradaic efficiency of 71% for ammo -nia production and a yield rate of 39.2 µmol h - 1 cm - 2 . During prolonged electrolysis at the same applied potential, the catalytic surface evolved toward a stabilized Ru(0)/Ru(IV) proportion, sustaining nitrate to ammonia conversion with a Faradaic efficiency of 40% and a yield rate of 14.3 µmol h - 1 cm - 2 . This dynamic stabilization demonstrates that the electrodeposited Ru-RuO 2 architecture preserves its active interfacia…
+- next_paragraph_preview: Supplementary Information The online version contains supplementary material available at h t t p s : / / d o i . o r g / 1 0 . 1 0 0 7 / s 1 0 0 0 8 - 0 2 6 - 0 6 5 8 0 - 6.
+- evidence_roles: performance
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Ruthenium-based electrocatalysts remain relatively underexplored for performance optimization in the nitrate electroreduction reaction (NO 3 RR). Herein, a highly roughened Ru-RuO 2 composite surface is synthesized via an electrodeposition route under mild and cost-effective conditions and is evaluated as an electrocatalyst for NO 3 RR in alkaline media. Scanning electron microscopy reveals a nanoparticulate rough morphology, while X-ray photoelectron spectroscopy confirms the coexistence of metallic Ru 0 and Ru 4+ species at the surface. Under optimized conditions, the as…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S008"}, {"claim_ownership": "external_or_cited_authors", "document_genre": "primary_research", "document_scope": "external_or_cited_work", "preview": "Recent strategies for engineering Ru-based electrocatalysts have focused on precise control of morphology, electronic structure, and oxidation state to maximize the activity toward NO 3 RR. Wang and co-workers prepared structurally disordered RuO 2 nanosheets rich in oxygen vacancies via a defect-engineering strategy and achieved markedly enhanced nitrate electroreduction performance, which was attributed to promoted charge transfer and optimized adsorption of nitrogen-containing intermediates at vacancy sites [23]. Ji and collaborators synthesized atomically dispersed Ru…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "external_or_cited_work", "span_id": "P0366_Santos_2026_Enhancing_ammonia_electrosynthesis_from_nitrate_on_Ru-RuO2_electrodeposited_film_S019"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 60. NO3RR performance
+
+- context_packet_id: `CP_bcc9191879d60cb5b16d189d26b0cb7b`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi`
+- source_span_id: `P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S009`
+- source_locator: `P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi::SEC001::PAR008::ANCHOR01`
+- raw_heading: Rational design of hexanuclear zirconium-cluster-based porphyrinic metal-organic frameworks for high-efficiency electrocatalytic nitrate reduction to ammonia
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `performance_result_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `quantitative_result`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `NO3RR`
+- document_reaction_family: `NO3RR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `NO3RR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: <!-- image -->
+- target_paragraph: ABSTRACT: Green ammonia (NH3) synthesis is pivotal for sustainable agriculture and hydrogen energy carriers; however, challenges persist in direct electrocatalytic nitrate reduction (e-NO3RR) under neutral conditions, including competing hydrogen evolution and sluggish reaction kinetics. Herein, a series of transition-metal-porphyrin metal-organic frameworks (MOFs), NU-902(M) (M = Fe, Co, Ni, Cu), are engineered via coordination between metalated tetrakis(4-carboxyphenyl)porphyrin (MTCPP) and Zr6O4(OH)4(CO2)12 clusters, constructing a hierarchical mesoporous architecture. Notably, NU-902(Cu) achieves a Faradaic efficiency (FE) of 71.65% with an NH3 yield rate of 13.76 mg·h -1 ·mgcat. -1 at -0.9 V vs. reversible hydrogen electrode (RHE), outperforming analogous framewor…
+- next_paragraph_preview: <!-- image -->
+- evidence_roles: performance, validation
+- linked_evidence_previews: `[{"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "The efficiency and selectivity of the nitrate reduction process are highly dependent on catalyst design. Existing catalysts can be broadly classified into noble-metal-based catalysts, nonnoble transition-metal catalysts, alloy catalysts, and single-atom catalysts [20]. Although these catalyst systems have achieved varying degrees of progress, many conventional catalysts struggle to maintain high performance under neutral conditions. This limitation highlights the need for innovative catalyst designs that integrate high dispersion of active sites with structural robustness…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S024"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Based on these advantages, subsequent investigations focused on NU-902(Cu) for control experiments and stability evaluations. To identify the nitrogen source for electrocatalytic ammonia synthesis, three sets of control experiments were designed and systematically verified using UV-vis absorption spectroscopy and 1 H nuclear magnetic resonance (NMR) analysis. (1) In an electrolyte containing 0.1 M NaNO 3 and 0.1 M Na 2 SO4, constant-potential electrolysis was performed using bare carbon cloth as the working electrode at -0.9 V vs. RHE for 1 h. The UV-vis spectrum (Fig. 6(a…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S066"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The stability of a catalyst is a critical index for evaluating its potential practical application [61]. Herein, NU-902(Cu) was systematically assessed through electrochemical and structural stability analyses. (1) Electrochemical stability was evaluated using two complementary approaches. Cyclic stability tests consisting of six consecutive e-NO 3 RR cycles at -0.9 V vs. RHE (Figs. 8(a) and 8(b)) demonstrate robust performance, with current density fluctuations confined within ±5%, while the ammonia yield and FE remained stable, with minimum values of 12.35 mg·h -1 ·mgcat…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S074"}]`
+- packet_local_context_status: `sufficient`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0370_Li_2026_Rational_design_of_hexanuclear_zirconium-cluster-based_porphyrinic_metal-organic_frameworks_for_high-effi_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["nitrate_source_defined", "nitrogen_balance", "competing_product_tracking"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -4183,9 +4423,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4201,6 +4443,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4251,10 +4495,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4270,6 +4516,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4320,10 +4568,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4339,6 +4589,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4389,10 +4641,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4408,6 +4662,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4459,9 +4715,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4477,6 +4735,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4528,9 +4788,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO2RR`
@@ -4546,6 +4808,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4596,10 +4860,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4615,6 +4881,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4665,10 +4933,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4684,6 +4954,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4735,9 +5007,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4753,6 +5027,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4804,9 +5080,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_signals: `["ammonia_current_density_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4822,6 +5100,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4873,9 +5153,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -4891,6 +5173,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -4942,9 +5226,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -4960,6 +5246,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `True`
 - enzymatic_quantification_signal: `False`
@@ -5010,10 +5298,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -5029,6 +5319,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5080,9 +5372,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -5098,6 +5392,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5148,10 +5444,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -5167,6 +5465,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5217,10 +5517,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `ammonia_quantification_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -5236,6 +5538,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5246,11 +5550,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In this study, we tactfully designed and synthesized a ternary Co/ Co3O4/CoB heterostructure by reducing Co3O4 with NaBH4. The ternary Co/Co3O4/CoB catalyst exhibited an excellent electrochemical NORRperformance,achievinganNH3 yieldrate of 462.18 µ molcm -2 h -1 (2.31 mol h -1 gcat -1 ) and an FENH3 of 98.80% at -0.5 V vs. RHE, outperforming most of the reported NORR electrocatalysts to date. To demonstrate the application potential, a Zn-NO battery was assembled using the Co/Co3O4/CoB as the cathode, which delivered a high power density of 10.06 mW cm -2 . A series of exp…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S015"}]`
 - packet_local_context_status: `sufficient`
 - packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_NO_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S015"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_NO_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "any_source", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S015"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["linked_primary_evidence_NO_source_defined"], "gate_detection_source": "linked_primary_evidence", "source_eligibility": "primary_admissible", "status": "observed_in_linked_evidence", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S015"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["NOx_balance", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["NOx_balance", "competing_product_tracking"]`
+- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0133_Fan_2025_Boosted_charge_and_proton_transfer_over_ternary_Co_Co3O4_CoB_for_electrochemical_nitric_oxide_reduction_t_S066"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["NO_source_defined", "NOx_balance", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["NO_source_defined", "NOx_balance", "competing_product_tracking"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -5286,10 +5590,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `False`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -5305,6 +5611,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5315,11 +5623,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "All the electrocatalysis tests and measurements were conducted using a potentiostat (Gamry Instruments Reference 600) in a fl ow cell reactor with a standard three-electrode set up. In all of the electrochemical measurements, iR compensation was not applied. During NO electro-reduction, the prepared MOFs-modi fi ed GDE with Cu-based catalysts was served as the working cathode. Pt wire was served as the counter electrode and Ag/AgCl (in 3 M KCl) was used as the reference electrode. The external calibration method was used to calibrate the Ag/AgCl reference, a saturated calo…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor"], "span_claim_scope": "target_document", "span_id": "P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-_S091"}]`
 - packet_local_context_status: `insufficient`
 - packet_local_missing_types: `["reactor_signal"]`
-- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-_S092"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-_S092"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-_S092"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
+- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -5356,9 +5664,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_current_density_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO2RR`
 - document_reaction_family: `NO2RR`
@@ -5374,6 +5684,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5409,75 +5721,6 @@ Gas purification or trapping is not ammonia quantification without analytical me
 
 ## 79. NO2RR/NORR primary
 
-- context_packet_id: `CP_168a2a48aeb715c553fbdbcbcb2cc6ec`
-- sample_stratum_type: `primary`
-- secondary_stratum_reason: `not_applicable`
-- paper_id: `P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia`
-- source_span_id: `P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S056`
-- source_locator: `P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia::SEC008::PAR002::ANCHOR01`
-- raw_heading: Selectivity of NO electroreduction on the Cu-Ti hollow fiber
-- direct_section_type: `unknown`
-- effective_section_type: `unknown`
-- section_type_source: `unknown`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `unclear`
-- document_reaction_family: `NORR`
-- document_reaction_family_confidence: `high`
-- effective_reaction_family: `NORR`
-- effective_reaction_family_source: `high_confidence_document`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `True`
-- hard_gate_failures: `[]`
-- primary_applicability_hard_gate_failures: `[]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `False`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: ## Selectivity of NO electroreduction on the Cu-Ti hollow fiber
-- target_paragraph: Based on the obtained results the applicability of Cu Ti hollow fiber electrodes for ammonia electrosynthesis from nitric oxide was studied using chronoamperometry in the relevant potential range of NO reduction, i.e. 0.1 to 0.4 V vs RHE in acidic and 0.1 to 0.6 V vs RHE in neutral electrolyte at varying gas flow rate. Faradaic efficiency and NH3 production rate were determined over 60 min and 30 min of constant potential electrolysis for acidic and neutral electrolyte, respectively (Figure 4).
-- next_paragraph_preview: First, the data of Figure 4 can be compared to the EC-MS data. If one compares the FE in the absence of flow at the potentials applied in the EC-MS measurements, and for the hollow fiber electrode, the effect of the electrolyte appears consistent. In Figure 4e only 25%-40% FE is achieved in neutral conditions in flow-by mode (Figure 4e) or at low NO velocity (Figure 4c), while in acid conditions the FE is 60-80% in the potential range also investigated in the EC-MS (the remainder being formation of H2). Despite the general decrease in FE at lower potentials, higher flow ra…
-- evidence_roles: context_hint, performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "An invited contribution to the Wolfgang Schuhmann Festschrift Cu hollow fiber is in agreement with EC-MS data at low gas flow rates, showing the highest ammonia selectivity in acidic conditions. However, at relatively high gas flow rates, almost 90% faradaic efficiency and a NH3 production rate of 400 μ molh 2 cm 2 were obtained in neutral electrolyte at 0.6 V vs RHE, likely due to enhanced availability of NO at the electrode surface, suppressing the hydrogen evolution reaction. This approach shows conversion of waste NO gas to valuable green fertilizer components is possi…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S014"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "unclear", "preview": "Herein, we further explore the influence of the electrolyte composition on the performance of Cu electrodes using acid and neutral electrolytes and propose a non-conventional type of electrode geometry in the form of hollow fiber electrodes [24] to minimize mass transport limitations in NO electroreduction to ammonia. While acidic conditions appear favorable to prevent formation of partially reduced products in mass transfer limited conditions, Cu-decorated Ti hollow fibers are shown to enable ammonia production at production rates of 400 μ molh 1 cm 2 (at 0.6 V vs RHE wit…", "primary_admissible_gate_source": false, "roles": ["performance"], "span_claim_scope": "unclear", "span_id": "P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S024"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The low FE in neutral conditions is assigned to formation of either N2O and N2 (at more positive potentials) and H 2 (at more negative potentials) in agreement with EC-MS data. The general trend observed here for the product-potential dependency matches well with literature [31] where N2O is expected to be produced at more positive potentials and NH3 at potentials &lt; 0.1 V vs RHE. It is worth noting that minor quantities of hydroxylamine were detected (Figure S24 and S25).", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S058"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Figure 4. Selectivity in NO electroreduction to NH 3 using the Cu Ti hollow fiber electrode. Faradaic efficiency and NH 3 production rate are shown in (a, b) for 0.05 M H2SO4 and in (c, d) for 0.05 M Na2SO4 electrolyte in flowthrough electrode configuration. (e, f) Comparison of Faradaic efficiency and NH3 production rate in flow-through (at 40 ml/min) and flow-by configuration in 0.05 M Na2SO4 electrolyte.", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S059"}]`
-- packet_local_context_status: `sufficient`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S056"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S056"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0777_Krzywda_2021_Effect_of_Electrolyte_and_Electrode_Configuration_on_Cu_Catalyzed_Nitric_Oxide_Reduction_to_Ammonia_S056"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 80. NO2RR/NORR primary
-
 - context_packet_id: `CP_5dbe3bd3097bb123644ede98d95d9ccc`
 - sample_stratum_type: `primary`
 - secondary_stratum_reason: `not_applicable`
@@ -5497,6 +5740,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -5512,6 +5757,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5545,7 +5792,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 81. NO2RR/NORR primary
+## 80. NO2RR/NORR primary
 
 - context_packet_id: `CP_4703b47192bb12366fc389ec27a821e6`
 - sample_stratum_type: `primary`
@@ -5563,9 +5810,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `False`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO2RR`
 - document_reaction_family: `NO2RR`
@@ -5581,6 +5830,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5614,7 +5865,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 82. NO2RR/NORR primary
+## 81. NO2RR/NORR primary
 
 - context_packet_id: `CP_29f54beab64c5fdb4d78a33cd84a690d`
 - sample_stratum_type: `primary`
@@ -5632,9 +5883,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NO3RR`
@@ -5650,6 +5903,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5660,11 +5915,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - linked_evidence_previews: `[]`
 - packet_local_context_status: `sufficient`
 - packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0211_Hao_2024_Integrating_few-atom_layer_metal_on_high-entropy_alloys_to_catalyze_nitrate_reduction_in_tandem_S057"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0211_Hao_2024_Integrating_few-atom_layer_metal_on_high-entropy_alloys_to_catalyze_nitrate_reduction_in_tandem_S057"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0211_Hao_2024_Integrating_few-atom_layer_metal_on_high-entropy_alloys_to_catalyze_nitrate_reduction_in_tandem_S057"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
+- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -5683,7 +5938,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 83. NO2RR/NORR primary
+## 82. NO2RR/NORR primary
 
 - context_packet_id: `CP_d30cd7c47cabe9b1fd2b081c40557f38`
 - sample_stratum_type: `primary`
@@ -5704,6 +5959,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -5719,6 +5976,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5752,7 +6011,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 84. NO2RR/NORR primary
+## 83. NO2RR/NORR primary
 
 - context_packet_id: `CP_b00f45faf15fb64939a491ce3cd3ef33`
 - sample_stratum_type: `primary`
@@ -5769,10 +6028,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `performance_result_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO2RR`
 - document_reaction_family: `NO2RR`
@@ -5788,6 +6049,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5821,7 +6084,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 85. NO2RR/NORR primary
+## 84. NO2RR/NORR primary
 
 - context_packet_id: `CP_c1ac7f74076a3dac03f7e8c52295244a`
 - sample_stratum_type: `primary`
@@ -5839,9 +6102,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -5857,6 +6122,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5867,11 +6134,84 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The reaction pathway was elucidated by control experiments and in situ ATR-SEIRAS. At a reaction potential of -0.9 V vs. Ag/AgCl, NH2* (1260 cm -1 ) and NH2OH* (1199 cm -1 ) were detected by in situ ATRSEIRAS using cyclohexanone and NaNO2 as the raw materials (Fig. 3e) 25,26 . Because the wide H2O peak at approximately 1650 cm -1 overlaps with the peaks of C = N and NO, we conducted the test in D2O. The vibration bands at 1690 cm -1 , 1573 cm -1 , and 1481 cm -1 , assigned to the stretching vibrations of C = N, NO, and O-H in oxime, appear (Fig. 3f). Furthermore, isotope-l…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S025"}, {"claim_ownership": "secondary_context", "document_genre": "primary_research", "document_scope": "secondary_context", "preview": "Fig. 2 | Performance of cyclohexanone oxime electrosynthesis over a Cu-S cathode. a 1 HNMR,( b ) 13 CNMR,and( c ) GC -MSdetection of cyclohexanone oxime product. d Potential-dependent cyclohexanone oxime yield and selectivity. e Potential-dependent cyclohexanone oxime yield rates. f Time-dependent", "primary_admissible_gate_source": false, "roles": ["context_hint"], "span_claim_scope": "secondary_context", "span_id": "P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S026"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "experiments using Na 15 NO2 as the N source were conducted to verify the above analysis. The vibrations of 15 NO* (1558 cm -1 ), 15 NH2* (1232 cm -1 ), 15 NH2OH* (1168 cm -1 ), and C = 15 N(1654 cm -1 ) shift to lower wavenumbers by 20 -40cm -1 , while the vibration of O-H remains unchanged (Fig. 3g, h). These blueshifts are attributed to the isotope effect 27 . These results con fi rm the successful synthesis of cyclohexanone oxime and the formation of NO*, NH2*, and NH2OH* during the electroreduction process, which may serve as the active intermediate for oxime formation.", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S031"}]`
 - packet_local_context_status: `insufficient`
 - packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": ["target_text_NO_source_defined"], "gate_detection_source": "target_text", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["NOx_balance", "competing_product_tracking"]`
-- paper_gate_coverage_primary_admissible_missing: `["NOx_balance", "competing_product_tracking"]`
+- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "any_source", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": ["structured_explicit_ammonia_quantification"], "gate_detection_source": "structured_explicit", "source_eligibility": "primary_admissible", "status": "observed_in_target", "supporting_span_ids": ["P0248_Wu_2023_Electrosynthesis_of_a_nylon-6_precursor_from_cyclohexanone_and_nitrite_under_ambient_conditions_S032"]}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["NO_source_defined", "NOx_balance", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["NO_source_defined", "NOx_balance", "competing_product_tracking"]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 85. NO2RR/NORR primary
+
+- context_packet_id: `CP_1738e1602e1a9e0ff96b2d94e13c49a6`
+- sample_stratum_type: `primary`
+- secondary_stratum_reason: `not_applicable`
+- paper_id: `P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-`
+- source_span_id: `P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-_S078`
+- source_locator: `P0431_Pan_2024_Integrated_electrocatalytic_synthesis_of_ammonium_nitrate_from_dilute_NO_gas_on_metal_organic_frameworks-::SEC007::PAR002::ANCHOR01`
+- raw_heading: Discussion
+- direct_section_type: `discussion`
+- effective_section_type: `discussion`
+- section_type_source: `direct`
+- target_claim_type: `unsupported_claim`
+- legacy_claim_type: `unsupported_claim`
+- semantic_claim_type: `reactor_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
+- performance_result_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `NORR`
+- document_reaction_family: `NORR`
+- document_reaction_family_confidence: `medium`
+- effective_reaction_family: `NORR`
+- effective_reaction_family_source: `explicit_high_confidence_target_span`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `True`
+- hard_gate_failures: `[]`
+- primary_applicability_hard_gate_failures: `[]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `False`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: ## Discussion
+- target_paragraph: Controlling NOx in various emission sources and air has been the important research topic in air pollution control technology. Given the widespreadand frequent occurrence of NOx emissions in various fossil fuel combustion processes, signi fi cant research has been dedicated to this area. The widely adopted commercial method for NOx removal is the selective catalytic reduction (SCR) process, which relies on ammonia gas as a reagent -a resource of considerable value. An optimal and alternative strategy involves transforming NOx into valuable products, thereby offering a more sustainable solution than the conventional practice of using costly resources for NOx removal. This study introduces an electrochemical method to produce NH4 + , NO3 -and NH4NO3 as valuable products…
+- next_paragraph_preview: ## Methods
+- evidence_roles: none
+- linked_evidence_previews: `[]`
+- packet_local_context_status: `insufficient`
+- packet_local_missing_types: `["reactor_signal"]`
+- family_gate_coverage: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NO_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "NOx_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "missing", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_primary_admissible_missing: `["NO_source_defined", "NOx_balance", "ammonia_quantification", "competing_product_tracking"]`
 - local_reaction_family_conflict_any_source: `False`
 - local_reaction_family_conflict_primary_admissible: `False`
 - local_off_target_reaction_conflict: `False`
@@ -5907,10 +6247,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `mixed`
@@ -5926,6 +6268,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -5977,9 +6321,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO2RR`
 - document_reaction_family: `NO2RR`
@@ -5995,6 +6341,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6049,6 +6397,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NORR`
 - document_reaction_family: `NORR`
@@ -6064,6 +6414,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6115,9 +6467,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -6133,6 +6487,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6183,10 +6539,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `mixed`
@@ -6202,6 +6560,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6253,9 +6613,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -6271,6 +6633,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6322,9 +6686,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `False`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
@@ -6340,6 +6706,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6390,10 +6758,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `False`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO2RR`
 - document_reaction_family: `NO2RR`
@@ -6409,6 +6779,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6459,10 +6831,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `comparative_result`
-- performance_evidence_signals: `["current_study_comparative_result"]`
-- performance_result_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -6478,6 +6852,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6532,6 +6908,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -6547,6 +6925,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `[]`
 - primary_applicability_hard_gate_failures: `[]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6582,6 +6962,79 @@ Gas purification or trapping is not ammonia quantification without analytical me
 
 ## 96. gas-purification trap (target-only, not quantification)
 
+- context_packet_id: `CP_565ce4bd936ccebf0936fd956e28b94d`
+- sample_stratum_type: `secondary`
+- secondary_stratum_reason: `gas-purification trap (target-only, not quantification)`
+- paper_id: `P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis`
+- source_span_id: `P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S071`
+- source_locator: `P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis::SEC014::PAR003::ANCHOR01`
+- raw_heading: Electrochemical experiments
+- direct_section_type: `unknown`
+- effective_section_type: `unknown`
+- section_type_source: `unknown`
+- target_claim_type: `process_claim`
+- legacy_claim_type: `process_claim`
+- semantic_claim_type: `gas_purification_or_capture_claim`
+- semantic_claim_type_confidence: `high`
+- semantic_claim_type_conflict: `True`
+- performance_evidence_strength: `none`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
+- document_genre: `primary_research`
+- legacy_reaction_family: `unclear`
+- document_reaction_family: `LiNRR`
+- document_reaction_family_confidence: `high`
+- effective_reaction_family: `LiNRR`
+- effective_reaction_family_source: `high_confidence_document`
+- reaction_family_correction: `False`
+- document_target_reaction_family_conflict: `False`
+- span_claim_scope: `target_document`
+- document_scope: `target_document`
+- claim_ownership: `target_authors`
+- primary_semantic_eligibility: `False`
+- hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
+- primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
+- ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
+- gas_purification_trap_signal: `True`
+- mass_spectrometry_quantification_signal: `False`
+- enzymatic_quantification_signal: `False`
+- previous_paragraph_preview: The electrochemical ammonia synthesis was performed in a threechamber fl ow cell (Supplementary Fig. 1). The effective electrode area of the fl ow cell was 25 cm 2 . The central electrolyte chamber is made of polyetheretherketone (PEEK, THF-resistant materials). The N2 (5.0, Air Liquide) and H2 (5.0, Air Liquide) gas fl ow rates were controlled using a mass fl ow controller (Brooks Instrument) and set to 75 sccm. The N2 and H2 used in the experiments were cleaned by puri fi ers (NuPure) to reduce labile N-containing compounds to parts per trillion by volume (ppt-v) level.…
+- target_paragraph: The LiBF4 (Sigma -Aldrich, ≥ 98%, anhydrous) was dried at 120 °C for 48 h in a vacuum oven before use. Ethanol (Honeywell, anhydrous) was dried with 3 Å molecular sieves. Electrolyte solution consisted of 1.0 M LiBF4 in tetrahydrofuran (THF, anhydrous, &gt;99.9%, inhibitor-free, Sigma -Aldrich) and 0 -100mMprotonshuttlesandwaspreparedinan argon- fi lled glovebox. A syringe pump (World Instruments) was used to control the fl ow rate of the electrolytes at 1.0 ml/min. The syringe (Trajan Scienti fi c and Medical, 100 ml) consisted of a borosilicate glass tube and a PTFE plunger (Gas tight). 1 mM of HCl (Sigma -Aldrich, Suprapur) aqueous solution was used to control the back pressure and trap the gas-phase ammonia. The gas outlet back pressure of the fl ow cell was modula…
+- next_paragraph_preview: The electrochemistry experiments were conducted using a BioLogic Potentiostat (VMP2). The resistance between the WE and RE was measured using the potentiostatic electrochemical impedance spectroscopy (PEIS) and the current interrupt technique. The linear sweep voltammetry (LSV) was recorded from the open-circuit voltage (OCV) until lithium plating is clearly seen. Subsequently, chronopotentiometry (CP) was measured with potential cycling. The potential cycling refers to that -6mA/cm 2 (the corresponding potential denoted deposition potential) was applied for 1 min and then…
+- evidence_roles: process, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The electrochemistry experiments were conducted using a BioLogic Potentiostat (VMP2). The resistance between the WE and RE was measured using the potentiostatic electrochemical impedance spectroscopy (PEIS) and the current interrupt technique. The linear sweep voltammetry (LSV) was recorded from the open-circuit voltage (OCV) until lithium plating is clearly seen. Subsequently, chronopotentiometry (CP) was measured with potential cycling. The potential cycling refers to that -6mA/cm 2 (the corresponding potential denoted deposition potential) was applied for 1 min and then…", "primary_admissible_gate_source": true, "roles": ["validation", "reactor", "process"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S072"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "A good proton shuttle should have high electrochemical stability during the Li-RR process. To evaluate the electrochemical stability of THF, EtOH, and PhOH on the PtAu anode catalysts, the oxidation experiments in an aqueous electrolyte were carried out in a custommade three-electrode glass cell using the rotating disk electrode method. The Hg/Hg2SO4 reference electrode was calibrated before the electrochemistry test. A Pt wire was used as a counter electrode. The working electrode (PtAu/Ti) was obtained from electrodeposited PtAu on a titanium stub ( ϕ =5mm, 0.196cm 2 ).…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S074"}]`
+- packet_local_context_status: `not_applicable`
+- packet_local_missing_types: `[]`
+- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
+- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}}`
+- paper_gate_coverage_missing: `[]`
+- paper_gate_coverage_primary_admissible_missing: `[]`
+- local_reaction_family_conflict_any_source: `False`
+- local_reaction_family_conflict_primary_admissible: `False`
+- local_off_target_reaction_conflict: `False`
+- off_target_reaction_conflict: `False`
+- human_section_type_correct:
+- human_document_genre_correct:
+- human_span_claim_scope_correct:
+- human_document_scope_correct:
+- human_claim_ownership_correct:
+- human_claim_type_correct:
+- human_effective_reaction_family_correct:
+- human_performance_result_evidence_correct:
+- human_local_context_sufficient:
+- human_link_roles_correct:
+- human_gate_source_eligibility_correct:
+- human_quantification_vs_trap_correct:
+- human_notes:
+
+## 97. gas-purification trap (target-only, not quantification)
+
 - context_packet_id: `CP_b64900b099637478640603d09d652394`
 - sample_stratum_type: `secondary`
 - secondary_stratum_reason: `gas-purification trap (target-only, not quantification)`
@@ -6598,9 +7051,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `eNRR`
@@ -6616,6 +7071,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6649,7 +7106,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 97. gas-purification trap (target-only, not quantification)
+## 98. gas-purification trap (target-only, not quantification)
 
 - context_packet_id: `CP_727e01808a697ae2e7ab83d81e32ee9d`
 - sample_stratum_type: `secondary`
@@ -6666,10 +7123,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `gas_purification_or_capture_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -6685,6 +7144,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6718,7 +7179,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 98. gas-purification trap (target-only, not quantification)
+## 99. gas-purification trap (target-only, not quantification)
 
 - context_packet_id: `CP_fc7e08d4d250a99b0d9159ee2fea2f71`
 - sample_stratum_type: `secondary`
@@ -6735,10 +7196,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `gas_purification_or_capture_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit", "current_study_comparative_result"]`
+- performance_evidence_strength: `comparative_result`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `eNRR`
@@ -6754,6 +7217,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6787,7 +7252,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 99. gas-purification trap (target-only, not quantification)
+## 100. gas-purification trap (target-only, not quantification)
 
 - context_packet_id: `CP_72500a7b48ee67da74d56bd14f27a452`
 - sample_stratum_type: `secondary`
@@ -6805,9 +7270,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -6823,6 +7290,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6856,7 +7325,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 100. gas-purification trap (target-only, not quantification)
+## 101. gas-purification trap (target-only, not quantification)
 
 - context_packet_id: `CP_9bfaeeeb883c1182872d33d855164d3f`
 - sample_stratum_type: `secondary`
@@ -6874,15 +7343,17 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
-- effective_reaction_family_source: `existing_reaction_family`
+- effective_reaction_family_source: `high_confidence_document`
 - reaction_family_correction: `False`
 - document_target_reaction_family_conflict: `False`
 - span_claim_scope: `target_document`
@@ -6892,14 +7363,16 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
 - previous_paragraph_preview: The LiBF4 (Sigma -Aldrich, ≥ 98%, anhydrous) was dried at 120 °C for 48 h in a vacuum oven before use. Ethanol (Honeywell, anhydrous) was dried with 3 Å molecular sieves. Electrolyte solution consisted of 1.0 M LiBF4 in tetrahydrofuran (THF, anhydrous, &gt;99.9%, inhibitor-free, Sigma -Aldrich) and 0 -100mMprotonshuttlesandwaspreparedinan argon- fi lled glovebox. A syringe pump (World Instruments) was used to control the fl ow rate of the electrolytes at 1.0 ml/min. The syringe (Trajan Scienti fi c and Medical, 100 ml) consisted of a borosilicate glass tube and a PTFE plun…
 - target_paragraph: The electrochemistry experiments were conducted using a BioLogic Potentiostat (VMP2). The resistance between the WE and RE was measured using the potentiostatic electrochemical impedance spectroscopy (PEIS) and the current interrupt technique. The linear sweep voltammetry (LSV) was recorded from the open-circuit voltage (OCV) until lithium plating is clearly seen. Subsequently, chronopotentiometry (CP) was measured with potential cycling. The potential cycling refers to that -6mA/cm 2 (the corresponding potential denoted deposition potential) was applied for 1 min and then 0mA/cm 2 (the corresponding potential denoted resting potential) for 1 min. 700 C of charge was passed for each experiment to determine the ammonia Faradaic ef fi ciency (FE). We note that all experi…
 - next_paragraph_preview: ## THF, EtOH, and PhOH oxidation experiments in aqueous electrolyte
-- evidence_roles: validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Operando isotope-labeled mass spectrometry is another necessary experiment for the proposed procedure to prove the ability to transfer the proton of the proton shuttle. The operando mass spectrometry was conducted in a continuous- fl ow reactor, wherein a deuterium (D2) oxidation reaction occurred at the anode side to generate protons (D + ) to examine whether the proton shuttle (PhOH) can transfer the protons to the cathode products (Fig. 3). The products containing deuterium (D) and hydrogen (H) were measured at the cathode side using operando mass spectrometry (Suppleme…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S033"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "A good proton shuttle should have high electrochemical stability during the Li-RR process. To evaluate the electrochemical stability of THF, EtOH, and PhOH on the PtAu anode catalysts, the oxidation experiments in an aqueous electrolyte were carried out in a custommade three-electrode glass cell using the rotating disk electrode method. The Hg/Hg2SO4 reference electrode was calibrated before the electrochemistry test. A Pt wire was used as a counter electrode. The working electrode (PtAu/Ti) was obtained from electrodeposited PtAu on a titanium stub ( ϕ =5mm, 0.196cm 2 ).…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S074"}]`
+- evidence_roles: process, reactor, validation
+- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Operando isotope-labeled mass spectrometry is another necessary experiment for the proposed procedure to prove the ability to transfer the proton of the proton shuttle. The operando mass spectrometry was conducted in a continuous- fl ow reactor, wherein a deuterium (D2) oxidation reaction occurred at the anode side to generate protons (D + ) to examine whether the proton shuttle (PhOH) can transfer the protons to the cathode products (Fig. 3). The products containing deuterium (D) and hydrogen (H) were measured at the cathode side using operando mass spectrometry (Suppleme…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S033"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "The LiBF4 (Sigma -Aldrich, ≥ 98%, anhydrous) was dried at 120 °C for 48 h in a vacuum oven before use. Ethanol (Honeywell, anhydrous) was dried with 3 Å molecular sieves. Electrolyte solution consisted of 1.0 M LiBF4 in tetrahydrofuran (THF, anhydrous, &gt;99.9%, inhibitor-free, Sigma -Aldrich) and 0 -100mMprotonshuttlesandwaspreparedinan argon- fi lled glovebox. A syringe pump (World Instruments) was used to control the fl ow rate of the electrolytes at 1.0 ml/min. The syringe (Trajan Scienti fi c and Medical, 100 ml) consisted of a borosilicate glass tube and a PTFE plun…", "primary_admissible_gate_source": true, "roles": ["reactor", "process"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S071"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "A good proton shuttle should have high electrochemical stability during the Li-RR process. To evaluate the electrochemical stability of THF, EtOH, and PhOH on the PtAu anode catalysts, the oxidation experiments in an aqueous electrolyte were carried out in a custommade three-electrode glass cell using the rotating disk electrode method. The Hg/Hg2SO4 reference electrode was calibrated before the electrochemistry test. A Pt wire was used as a counter electrode. The working electrode (PtAu/Ti) was obtained from electrodeposited PtAu on a titanium stub ( ϕ =5mm, 0.196cm 2 ).…", "primary_admissible_gate_source": false, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0042_Fu_2024_Phenol_as_proton_shuttle_and_buffer_for_lithium-mediated_ammonia_electrosynthesis_S074"}]`
 - packet_local_context_status: `not_applicable`
 - packet_local_missing_types: `[]`
 - family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "operating_field_disclosure": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
@@ -6925,7 +7398,7 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - human_quantification_vs_trap_correct:
 - human_notes:
 
-## 101. gas-purification trap (target-only, not quantification)
+## 102. gas-purification trap (target-only, not quantification)
 
 - context_packet_id: `CP_46b538acf63dba8e5e27b52e340b8fa3`
 - sample_stratum_type: `secondary`
@@ -6942,10 +7415,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `gas_purification_or_capture_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -6961,6 +7436,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `True`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -6969,75 +7446,6 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - next_paragraph_preview: High-pressure experiments . The p-GNP/bSi/Cr was tested under high-pressure nitrogen gas using a Q-tube purging-35-SS vessel, purchased from Q Labtech. The reaction was carried out under irradiation using a 300 W Xe lamp with the intensity equivalent to 2 suns. The electrolyte used was 10 ml deionized water and the catalyst size 1 cm 2 (0.12 g). The electrolyte was bubbled with nitrogen for 20 min followed by addition to the reaction vessel which was purged with nitrogen gas before irradiation. Following irradiation for 3 h the concentration of ammonia/ammonium was analyse…
 - evidence_roles: validation
 - linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Photochemical conversion provides a promising approach to convert nitrogen into ammonia by using solar energy. Early attempts used titania, or modified titania semiconductor catalysts 17-19 , but all of these produced only impractically low efficiencies. The recent development of surface plasmon resonance (SPR) has provided some new opportunities. Plasmon-induced ammonia synthesis has been demonstrated through nitrogen photofixation on a gold nanoparticle (GNP) -coated Nb-SrTiO3 substrate with visible light irradiation 20 . Photo-illuminated diamond has also been used as a…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P1015_Ali_2016_Nanostructured_photoelectrochemical_solar_cell_for_nitrogen_reduction_using_plasmon-enhanced_black_silico_S011"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "In summary, we describe a nanostructured photoelectrochemical cell that is capable of mimicking the nitrogen fixation and conversion process of nitrogenases in nature and producing ammonia (13.3 mg m \u0000 2 h \u0000 1 , at 2 suns) and an ammonia based fertilizer in a fully solar-driven process. The photoelectrochemical cell is not inherently area limited and can be scaled up with the silicon wafer size, and the nanostructures of the cell can be further improved and optimized in term of the component, size and configuration. Hence significant potential exists for further developmen…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P1015_Ali_2016_Nanostructured_photoelectrochemical_solar_cell_for_nitrogen_reduction_using_plasmon-enhanced_black_silico_S027"}]`
-- packet_local_context_status: `not_applicable`
-- packet_local_missing_types: `[]`
-- family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
-- family_gate_coverage_primary_admissible: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `[]`
-- paper_gate_coverage_primary_admissible_missing: `[]`
-- local_reaction_family_conflict_any_source: `False`
-- local_reaction_family_conflict_primary_admissible: `False`
-- local_off_target_reaction_conflict: `False`
-- off_target_reaction_conflict: `False`
-- human_section_type_correct:
-- human_document_genre_correct:
-- human_span_claim_scope_correct:
-- human_document_scope_correct:
-- human_claim_ownership_correct:
-- human_claim_type_correct:
-- human_effective_reaction_family_correct:
-- human_performance_result_evidence_correct:
-- human_local_context_sufficient:
-- human_link_roles_correct:
-- human_gate_source_eligibility_correct:
-- human_quantification_vs_trap_correct:
-- human_notes:
-
-## 102. gas-purification trap (target-only, not quantification)
-
-- context_packet_id: `CP_f8027bf7b39293b0f92402c7f3e4129e`
-- sample_stratum_type: `secondary`
-- secondary_stratum_reason: `gas-purification trap (target-only, not quantification)`
-- paper_id: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis`
-- source_span_id: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S068`
-- source_locator: `P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis::SEC005::PAR030::ANCHOR01`
-- raw_heading: Methods
-- direct_section_type: `methods`
-- effective_section_type: `methods`
-- section_type_source: `direct`
-- target_claim_type: `process_claim`
-- legacy_claim_type: `process_claim`
-- semantic_claim_type: `gas_purification_or_capture_claim`
-- semantic_claim_type_confidence: `high`
-- semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
-- document_genre: `primary_research`
-- legacy_reaction_family: `eNRR`
-- document_reaction_family: `mixed`
-- document_reaction_family_confidence: `medium`
-- effective_reaction_family: `eNRR`
-- effective_reaction_family_source: `explicit_high_confidence_target_span`
-- reaction_family_correction: `False`
-- document_target_reaction_family_conflict: `False`
-- span_claim_scope: `target_document`
-- document_scope: `target_document`
-- claim_ownership: `target_authors`
-- primary_semantic_eligibility: `False`
-- hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
-- primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible"]`
-- ammonia_quantification_signal: `False`
-- gas_purification_trap_signal: `True`
-- mass_spectrometry_quantification_signal: `False`
-- enzymatic_quantification_signal: `False`
-- previous_paragraph_preview: Electrochemical NRR measurements . The electrochemical measurements were conducted in a gas-tight H-type cell separated by the Celgard membrane with hydrophilic treatment. Both the cathode chamber and anode chamber contained 30 ml of LiCl electrolyte. A graphite rod was used as the counter electrode, and Ag/ AgCl/saturated KCl was used as the reference electrode. Before the measurement, the electrolyte was purged with puri fi ed nitrogen for 30 min. During the electrochemical NRR measurements, puri fi ed N2 was continuously fed into the cathodic compartment with a properly…
-- target_paragraph: For NRR experiments, the potentiostatic tests were conducted in LiCl aqueous solutions at different potentials, including -0.1, -0.2, -0.3, -0.4, and -0.5 V vs. RHE. An in-line acid trap of the cathode chamber fi lled with 0.1 M HCl was set to avoid volatilization of the produced ammonia. The electrolytes in the cathode and acid trap were both collected and analysed for quantitative measurements. The total ammonia yield was the summation of that in LiCl and in 0.1 M HCl.
-- next_paragraph_preview: Determination of ammonia from the NRR process . For the colorimetric method, the concentration of ammonia in the LiCl solution was determined using the same method as that in distilled water, except that the standing time was changed to 10 min. The concentration of ammonia in the HCl solution was determined using the same method as that in distilled water. For the NMR measurements, the standard curve was constructed by measuring a series of areas of the NMR peak for the reference solutions at different ammonium sulfate concentrations. The weighted linear regression model w…
-- evidence_roles: performance, validation
-- linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "C onsidering the great impact of ammonia (NH3) on modern society, the ef fi cient activation of dinitrogen (N2) is currently among the most important topics 1,2 . In this context, the electrochemical nitrogen reduction reaction (NRR) under ambient conditions, as a sustainable alternative to the century-old Haber -Bosch process, has attracted growing research interest in recent years 3,4 . Despite tremendous efforts, however, ef fi cient NRRs still face great practical challenges. One of the major concerns lies in the poor accessibility of N2 molecules to the electrocatalys…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S010"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Catalyst synthesis . Graphite oxide was prepared via the modi fi ed Hummers method. To prepare B-COF/GO, 100 mg of GO was sonicated in 20 ml of methanol, and then 300 mg of benzene-1,4-diboronic acid was added. The solution was transferred to a stainless-steel reactor and sealed under nitrogen gas. The reaction was maintained at 90 °C for 24 h, and the product was thoroughly washed with methanol and mesitylene/dioxane solution. The obtained materials were directly dispersed in 20 ml of mesitylene/dioxane solution with 500 mg of benzene1,4-diboronic acid. The solution was k…", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S052"}, {"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "Yield rate and Faradaic efficiency of ammonia and hydrogen . The ammonia yield rate and Faradaic ef fi ciency were calculated as follows:", "primary_admissible_gate_source": true, "roles": ["validation"], "span_claim_scope": "target_document", "span_id": "P0956_Wang_2021_Salting-out_effect_promoting_highly_efficient_ambient_ammonia_synthesis_S072"}]`
 - packet_local_context_status: `not_applicable`
 - packet_local_missing_types: `[]`
 - family_gate_coverage: `{"NOx_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "blank_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "contamination_control": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "isotope_15N": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
@@ -7084,6 +7492,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -7099,6 +7509,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_confidence_not_high_or_medium", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_confidence_not_high_or_medium", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7149,10 +7561,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `secondary_context_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
@@ -7168,6 +7582,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_reject_or_low_trust", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_reject_or_low_trust", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7219,9 +7635,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -7237,6 +7655,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7288,9 +7708,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `low`
 - semantic_claim_type_conflict: `False`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -7306,6 +7728,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_confidence_not_high_or_medium"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_confidence_not_high_or_medium"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7357,9 +7781,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `mixed`
 - document_reaction_family: `NO3RR`
@@ -7375,6 +7801,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7425,10 +7853,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `mechanism_claim`
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["non_ammonia_reaction_activity", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `True`
 - document_genre: `perspective`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -7444,6 +7874,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7498,6 +7930,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `["qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -7513,6 +7947,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7564,9 +8000,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["non_ammonia_reaction_activity", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `True`
 - document_genre: `review`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -7582,6 +8020,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7632,10 +8072,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `mechanism_claim`
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "non_ammonia_reaction_activity", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `True`
 - document_genre: `review`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -7651,6 +8093,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7702,9 +8146,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `low`
 - semantic_claim_type_conflict: `False`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
@@ -7720,6 +8166,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_confidence_not_high_or_medium"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_confidence_not_high_or_medium"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7770,10 +8218,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `mechanism_claim`
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -7789,6 +8239,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7839,10 +8291,12 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type: `reactor_claim`
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -7858,6 +8312,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7909,9 +8365,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `mixed`
@@ -7927,6 +8385,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -7978,9 +8438,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["structured_performance_result_field", "faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "ammonia_yield_rate_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `computational_study`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -7996,6 +8458,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8050,6 +8514,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -8065,6 +8531,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8116,13 +8584,15 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
-- document_reaction_family_confidence: `medium`
+- document_reaction_family_confidence: `high`
 - effective_reaction_family: `LiNRR`
 - effective_reaction_family_source: `explicit_high_confidence_target_span`
 - reaction_family_correction: `False`
@@ -8134,6 +8604,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8188,6 +8660,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `[]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `unclear`
@@ -8203,6 +8677,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8254,9 +8730,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `low`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `[]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -8272,6 +8750,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_confidence_not_high_or_medium", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_confidence_not_high_or_medium", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8323,9 +8803,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `NO3RR`
@@ -8341,6 +8823,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8392,9 +8876,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `mixed`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -8410,6 +8896,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8457,13 +8945,15 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - section_type_source: `direct`
 - target_claim_type: `unsupported_claim`
 - legacy_claim_type: `unsupported_claim`
-- semantic_claim_type: `performance_result_claim`
-- semantic_claim_type_confidence: `high`
+- semantic_claim_type: `performance_context_claim`
+- semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
-- performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
-- performance_result_evidence: `True`
-- quantitative_performance_evidence: `True`
+- performance_evidence_strength: `context_only`
+- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_result_evidence: `False`
+- quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `NO3RR`
 - document_reaction_family: `NO3RR`
@@ -8476,9 +8966,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - document_scope: `unclear`
 - claim_ownership: `unclear`
 - primary_semantic_eligibility: `False`
-- hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "local_off_target_reaction_conflict"]`
-- primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "local_off_target_reaction_conflict"]`
+- hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
+- primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8489,10 +8981,10 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - linked_evidence_previews: `[{"claim_ownership": "target_authors", "document_genre": "primary_research", "document_scope": "target_document", "preview": "ABSTRACT: Electrocatalytic synthesis of ammonia (NH3) from nitrate (NO 3 -) is an effective approach for reducing nitrate pollutants in the environment and a promising method for ammonia synthesis under mild conditions. However, current catalyst syntheses are costly, and their application in real wastewater remains underexplored. Herein, we prepared highefficiency copper-based single-atom-nanoparticle synergistic sites on carbon felt (CuSA/NP@C) from copper-containing wastewater. Trace Cu 2+ in wastewater enables efficient nitrate reduction reaction (NO3 RR), and the effec…", "primary_admissible_gate_source": true, "roles": ["performance"], "span_claim_scope": "target_document", "span_id": "P0320_Liu_2025_Synergistic_copper_single-atoms_and_nanoparticles_in-situ_generated_towards_nitrate_electroreduction_to_a_S011"}, {"claim_ownership": "unclear", "document_genre": "primary_research", "document_scope": "unclear", "preview": "In this work, a copper-based electrocatalyst with synergistic single-atom and nanoparticulate sites on carbon felt (CF) (CuSA/NP @C) was directly prepared via in-situ electrochemical deposition using copper-containing wastewater as the precursor, showing high activity and selectivity for NO3RR to ammonia synthesis. Systematic investigation of Cu 2+ concentrations reveals that the optimal catalyst fabricated at 500 μM exhibits a NH 3 Faradaic efficiency (FE) of ~ 100% and a NH 3 yield of 10 mg·cm -2 at -0.3 V vs. reversible hydrogen electrode (RHE), owing to the synergistic…", "primary_admissible_gate_source": false, "roles": ["performance", "validation"], "span_claim_scope": "unclear", "span_id": "P0320_Liu_2025_Synergistic_copper_single-atoms_and_nanoparticles_in-situ_generated_towards_nitrate_electroreduction_to_a_S024"}]`
 - packet_local_context_status: `not_applicable`
 - packet_local_missing_types: `[]`
-- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
-- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "missing", "supporting_span_ids": []}}`
+- family_gate_coverage: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
+- family_gate_coverage_any_source: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "any_source", "status": "not_applicable", "supporting_span_ids": []}}`
 - family_gate_coverage_primary_admissible: `{"ammonia_quantification": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "competing_product_tracking": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "nitrate_source_defined": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}, "nitrogen_balance": {"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "source_eligibility": "primary_admissible", "status": "not_applicable", "supporting_span_ids": []}}`
-- paper_gate_coverage_missing: `["nitrate_source_defined", "nitrogen_balance", "ammonia_quantification", "competing_product_tracking"]`
+- paper_gate_coverage_missing: `[]`
 - paper_gate_coverage_primary_admissible_missing: `[]`
 - local_reaction_family_conflict_any_source: `True`
 - local_reaction_family_conflict_primary_admissible: `False`
@@ -8533,6 +9025,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - performance_evidence_signals: `["qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `False`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `review`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `mixed`
@@ -8548,6 +9042,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["document_genre_not_primary_research", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8599,9 +9095,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `medium`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -8617,6 +9115,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8668,9 +9168,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor", "current_study_comparative_result"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NO3RR`
@@ -8686,6 +9188,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `True`
+- structured_quantification_present: `True`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8737,9 +9241,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `quantitative_result`
-- performance_evidence_signals: `["faradaic_efficiency_result", "numeric_value_with_unit"]`
+- performance_evidence_signals: `["faradaic_efficiency_context", "faradaic_efficiency_value_proximity", "metric_specific_numeric_result", "target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `True`
 - quantitative_performance_evidence: `True`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -8755,6 +9261,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible", "local_off_target_reaction_conflict"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8806,9 +9314,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `none`
-- performance_evidence_signals: `["numeric_value_with_unit"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `unclear`
 - document_reaction_family: `NORR`
@@ -8824,6 +9334,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_secondary_or_context", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8875,9 +9387,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `eNRR`
 - document_reaction_family: `eNRR`
@@ -8893,6 +9407,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`
@@ -8944,9 +9460,11 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - semantic_claim_type_confidence: `high`
 - semantic_claim_type_conflict: `True`
 - performance_evidence_strength: `context_only`
-- performance_evidence_signals: `["qualitative_performance_context"]`
+- performance_evidence_signals: `["target_ammonia_reaction_outcome_anchor", "qualitative_performance_context"]`
 - performance_result_evidence: `False`
 - quantitative_performance_evidence: `False`
+- target_ammonia_reaction_outcome_anchor: `True`
+- non_ammonia_reaction_activity: `False`
 - document_genre: `primary_research`
 - legacy_reaction_family: `LiNRR`
 - document_reaction_family: `LiNRR`
@@ -8962,6 +9480,8 @@ Gas purification or trapping is not ammonia quantification without analytical me
 - hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_reject_or_low_trust", "semantic_claim_type_not_primary_eligible"]`
 - primary_applicability_hard_gate_failures: `["span_claim_scope_not_target_document", "claim_not_owned_by_target_authors", "target_not_primary_admissible", "target_is_reject_or_low_trust", "semantic_claim_type_not_primary_eligible"]`
 - ammonia_quantification_signal: `False`
+- structured_quantification_present: `False`
+- structured_gate_text_conflict: `False`
 - gas_purification_trap_signal: `False`
 - mass_spectrometry_quantification_signal: `False`
 - enzymatic_quantification_signal: `False`

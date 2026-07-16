@@ -3,8 +3,8 @@
 Deterministic safety sentinels for document reaction family, result-bearing performance,
 validation-gate regex safety, document genre, and cited-claim ownership.
 
-- Cases: 12
-- Passed: 12
+- Cases: 20
+- Passed: 20
 - Overall pass: `True`
 
 ## 1. P0090 nitrate family correction
@@ -101,4 +101,68 @@ validation-gate regex safety, document genre, and cited-claim ownership.
 - input: `"Yang et al. [12] synthesized the catalyst."`
 - expected: `{"claim_ownership": "external_or_cited_authors", "span_claim_scope": "external_or_cited_work"}`
 - actual: `{"claim_ownership": "external_or_cited_authors", "span_claim_scope": "external_or_cited_work"}`
+- pass: `True`
+
+## 13. P0021 Li-mediated title is LiNRR
+
+- case_id: `SB_SENTINEL_13`
+- input: `"Electrocatalytic oxidation of hydrogen as an anode reaction for the Li-mediated N2 reduction to ammonia"`
+- expected: `{"confidence": "high", "document_reaction_family": "LiNRR"}`
+- actual: `{"confidence": "high", "document_reaction_family": "LiNRR"}`
+- pass: `True`
+
+## 14. P0056 Li-mediated title is LiNRR
+
+- case_id: `SB_SENTINEL_14`
+- input: `"The effect of applied potential on the Li-mediated nitrogen reduction reaction performance"`
+- expected: `{"confidence": "high", "document_reaction_family": "LiNRR"}`
+- actual: `{"confidence": "high", "document_reaction_family": "LiNRR"}`
+- pass: `True`
+
+## 15. HOR activity inside LiNRR is not ammonia performance
+
+- case_id: `SB_SENTINEL_15`
+- input: `"The HOR activity of Pt/C decreased after cycling."`
+- expected: `{"performance_result_evidence": false}`
+- actual: `{"performance_result_evidence": false}`
+- pass: `True`
+
+## 16. Faradaic efficiency figure reference is not a numeric result
+
+- case_id: `SB_SENTINEL_16`
+- input: `"Faradaic efficiency is presented in Fig. 2."`
+- expected: `{"performance_result_evidence": false}`
+- actual: `{"performance_result_evidence": false}`
+- pass: `True`
+
+## 17. High NH3 yield at voltage without yield value is context
+
+- case_id: `SB_SENTINEL_17`
+- input: `"The catalyst showed high NH3 yield at -0.5 V."`
+- expected: `{"semantic_claim_type": "performance_context_claim"}`
+- actual: `{"semantic_claim_type": "performance_context_claim"}`
+- pass: `True`
+
+## 18. Structured quantification plus text negation conflicts
+
+- case_id: `SB_SENTINEL_18`
+- input: `{"source_text": "No ammonia quantification was performed.", "validation_gates": {"ammonia_quantification": "explicit"}}`
+- expected: `{"ammonia_quantification_signal": false, "gate_conflict": true}`
+- actual: `{"ammonia_quantification_signal": false, "gate_conflict": true}`
+- pass: `True`
+
+## 19. NO detected as product is not NO source
+
+- case_id: `SB_SENTINEL_19`
+- input: `"NO was detected as a product."`
+- expected: `{"satisfied": false}`
+- actual: `{"gate_conflict": false, "gate_detection_signals": [], "gate_detection_source": "", "satisfied": false}`
+- pass: `True`
+
+## 20. Parallel index family equals context packet family
+
+- case_id: `SB_SENTINEL_20`
+- input: `{"effective_reaction_family": "LiNRR", "source_span_id": "S_FIXTURE"}`
+- expected: `{"effective_reaction_family": "LiNRR"}`
+- actual: `{"effective_reaction_family": "LiNRR"}`
 - pass: `True`

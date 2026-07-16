@@ -1,42 +1,12 @@
 # Parallel Comparison Sample
 
 For manual structural and semantic review only. These alignments do not establish scientific comparability.
+The eNRR validation-linkage group is structural: target semantic type may differ from linked validation role.
 结构对齐不代表科学可比性。
 
 ## LiNRR methods/protocol
 
-- paper: `P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r`
-  - locator: `P0055_Bemana_2025_Accelerating_lithium-mediated_nitrogen_reduction_through_an_integrated_palladium_membrane_hydrogenation_r::SEC003::PAR004::ANCHOR01`
-  - section: `3` direct=`methods`; effective=`methods`; source=`direct`
-  - comparison keys: raw=`LiNRR|methods|context_hint`; effective=`LiNRR|methods|context_hint`
-  - reaction family: legacy=`LiNRR`; document=`LiNRR`; effective=`LiNRR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `process_claim`; performance result=`False`; strength=`none`
-  - roles: context_hint
-  - text: A two-channel BioLogic SP-300 potentiostat was used for electrochemical reactions. The organic and aqueous sides were connected to channel-1 and channel-2, respectively. Both electrochemical systems were performed by two-electrode con fi guration passing a fi xed current (chronopotentiometry) for both aqueous and organic chambers. LiNRR experiments (without PMR) were done by fi lling the organic chamber and leaving the aqueous chamber empty, connecting only channel-1 of the potentiostat. For the
-- paper: `P0797_Zhang_2024_Extracting_thin_film_structures_of_energy_materials_using_transformers`
-  - locator: `P0797_Zhang_2024_Extracting_thin_film_structures_of_energy_materials_using_transformers::SEC004::PAR002::ANCHOR01`
-  - section: `4` direct=`methods`; effective=`methods`; source=`direct`
-  - comparison keys: raw=`LiNRR|methods|reactor`; effective=`LiNRR|methods|reactor`
-  - reaction family: legacy=`LiNRR`; document=`mixed`; effective=`LiNRR`; source=`existing_reaction_family`; corrected=`False`
-  - semantic claim type: `untyped_claim`; performance result=`False`; strength=`none`
-  - roles: reactor
-  - text: The data used here were measured as part of an ongoing project to study electrochemical production of ammonia. 14 The study focuses on understanding the mechanisms involved at the surface of a copper electrode in contact with a non-aqueous electrolyte comprised of deuterated tetrahydrofuran (THF), lithium tetrafluoroborate (LiBF 4 ) salt, and ethanol under constant current. The details of similar measurements performed with molybdenum instead of copper can be found in this group's previous work.
-- paper: `P0797_Zhang_2024_Extracting_thin_film_structures_of_energy_materials_using_transformers`
-  - locator: `P0797_Zhang_2024_Extracting_thin_film_structures_of_energy_materials_using_transformers::SEC004::PAR008::ANCHOR01`
-  - section: `4` direct=`methods`; effective=`methods`; source=`direct`
-  - comparison keys: raw=`LiNRR|methods|reactor`; effective=`LiNRR|methods|reactor`
-  - reaction family: legacy=`LiNRR`; document=`mixed`; effective=`LiNRR`; source=`existing_reaction_family`; corrected=`False`
-  - semantic claim type: `untyped_claim`; performance result=`False`; strength=`none`
-  - roles: reactor
-  - text: which runs over all types of atoms in the system, where n i is the number density of element i and b i its coherent scattering length. For the measurements performed here, the initial state can be modeled by adding a copper oxide on top of the copper layer. As current is applied to the film, two layers rapidly form on the surface: a thinner layer containing lithium species, and a thicker, diffuse, SEI containing electrolyte degradation products. The transformer-based model presented here is able
-- paper: `P0857_Li_2020_Alternative_Strategies_Toward_Sustainable_Ammonia_Synthesis`
-  - locator: `P0857_Li_2020_Alternative_Strategies_Toward_Sustainable_Ammonia_Synthesis::SEC016::PAR010::ANCHOR01`
-  - section: `16` direct=`methods`; effective=`methods`; source=`direct`
-  - comparison keys: raw=`LiNRR|methods|context_hint`; effective=`LiNRR|methods|context_hint`
-  - reaction family: legacy=`LiNRR`; document=`eNRR`; effective=`LiNRR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `untyped_claim`; performance result=`False`; strength=`none`
-  - roles: context_hint
-  - text: High current efficiency of ENRR was also realized in a solution of LiClO 4 (0.2 mol/L) in tetrahydrofuran/ethanol (99:1 V / V ) on metal electrodes [118]. Lithium in the electrolyte acted as a mediator because Li + was reduced on the electrode to deposit metallic Li, which reacted with N 2 to form Li 3 N. Li 3 N underwent a subsequent ethanolysis to generate NH 3 . Moreover, in this Li-mediated system, the metal electrode can be modified with a functional layer such as superhydrophob
+- No matching records in this run.
 
 ## LiNRR results/performance
 
@@ -49,7 +19,7 @@ For manual structural and semantic review only. These alignments do not establis
   - roles: performance
   - text: Except for the electrolyte optimisation studies, the LiNTf2 concentration was 2 M, which provides the highest Li-NRR performance reported so far with flat electrodes. 16 Specifically, when using a bare Ni electrode and 0.1 M EtOH proton carrier, the reaction mediated by 2 M LiNTf2 produces ammonia at a rate of 230 ± 20 nmol s -1 cm -2 and FE of 86 ± 9 % during 6 h experiments at -0.55 V vs. Li app 0/+ (apparent potential of the Li 0/+ redox couple; hereinafter, all potentials a
 
-## eNRR validation
+## eNRR records with validation linkage
 
 - paper: `P0004_Choi_2020_Identification_and_elimination_of_false_positives_in_electrochemical_nitrogen_reduction_studies`
   - locator: `P0004_Choi_2020_Identification_and_elimination_of_false_positives_in_electrochemical_nitrogen_reduction_studies::SEC007::PAR023::ANCHOR01`
@@ -59,14 +29,6 @@ For manual structural and semantic review only. These alignments do not establis
   - semantic claim type: `performance_context_claim`; performance result=`False`; strength=`none`
   - roles: validation
   - text: Notwithstanding a speci fi c focus of this perspective on the electrochemical reduction of N2, we note that many of the control experiments, puri fi cation and analytical procedures can and should be applied to other modes of the conversion of dinitrogen to ammonia that struggle to achieve practically relevant yield rates. In the fi rst place, this is pertinent to the photochemical N2 fi xation studies, many of which produce even less ammonia than the NRR.
-- paper: `P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance`
-  - locator: `P0056_Izelaar_2025_The_effect_of_applied_potential_on_the_Li-mediated_nitrogen_reduction_reaction_performance::SEC010::PAR002::ANCHOR01`
-  - section: `10` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`unclear|unknown|validation`; effective=`eNRR|unknown|validation`
-  - reaction family: legacy=`unclear`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`False`
-  - semantic claim type: `process_claim`; performance result=`False`; strength=`none`
-  - roles: validation
-  - text: All electrochemical ammonia synthesis experiments were performed in a polyether ether ketone (PEEK) three electrode autoclave cell at 20bar N2 pressure. The cell design and con fi guration was inspired by the work of MacFarlane, Simonov and coworkers 6 . The cell consists of a glass insulated Cu wire (Ø0.5 mm × 6 mm) as working electrode (WE), a Pt wire (Ø0.5 mm × 400 mm) as counter electrode (CE) coiled around the WE with a Ø14 mm, a small LixFePO4 ribbon (~2 mm×11 mmx0.1mm) as reference electr
 - paper: `P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots`
   - locator: `P0102_Li_2021_Efficient_electrocatalytic_nitrogen_reduction_to_ammonia_with_aqueous_silver_nanodots::SEC005::PAR018::ANCHOR01`
   - section: `5` direct=`methods`; effective=`methods`; source=`direct`
@@ -88,7 +50,7 @@ For manual structural and semantic review only. These alignments do not establis
   - section: `6` direct=`methods`; effective=`methods`; source=`direct`
   - comparison keys: raw=`eNRR|methods|validation`; effective=`eNRR|methods|validation`
   - reaction family: legacy=`eNRR`; document=`eNRR`; effective=`eNRR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `validation_claim`; performance result=`True`; strength=`quantitative_result`
+  - semantic claim type: `validation_claim`; performance result=`False`; strength=`context_only`
   - roles: validation
   - text: ENRR measurements . Prior to the test of ENRR, Na fi on117 membrane was immersed in 5% H2O2 aqueous solution at 80 °C for 1 h. Subsequently, the membrane was soaked in ultrapure water at 80 °C for another 1 h. ENRR was performed in a three-electrode con fi guration consisting of the working electrode (either Au4M2(SR)8 or Au4M2/G (M = Pt, Pd)), Pt foil counter electrode and SCE reference electrode, respectively. A two-compartment H-shape cell separated by Na fi on117 membrane was used for ENRR (
 - paper: `P0204_Yao_2020_Atomically-precise_dopant-controlled_single_cluster_catalysis_for_electrochemical_nitrogen_reduction`
@@ -120,7 +82,7 @@ For manual structural and semantic review only. These alignments do not establis
   - section: `10` direct=`unknown`; effective=`unknown`; source=`unknown`
   - comparison keys: raw=`eNRR|unknown|validation`; effective=`eNRR|unknown|validation`
   - reaction family: legacy=`eNRR`; document=`eNRR`; effective=`eNRR`; source=`existing_reaction_family`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`True`; strength=`quantitative_result`
+  - semantic claim type: `secondary_context_claim`; performance result=`False`; strength=`context_only`
   - roles: validation
   - text: | catalyst | electrolyte | FE | NH 3 yield rate | 15 N isotope | ref | |------------------------------------------|------------------------------------------|------------------------------------------|------------------------------------------|------------------------------------------|------------------------
 - paper: `P0345_Rezaie_2023_Low_Temperature_Electrochemical_Ammonia_Synthesis_Measurement_Reliability_and_Comparison_to_Haber_Bosch_i`
@@ -131,21 +93,21 @@ For manual structural and semantic review only. These alignments do not establis
   - semantic claim type: `validation_claim`; performance result=`False`; strength=`none`
   - roles: validation
   - text: Four of practically relevant articles are probably reliable works with a reliability indicator of 20 demonstrated potential for a very high energy efficiency. In works number 4 and 6 in Table 6, the 15 N2 control experiment was not repeated. In works number 3 and 7 in Table 6, the 15 N2 control experiment was performed only qualitatively. The other three articles in Table 6 are those of the seven reliable aqueous-based media ENRR works with high FE presented in Table 5 and discussed from differe
+- paper: `P0368_Große_2025_In-liquid_Plasma_Catalysis_for_Nitrogen_Reduction`
+  - locator: `P0368_Große_2025_In-liquid_Plasma_Catalysis_for_Nitrogen_Reduction::SEC009::PAR002::ANCHOR01`
+  - section: `9` direct=`unknown`; effective=`unknown`; source=`unknown`
+  - comparison keys: raw=`eNRR|unknown|validation`; effective=`eNRR|unknown|validation`
+  - reaction family: legacy=`eNRR`; document=`mixed`; effective=`eNRR`; source=`existing_reaction_family`; corrected=`False`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
+  - roles: validation
+  - text: The concentration of NH3 in the liquid phase was determined through UV-Vis spectroscopy and the indophenol blue method. A 5 mL aliquot of the solution was extracted from the plasma reactor. Subsequently, 2 mL of the cooled solution were mixed with 0.5 mL of phenol nitroprusside solution (50 g/L phenol in a sodium nitroprusside solution containing a stabilizer, MERCK) and 0.5 mL of alkaline hypochlorite solution (0.2% Sodium Hypochlorite in 0.625 M Sodium Hydroxide, MERCK). The result
 
 ## NO3RR quantification
 
 - paper: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst`
-  - locator: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst::SEC003::PAR009::ANCHOR01`
-  - section: `3` direct=`results`; effective=`results`; source=`direct`
-  - comparison keys: raw=`unclear|results|context_hint`; effective=`NO3RR|results|context_hint`
-  - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`True`; strength=`quantitative_result`
-  - roles: context_hint
-  - text: Fig. 3 Electrocatalytic nitrate reduction performance. a LSV curves of the Fe SAC in 0.25 M K2SO4 electrolyte and 0.50 M KNO3/0.10 M K2SO4 mixed electrolyte. b NH3 FE of Fe SAC at each given potential. Red dot is FE estimated by three independent NMR tests. c NH3 yield rate and partial current density of Fe SAC, FeNP/NC, and NC. d 1 H NMR spectra for the electrolytes after three independent nitrate reduction tests at -0.66 V. e 1 H NMR spectra for electrolytes after 15 NO3 -reduction tests at di
-- paper: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst`
   - locator: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst::SEC003::PAR011::ANCHOR01`
   - section: `3` direct=`results`; effective=`results`; source=`direct`
-  - comparison keys: raw=`unclear|results|quantification`; effective=`NO3RR|results|quantification`
+  - comparison keys: raw=`NO3RR|results|quantification`; effective=`NO3RR|results|quantification`
   - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
   - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
   - roles: quantification
@@ -153,19 +115,11 @@ For manual structural and semantic review only. These alignments do not establis
 - paper: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst`
   - locator: `P0090_Wu_2021_Electrochemical_ammonia_synthesis_via_nitrate_reduction_on_Fe_single_atom_catalyst::SEC005::PAR019::ANCHOR01`
   - section: `5` direct=`methods`; effective=`methods`; source=`direct`
-  - comparison keys: raw=`unclear|methods|validation`; effective=`NO3RR|methods|validation`
+  - comparison keys: raw=`NO3RR|methods|validation`; effective=`NO3RR|methods|validation`
   - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
   - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
   - roles: validation
   - text: 15 N isotope-labeling experiment . An isotope-labeling experiment using 0.10 M K2SO4/0.50 M K 15 NO3 (98 atom% 15 N) mixed solution as the electrolyte was carried out to clarify the source of NH3. After 15 NO3 -electroreduction for 0.5 to 2 h at -0.66 V (vs. RHE), the obtained 15 NH4 + was tested by 1 H nuclear magnetic resonance (NMR, 500 MHz). The NMR test method of 15 NH4 + is the same to that of 14 NH4 + .
-- paper: `P0120_Tang_2024_General_synthesis_of_high-entropy_single-atom_nanocages_for_electrosynthesis_of_ammonia_from_nitrate`
-  - locator: `P0120_Tang_2024_General_synthesis_of_high-entropy_single-atom_nanocages_for_electrosynthesis_of_ammonia_from_nitrate::SEC006::PAR005::ANCHOR01`
-  - section: `6` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`NO3RR|unknown|context_hint`; effective=`NO3RR|unknown|context_hint`
-  - reaction family: legacy=`NO3RR`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`False`; strength=`context_only`
-  - roles: context_hint
-  - text: Fig. 4 | Electrocatalytic NO3RR performance. a Linear scan voltammetry curves of Fe-HESA NCs and Fe-Co NCs normalized to the geometric area. b MA and TOF for NH3 production at various potentials. c FE of NH3 over Fe-HESA NCs (blank pattern) andFe-Co NCs (slash pattern) at different potentials. d YRofNH3 overFe-HESANCs and Fe-Co NCs at different potentials. All potentials are not iR corrected. e 1 HNMR
 - paper: `P0124_Zhou_2025_Maximized_atom_utilization_in_a_high-entropy_metallene_via_single_atom_alloying_for_boosted_nitrate_elect`
   - locator: `P0124_Zhou_2025_Maximized_atom_utilization_in_a_high-entropy_metallene_via_single_atom_alloying_for_boosted_nitrate_elect::SEC005::PAR011::ANCHOR01`
   - section: `5` direct=`unknown`; effective=`unknown`; source=`unknown`
@@ -174,22 +128,6 @@ For manual structural and semantic review only. These alignments do not establis
   - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
   - roles: quantification
   - text: Faradaic ef fi ciencies and mass-normalized yield rates of PdCuNiCoZn in Arsaturated 0.1 M KNO3 + 1.0 M KOH (pH = 14 ± 0.2) at room temperature of 25 °C with Ar fl ow rate of 10 sccm. The error bars correspond to the standard deviations of measurements of three separately prepared samples under the same conditions. g 1 H-nuclear magnetic resonance ( 1 H-NMR) spectra of the electrolytes produced from the NO3RR using 14 NO3 and 15 NO3 as the isotopic NO3 -source. h Consecutive recycling test over
-- paper: `P0138_Gao_2022_Breaking_adsorption-energy_scaling_limitations_of_electrocatalytic_nitrate_reduction_on_intermetallic_CuP`
-  - locator: `P0138_Gao_2022_Breaking_adsorption-energy_scaling_limitations_of_electrocatalytic_nitrate_reduction_on_intermetallic_CuP::SEC003::PAR022::ANCHOR01`
-  - section: `3` direct=`results`; effective=`results`; source=`direct`
-  - comparison keys: raw=`NO3RR|results|context_hint`; effective=`NO3RR|results|context_hint`
-  - reaction family: legacy=`NO3RR`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`True`; strength=`quantitative_result`
-  - roles: context_hint
-  - text: Chronoamperometry (CA) measurements of catalysts were conducted at different potentials for 1 h in 1 M KOH + 1 M KNO3 solution with continuous Ar bubbling at a rate of 20 standard cubic centimeters per minute (sccm) (Supplementary Fig. 28). The gas product was quanti fi ed by gas chromatography and only H2 was identi fi ed from the competing HER. The colorimetric method using Nessler ' s reagent (Supplementary Fig. 29) was employed to detect the quantity of produced NH3 and ion chromatography wa
-- paper: `P0158_Liao_2024_Sustainable_conversion_of_alkaline_nitrate_to_ammonia_at_activities_greater_than_2_A_cm_2`
-  - locator: `P0158_Liao_2024_Sustainable_conversion_of_alkaline_nitrate_to_ammonia_at_activities_greater_than_2_A_cm_2::SEC006::PAR002::ANCHOR01`
-  - section: `6` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`NO3RR|unknown|performance`; effective=`NO3RR|unknown|performance`
-  - reaction family: legacy=`NO3RR`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`True`; strength=`quantitative_result`
-  - roles: performance
-  - text: The electrocatalytic NO3RR performance was conducted under ambient temperature and pressure in a standard three-electrode H-type cell. NH4 + , NO3 -, and NO2 -in the reaction system were detected and quanti fi ed by colouration and 1 H nuclear magnetic resonance (NMR) experiments (Supplementary Figs. 32 -36). Given the common industrial and agricultural wastewater-relevant NO3 -concentration ranging from 40 to 80 mM 58 -61 , we reasonably selected 56 mM NO3 -in the electrolyte (pH = 14) for the
 - paper: `P0161_Zhang_2024_Defect-induced_triple_synergistic_modulation_in_copper_for_superior_electrochemical_ammonia_production_ac`
   - locator: `P0161_Zhang_2024_Defect-induced_triple_synergistic_modulation_in_copper_for_superior_electrochemical_ammonia_production_ac::SEC004::PAR008::ANCHOR01`
   - section: `4` direct=`unknown`; effective=`unknown`; source=`unknown`
@@ -199,21 +137,53 @@ For manual structural and semantic review only. These alignments do not establis
   - roles: performance
   - text: 1 cm 2 catalyst successfully reduced the NO3 -and NO2 -content of 1 L of actual industrial wastewater to the drinking water standard within 30h, which demonstrates its impressive wastewater treatment capacity. Additionally, the 1 H NMR results (Fig. 5d) indicated that glycerol wasoxidized at the anode into a high value-added formate, with a FE of 81.3% (Supplementary Fig. 33), thereby enhancing the overall economic bene fi ts 46 . Given that stability is a critical parameter for industrializatio
 - paper: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis`
-  - locator: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis::SEC003::PAR012::ANCHOR01`
-  - section: `3` direct=`results`; effective=`results`; source=`direct`
-  - comparison keys: raw=`unclear|results|context_hint`; effective=`NO3RR|results|context_hint`
+  - locator: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis::SEC005::PAR019::ANCHOR01`
+  - section: `5` direct=`methods`; effective=`methods`; source=`direct`
+  - comparison keys: raw=`NO3RR|methods|quantification`; effective=`NO3RR|methods|quantification`
   - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`False`; strength=`context_only`
-  - roles: context_hint
-  - text: Fig. 3 Catalytic performance of NH3 photosynthesis on alkaline-earth oxide clusters. a Catalytic efficiency tests showing the enhancement of operando construction of alkaline-earth oxide clusters on TNS surfaces. b Reaction parameter regulation for optimized NH4 + photosynthesis rates on TNS and BaONCs-TNS respectively. c , d Quantitative isotope-labeled 15 NO3 -study verifying the fed NO3 -as the source for the prodcuced NH3. Inset: raw ion chromatography (IC) spectra for 14 NO3 -/ 15 NO3 -redu
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`context_only`
+  - roles: quantification
+  - text: NO3 --NH4 + photosynthesis efficiency test . Photosynthesis tests were fi rst conducted to determine the activity enhancement by operando MONCs construction. In a typical experimental procedure, 5 mg of TNS powder was dispersed in 100 mL of reaction solution containing 10 mg/L of NO3 --N, 50 mg/L of alkaline earth chlorides (MgCl2, CaCl2, SrCl2, and BaCl2 respectively) and 10 mL EG. Then the mixture was transferred into a photocatalytic reactor (MC-GF250, Merry Change, China) and degassed for so
 - paper: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis`
-  - locator: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis::SEC003::PAR014::ANCHOR01`
-  - section: `3` direct=`results`; effective=`results`; source=`direct`
-  - comparison keys: raw=`unclear|results|validation`; effective=`NO3RR|results|validation`
+  - locator: `P0162_Li_2022_Subnanometric_alkaline-earth_oxide_clusters_for_sustainable_nitrate_to_ammonia_photosynthesis::SEC005::PAR020::ANCHOR01`
+  - section: `5` direct=`methods`; effective=`methods`; source=`direct`
+  - comparison keys: raw=`NO3RR|methods|validation`; effective=`NO3RR|methods|validation`
   - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
-  - semantic claim type: `secondary_context_claim`; performance result=`False`; strength=`none`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`True`; strength=`comparative_result`
   - roles: validation
-  - text: To exclude the potential contribution of contaminative N-containing species, blank control experiments were subsequently performed (Supplementary Fig. 29) under the same testing procedure as that without catalysts and NO3 -; these experiments con fi rm that almost no NH4 + is produced. Most importantly, a quantitative isotope measurement was executed to test the N source for generating NH4 + by combining IC and nuclear magnetic resonance (NMR) technologies (Fig. 3c, d and Supplementary Figs. 30
+  - text: The quantitative 15 N isotope tracing measurement was conducted, using 10 mg/L of K 14 NO3 and K 15 NO3 as the feedstock respectively, the produced 14 NH4 + and 15 NH4 + were quanti fi ed by IC. Then the 1 H NMR (Bruker 400 M) was used to complement the IC results. As for the long-term stability test, the NO 3 --N concentration was increased to 500 mg/L to guarantee suf fi cient feedstock. Meanwhile, the catalyst dosage was increased to 50 mg to elevate the total yield of NH 4 + . In order to in
+- paper: `P0165_Dai_2024_Spin_polarized_Fe1_Ti_pairs_for_highly_efficient_electroreduction_nitrate_to_ammonia`
+  - locator: `P0165_Dai_2024_Spin_polarized_Fe1_Ti_pairs_for_highly_efficient_electroreduction_nitrate_to_ammonia::SEC006::PAR007::ANCHOR01`
+  - section: `6` direct=`unknown`; effective=`unknown`; source=`unknown`
+  - comparison keys: raw=`NO3RR|unknown|performance`; effective=`NO3RR|unknown|performance`
+  - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`True`; strength=`quantitative_result`
+  - roles: performance
+  - text: WethusemployedNMRtoconfi rmtheNsourceofgeneratedNH3 via the isotope labeling experiments with 15 N -labeled NO3 -as the reagent. Different from 14 NH4 + with three peaks in the 1 HNMRspectra, only two peaks of 15 NH4 + appeared in 1 HNMRspectra when 15 NO3 -was used as the reagent (Fig. 3d), demonstrating that the produced NH3 was from nitrate feedstock instead of contaminations. In addition, peaks of 15 NH4 + are absent in 1 HNMRspectraof the original electrolyte containing 15 NO3 -, further co
+- paper: `P0165_Dai_2024_Spin_polarized_Fe1_Ti_pairs_for_highly_efficient_electroreduction_nitrate_to_ammonia`
+  - locator: `P0165_Dai_2024_Spin_polarized_Fe1_Ti_pairs_for_highly_efficient_electroreduction_nitrate_to_ammonia::SEC014::PAR007::ANCHOR01`
+  - section: `14` direct=`unknown`; effective=`unknown`; source=`unknown`
+  - comparison keys: raw=`NO3RR|unknown|validation`; effective=`NO3RR|unknown|validation`
+  - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
+  - roles: validation
+  - text: where cNH3 is the measured NH3 concentration, V is the volume of the electrolyte, t is the reaction time, mcat is the Fe mass on the monolithic electrode, F is the Faraday constant (96485 C mol -1 ) and Q is the total charge. The NH3 amount was further determined by 1H NMR (600MHz, Bruker Avance III) with 10 vol% DMSO -d6 as the spin -lock fi eld and 0.4 mgL -1 maleic acid (C4H4O4) as the internal standard, respectively. Before each 1H NMR measurement, the pH of obtained solution was adjusted to
+- paper: `P0196_Zhang_2023_Electrochemical_nitrate_reduction_in_acid_enables_high-efficiency_ammonia_synthesis_and_high-voltage_poll`
+  - locator: `P0196_Zhang_2023_Electrochemical_nitrate_reduction_in_acid_enables_high-efficiency_ammonia_synthesis_and_high-voltage_poll::SEC003::PAR014::ANCHOR01`
+  - section: `3` direct=`results`; effective=`results`; source=`direct`
+  - comparison keys: raw=`NO3RR|results|performance`; effective=`NO3RR|results|performance`
+  - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`explicit_high_confidence_target_span`; corrected=`False`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`True`; strength=`quantitative_result`
+  - roles: performance
+  - text: To determine the nitrogen source in the conversion of NO3 --toNH3 and the amount of produced NH3, we employed 15 NO3 -and 14 NO3 -as the feedstock and detected the NH3 by 1 H nuclear magnetic resonance (NMR) method. We fi rst built the calibration curve using the standard ( 14 NH4)2SO4 and ( 15 NH4)2SO4, as displayed in (Supplementary Fig. 24). Then, we conducted the electrolysis at -0.45 V for 0.5 M 15 NO3 -and 14 NO3 -electrolytes, respectively. The electrolytes were collected for further anal
+- paper: `P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera`
+  - locator: `P0209_Yoon_2025_Revealing_catalyst_restructuring_and_composition_during_nitrate_electroreduction_through_correlated_opera::SEC010::PAR005::ANCHOR01`
+  - section: `10` direct=`unknown`; effective=`unknown`; source=`unknown`
+  - comparison keys: raw=`NO3RR|unknown|quantification`; effective=`NO3RR|unknown|quantification`
+  - reaction family: legacy=`unclear`; document=`NO3RR`; effective=`NO3RR`; source=`high_confidence_document`; corrected=`False`
+  - semantic claim type: `ammonia_quantification_claim`; performance result=`False`; strength=`none`
+  - roles: quantification
+  - text: The indophenol blue method was used for the determination of NH3 (refs. 48,49), and a commercial nitrite test kit (photometric 0.0021.00 mg l -1 NO2-N, 0.007-3.28 mg l -1 NO2 -, Spectroquant, Merck) was used for nitrite quantification. For the latter, 3 ml of the diluted electrolyte was added to a glass vial containing 35 mg of white powder from the kit. Details on quantification can be found in Supplementary Note 2.
 
 ## reactor/process
 
@@ -253,47 +223,47 @@ For manual structural and semantic review only. These alignments do not establis
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SECUNK003::PAR002::ANCHOR01`
   - section: `UNK` direct=`abstract`; effective=`abstract`; source=`direct`
   - comparison keys: raw=`LiNRR|abstract|reactor`; effective=`LiNRR|abstract|reactor`
-  - reaction family: legacy=`LiNRR`; document=`eNRR`; effective=`LiNRR`; source=`explicit_high_confidence_target_span`; corrected=`False`
-  - semantic claim type: `mechanism_claim`; performance result=`True`; strength=`quantitative_result`
+  - reaction family: legacy=`LiNRR`; document=`LiNRR`; effective=`LiNRR`; source=`explicit_high_confidence_target_span`; corrected=`False`
+  - semantic claim type: `mechanism_claim`; performance result=`True`; strength=`comparative_result`
   - roles: reactor
   - text: High-performance Li-mediated nitrogen reduction reaction (NRR) requires an effective anode process, such as the hydrogen oxidation reaction (HOR), to complete the electrosynthesis of ammonia. However, understanding of the mechanism, kinetics and suitable catalysts for the HOR in organic media relevant to the NRR is limited. To address this, the present work investigates H2 electrooxidation in lithium bis(trifluoromethanesulfonyl)imide tetrahydrofuran solutions using Pt/C, and
 - paper: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC005::PAR007::ANCHOR01`
   - section: `5` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`unclear|unknown|reactor`; effective=`eNRR|unknown|reactor`
-  - reaction family: legacy=`unclear`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`False`
+  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`LiNRR|unknown|reactor`
+  - reaction family: legacy=`unclear`; document=`LiNRR`; effective=`LiNRR`; source=`high_confidence_document`; corrected=`False`
   - semantic claim type: `untyped_claim`; performance result=`False`; strength=`none`
   - roles: reactor
   - text: Nanoparticulate gold (average particle size 4 nm according to supplier; however, measured values were d = 13 ± 5 nm and d XRD ≈ 7 nm; Figure S1a), platinum (average linear particle size d = 3 ± 2 nm; average crystallite size d XRD ≈ 2 nm; Figure S1b), ruthenium ( d = 3 ± 1 nm; d XRD ≈ 2 nm; Figure S1c), platinum : ruthenium (1 : 1 mol.; d = 3 ± 2 nm; d XRD ≈ 1 nm; Figure S1d) and iridium ( d = 2 ± 1 nm and d XRD ≈ 4 nm; Figure S1d) catalysts immobilised on a Vulcan XC-72R carbon support
 - paper: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC009::PAR005::ANCHOR01`
   - section: `9` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`eNRR|unknown|reactor`
-  - reaction family: legacy=`LiNRR`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`True`
+  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`LiNRR|unknown|reactor`
+  - reaction family: legacy=`LiNRR`; document=`LiNRR`; effective=`LiNRR`; source=`high_confidence_document`; corrected=`False`
   - semantic claim type: `process_claim`; performance result=`False`; strength=`none`
   - roles: reactor
   - text: The Ag|AgOTf (1 mM; THF) system confined within a fritted glass tube and placed inside a Luggin capillary was used a reference electrode. Its potential vs. ferrocene 0/+ (Fc 0/+ ) redox couple was 0.33 ± 0.08 V, as measured by recording cyclic voltammograms at 0.100 V s -1 for the oxidation of 1 mM Fc in 0.1 M LiNTf2 in tetrahydrofuran using a glassy carbon disk working electrode and Ag|AgOTf (1 mM; THF) as a reference. The potential of the highly r
 - paper: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC010::PAR005::ANCHOR01`
   - section: `10` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`eNRR|unknown|reactor`
-  - reaction family: legacy=`LiNRR`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`True`
+  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`LiNRR|unknown|reactor`
+  - reaction family: legacy=`LiNRR`; document=`LiNRR`; effective=`LiNRR`; source=`high_confidence_document`; corrected=`False`
   - semantic claim type: `process_claim`; performance result=`False`; strength=`none`
   - roles: reactor
   - text: FT ac voltammetric experiments were undertaken for Pt/C and PtRu/C catalysts at an amplitude Δ E = 0.080 V, which was sufficient to induce sufficiently high level of non-linearity in the currentpotential response, and a fundamental frequency f = 9.02 Hz. Measurements at higher frequencies did not produce any additional useful information due to the low charge-transfer rates of the investigated processes and high level of uncompensated resistance in the THF-based electroly
 - paper: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC012::PAR006::ANCHOR01`
   - section: `12` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`unclear|unknown|reactor`; effective=`eNRR|unknown|reactor`
-  - reaction family: legacy=`unclear`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`False`
+  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`LiNRR|unknown|reactor`
+  - reaction family: legacy=`unclear`; document=`LiNRR`; effective=`LiNRR`; source=`high_confidence_document`; corrected=`False`
   - semantic claim type: `untyped_claim`; performance result=`False`; strength=`none`
   - roles: reactor
   - text: Given the importance of water emphasised by past publications 12, 17, 18 and the hygroscopic nature of the electrolyte examined herein, the decision was made to control this parameter in a quantitative manner. All electrolyte solutions were prepared under anhydrous argon conditions and initially contained less than 1 mM H2O, as determined via Karl-Fischer method outside the glove box , the latter meaning that some additional water was likely absorbed during the analysis. Data shown in Figure 1a
 - paper: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia`
   - locator: `P0021_Hodgetts_2022_Electrocatalytic_oxidation_of_hydrogen_as_an_anode_reaction_for_the_Li-mediated_N2_reduction_to_ammonia::SEC013::PAR010::ANCHOR01`
   - section: `13` direct=`unknown`; effective=`unknown`; source=`unknown`
-  - comparison keys: raw=`mixed|unknown|reactor`; effective=`eNRR|unknown|reactor`
-  - reaction family: legacy=`mixed`; document=`eNRR`; effective=`eNRR`; source=`high_confidence_document`; corrected=`True`
+  - comparison keys: raw=`LiNRR|unknown|reactor`; effective=`LiNRR|unknown|reactor`
+  - reaction family: legacy=`mixed`; document=`LiNRR`; effective=`LiNRR`; source=`high_confidence_document`; corrected=`True`
   - semantic claim type: `performance_result_claim`; performance result=`True`; strength=`comparative_result`
   - roles: reactor
   - text: Although the deactivation of the catalyst during the extended voltammetric tests discussed above was obvious, some activity was still maintained in the final measurements (Figures 2 and S2). However, there is another important component of the lithium-mediated NRR that is likely to even further affect the HOR performance of platinum, viz. the proton carrier required for the ammonia formation. Most commonly, this source of protons is ethanol. 7, 23, 35-37 Hence, we assessed the impact
