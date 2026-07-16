@@ -21,6 +21,8 @@ from enh3bench.claim_typing import (  # noqa: E402
     has_gas_purification_trap_signal,
 )
 from enh3bench.document_scope import assess_document_genre, assess_document_scope  # noqa: E402
+from enh3bench.parallel_comparison import build_parallel_comparison_index  # noqa: E402
+from enh3bench.reaction_profiles import assess_document_reaction_family  # noqa: E402
 from enh3bench.validation_gates import detect_validation_gate  # noqa: E402
 
 
@@ -61,15 +63,7 @@ def main() -> int:
     ordered_path = args.output_dir / "ordered_source_sample.md"
     parallel_path = args.output_dir / "parallel_comparison_sample.md"
     ordered_path.write_text(_ordered_sample(sections, spans), encoding="utf-8", newline="\n")
-    packets_by_span = {str(packet.get("target_span_id") or ""): packet for packet in packets}
-    enriched_comparison = [
-        _enrich_comparison_record(
-            record,
-            packets_by_span.get(str(record.get("source_span_id") or ""), {}),
-        )
-        for record in comparison
-    ]
-    parallel_text = _parallel_sample(enriched_comparison)
+    parallel_text = _parallel_sample(comparison)
     parallel_path.write_text(parallel_text, encoding="utf-8", newline="\n")
     semantic_text = _semantic_closure_sample(packets, args.seed)
     args.semantic_output.parent.mkdir(parents=True, exist_ok=True)
@@ -82,7 +76,8 @@ def main() -> int:
     sentinel_text, sentinel_passed = _semantic_sentinel_sample(packets)
     args.sentinel_output.parent.mkdir(parents=True, exist_ok=True)
     args.sentinel_output.write_text(sentinel_text, encoding="utf-8", newline="\n")
-    diagnostics = _artifact_diagnostics(semantic_text, sentinel_text, enriched_comparison)
+    diagnostics = _artifact_diagnostics(semantic_text, sentinel_text, parallel_text, comparison)
+    diagnostics.update(_parallel_context_consistency_diagnostics(comparison, packets))
     print(f"ordered_source_sample: {ordered_path}")
     print(f"parallel_comparison_sample: {parallel_path}")
     print(f"semantic_closure_sample: {args.semantic_output}")
@@ -93,8 +88,8 @@ def main() -> int:
         print(f"{key}: {value}")
     diagnostics_passed = (
         diagnostics["sample_count"] == 130
-        and diagnostics["sentinel_count"] == 12
-        and diagnostics["sentinel_pass_count"] == 12
+        and diagnostics["sentinel_count"] >= 20
+        and diagnostics["sentinel_pass_count"] == diagnostics["sentinel_count"]
         and diagnostics["sentinel_fail_count"] == 0
         and all(
             diagnostics[key] == 0
@@ -156,6 +151,7 @@ def _parallel_sample(records: list[dict]) -> str:
     lines = [
         "# Parallel Comparison Sample", "",
         "For manual structural and semantic review only. These alignments do not establish scientific comparability.",
+        "The eNRR validation-linkage group is structural: target semantic type may differ from linked validation role.",
         "结构对齐不代表科学可比性。", "",
     ]
     for name, predicate in groups:
@@ -189,10 +185,10 @@ def _parallel_sample(records: list[dict]) -> str:
 
 def _parallel_groups() -> list[tuple[str, object]]:
     return [
-        ("LiNRR methods/protocol", lambda r: _family(r) == "LiNRR" and r.get("semantic_section_type") == "methods"),
-        ("LiNRR results/performance", lambda r: _family(r) == "LiNRR" and r.get("semantic_section_type") == "results" and "performance" in (r.get("evidence_roles") or []) and _parallel_performance_result(r)),
-        ("eNRR validation", lambda r: _family(r) == "eNRR" and "validation" in (r.get("evidence_roles") or [])),
-        ("NO3RR quantification", lambda r: _family(r) == "NO3RR" and (
+        ("LiNRR methods/protocol", lambda r: _family(r) == "LiNRR" and _parallel_primary(r) and r.get("semantic_section_type") == "methods"),
+        ("LiNRR results/performance", lambda r: _family(r) == "LiNRR" and _parallel_primary(r) and r.get("semantic_section_type") == "results" and "performance" in (r.get("evidence_roles") or []) and _parallel_performance_result(r)),
+        ("eNRR records with validation linkage", lambda r: _family(r) == "eNRR" and "validation" in (r.get("evidence_roles") or [])),
+        ("NO3RR quantification", lambda r: _family(r) == "NO3RR" and _parallel_primary(r) and (
             "quantification" in (r.get("evidence_roles") or [])
             or any(term in str(r.get("source_text_excerpt") or "").casefold() for term in (
                 "ion chromatography", "colorimetric", "calibration", "ammonia quantification", "nmr",
@@ -206,6 +202,14 @@ def _parallel_performance_result(record: dict) -> bool:
     return bool(
         str(record.get("semantic_claim_type") or "") == "performance_result_claim"
         and record.get("performance_result_evidence")
+    )
+
+
+def _parallel_primary(record: dict) -> bool:
+    return bool(
+        record.get("primary_semantic_eligibility")
+        and not record.get("local_reaction_family_conflict_primary_admissible")
+        and not record.get("document_target_reaction_family_conflict")
     )
 
 
@@ -323,6 +327,8 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             f"- performance_evidence_signals: `{json.dumps(packet.get('performance_evidence_signals') or [], ensure_ascii=False)}`",
             f"- performance_result_evidence: `{bool(packet.get('performance_result_evidence'))}`",
             f"- quantitative_performance_evidence: `{bool(packet.get('quantitative_performance_evidence'))}`",
+            f"- target_ammonia_reaction_outcome_anchor: `{bool(packet.get('target_ammonia_reaction_outcome_anchor'))}`",
+            f"- non_ammonia_reaction_activity: `{bool(packet.get('non_ammonia_reaction_activity'))}`",
             f"- document_genre: `{packet.get('document_genre') or 'unknown'}`",
             f"- legacy_reaction_family: `{packet.get('legacy_reaction_family') or packet.get('target_reaction_family') or 'unclear'}`",
             f"- document_reaction_family: `{packet.get('document_reaction_family') or 'unclear'}`",
@@ -338,6 +344,8 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             f"- hard_gate_failures: `{json.dumps(packet.get('primary_applicability_hard_gate_failures') or [], ensure_ascii=False)}`",
             f"- primary_applicability_hard_gate_failures: `{json.dumps(packet.get('primary_applicability_hard_gate_failures') or [], ensure_ascii=False)}`",
             f"- ammonia_quantification_signal: `{bool(packet.get('ammonia_quantification_signal'))}`",
+            f"- structured_quantification_present: `{bool(packet.get('structured_quantification_present'))}`",
+            f"- structured_gate_text_conflict: `{bool(packet.get('structured_gate_text_conflict'))}`",
             f"- gas_purification_trap_signal: `{bool(packet.get('gas_purification_trap_signal'))}`",
             f"- mass_spectrometry_quantification_signal: `{bool(packet.get('mass_spectrometry_quantification_signal'))}`",
             f"- enzymatic_quantification_signal: `{bool(packet.get('enzymatic_quantification_signal'))}`",
@@ -393,11 +401,19 @@ def _performance(packet: dict) -> bool:
         _primary(packet)
         and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
         and bool(packet.get("performance_result_evidence"))
+        and bool(packet.get("target_ammonia_reaction_outcome_anchor"))
+        and not bool(packet.get("local_reaction_family_conflict_primary_admissible"))
+        and not bool(packet.get("structured_gate_text_conflict"))
     )
 
 
 def _validation(packet: dict) -> bool:
-    return _primary(packet) and str(packet.get("semantic_claim_type") or "") == "validation_claim"
+    return bool(
+        _primary(packet)
+        and str(packet.get("semantic_claim_type") or "") == "validation_claim"
+        and not packet.get("local_reaction_family_conflict_primary_admissible")
+        and not packet.get("structured_gate_text_conflict")
+    )
 
 
 def _quantification(packet: dict) -> bool:
@@ -405,6 +421,8 @@ def _quantification(packet: dict) -> bool:
         _primary(packet)
         and packet.get("ammonia_quantification_signal")
         and str(packet.get("semantic_claim_type") or "") == "ammonia_quantification_claim"
+        and not packet.get("local_reaction_family_conflict_primary_admissible")
+        and not packet.get("structured_gate_text_conflict")
     )
 
 
@@ -435,7 +453,11 @@ def _reactor_or_process(packet: dict) -> bool:
 
 
 def _primary(packet: dict) -> bool:
-    return bool(packet.get("primary_semantic_eligibility"))
+    return bool(
+        packet.get("primary_semantic_eligibility")
+        and not packet.get("local_reaction_family_conflict_primary_admissible")
+        and not packet.get("structured_gate_text_conflict")
+    )
 
 
 def _review_or_perspective(packet: dict) -> bool:
@@ -474,44 +496,10 @@ def _quantification_false_negative_candidate(packet: dict) -> bool:
     return analyte and possible_method
 
 
-def _enrich_comparison_record(record: dict, packet: dict) -> dict:
-    """Apply packet-level effective family semantics to a review-only comparison row."""
-
-    enriched = {
-        **record,
-        **_comparison_packet_fields(packet),
-    }
-    family = _family(enriched)
-    roles = enriched.get("evidence_roles") or []
-    primary_role = str(roles[0]) if roles else "context_hint"
-    semantic_section = str(enriched.get("semantic_section_type") or "unknown")
-    enriched["reaction_family"] = family
-    enriched["effective_reaction_family"] = family
-    enriched["comparison_key"] = f"{family}|{semantic_section}|{primary_role}"
-    return enriched
-
-
-def _comparison_packet_fields(packet: dict) -> dict:
-    if not packet:
-        return {}
-    return {
-        "legacy_reaction_family": packet.get("legacy_reaction_family") or packet.get("target_reaction_family"),
-        "document_reaction_family": packet.get("document_reaction_family") or "unclear",
-        "effective_reaction_family": packet.get("effective_reaction_family") or packet.get("target_reaction_family"),
-        "effective_reaction_family_source": packet.get("effective_reaction_family_source") or "legacy",
-        "reaction_family_correction": bool(packet.get("reaction_family_correction")),
-        "document_target_reaction_family_conflict": bool(
-            packet.get("document_target_reaction_family_conflict")
-        ),
-        "semantic_claim_type": packet.get("semantic_claim_type") or "unknown",
-        "performance_result_evidence": bool(packet.get("performance_result_evidence")),
-        "performance_evidence_strength": packet.get("performance_evidence_strength") or "none",
-    }
-
-
 def _artifact_diagnostics(
     semantic_text: str,
     sentinel_text: str,
+    parallel_text: str,
     comparison_records: list[dict],
 ) -> dict[str, int]:
     """Validate the generated review artifacts, not just their source predicates."""
@@ -539,7 +527,7 @@ def _artifact_diagnostics(
     group_expectations = {
         "LiNRR methods/protocol": {"LiNRR"},
         "LiNRR results/performance": {"LiNRR"},
-        "eNRR validation": {"eNRR"},
+        "eNRR records with validation linkage": {"eNRR"},
         "NO3RR quantification": {"NO3RR"},
     }
     selected_groups = {
@@ -596,6 +584,40 @@ def _artifact_diagnostics(
             1 for category, block in sample_sections
             if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0090")
         ),
+        "P0021_eNRR_sample_count": sum(
+            1 for category, block in sample_sections
+            if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0021")
+        ),
+        "P0056_eNRR_sample_count": sum(
+            1 for category, block in sample_sections
+            if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0056")
+        ),
+        "P0021_eNRR_review_sample_count": sum(
+            1 for category, block in sample_sections
+            if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0021")
+        ),
+        "P0056_eNRR_review_sample_count": sum(
+            1 for category, block in sample_sections
+            if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0056")
+        ),
+        "primary_sample_with_local_primary_family_conflict_count": sum(
+            1 for _, block in sample_sections
+            if _markdown_field(block, "primary_semantic_eligibility") == "True"
+            and _markdown_field(block, "local_reaction_family_conflict_primary_admissible") == "True"
+        ),
+        "non_ammonia_activity_primary_performance_count": sum(
+            1 for block in performance_sections
+            if _markdown_field(block, "non_ammonia_reaction_activity") == "True"
+        ),
+        "performance_without_ammonia_outcome_anchor_count": sum(
+            1 for block in performance_sections
+            if _markdown_field(block, "target_ammonia_reaction_outcome_anchor") != "True"
+        ),
+        "structured_gate_conflict_primary_sample_count": sum(
+            1 for _, block in sample_sections
+            if _markdown_field(block, "primary_semantic_eligibility") == "True"
+            and _markdown_field(block, "structured_gate_text_conflict") == "True"
+        ),
         "sentinel_count": len(sentinel_sections),
         "sentinel_pass_count": sentinel_passes,
         "sentinel_fail_count": len(sentinel_sections) - sentinel_passes,
@@ -613,7 +635,55 @@ def _artifact_diagnostics(
             for record in records
             if str(record.get("paper_id") or "").startswith("P0090")
         ),
+        "P0021_eNRR_parallel_comparison_count": sum(
+            1 for name, records in selected_groups.items()
+            if name.startswith("eNRR")
+            for record in records
+            if str(record.get("paper_id") or "").startswith("P0021")
+        ),
+        "P0056_eNRR_parallel_comparison_count": sum(
+            1 for name, records in selected_groups.items()
+            if name.startswith("eNRR")
+            for record in records
+            if str(record.get("paper_id") or "").startswith("P0056")
+        ),
+        "misnamed_validation_group_record_count": int(
+            "## eNRR validation" in parallel_text
+            or "target semantic type may differ from linked validation role" not in parallel_text
+        ),
     }
+
+
+def _parallel_context_consistency_diagnostics(
+    comparison_records: list[dict], packets: list[dict]
+) -> dict[str, int]:
+    comparison_by_span = {
+        str(record.get("source_span_id") or ""): record for record in comparison_records
+    }
+    fields = {
+        "parallel_context_effective_family_mismatch_count": "effective_reaction_family",
+        "parallel_context_semantic_claim_type_mismatch_count": "semantic_claim_type",
+        "parallel_context_performance_result_mismatch_count": "performance_result_evidence",
+        "parallel_context_primary_eligibility_mismatch_count": "primary_semantic_eligibility",
+    }
+    diagnostics = {
+        key: sum(
+            comparison_by_span.get(str(packet.get("target_span_id") or ""), {}).get(field)
+            != packet.get(field)
+            for packet in packets
+        )
+        for key, field in fields.items()
+    }
+    diagnostics["parallel_context_missing_span_count"] = sum(
+        str(packet.get("target_span_id") or "") not in comparison_by_span for packet in packets
+    )
+    diagnostics["P0090_parallel_primary_effective_eNRR_count"] = sum(
+        str(record.get("paper_id") or "").startswith("P0090")
+        and bool(record.get("primary_semantic_eligibility"))
+        and _family(record) == "eNRR"
+        for record in comparison_records
+    )
+    return diagnostics
 
 
 def _numbered_markdown_sections(text: str) -> list[tuple[str, str]]:
@@ -680,6 +750,38 @@ def _semantic_sentinel_sample(packets: list[dict]) -> tuple[str, bool]:
     }
     cited_scope = assess_document_scope(cited_record)
     cited_owner = assess_claim_ownership(cited_record, cited_scope)
+    p0021_title = (
+        "Electrocatalytic oxidation of hydrogen as an anode reaction for the "
+        "Li-mediated N2 reduction to ammonia"
+    )
+    p0056_title = (
+        "The effect of applied potential on the Li-mediated nitrogen reduction reaction performance"
+    )
+    p0021_family = assess_document_reaction_family({"paper_title": p0021_title})
+    p0056_family = assess_document_reaction_family({"paper_title": p0056_title})
+    hor_claim = classify_claim_type({"source_text": "The HOR activity of Pt/C decreased after cycling."})
+    figure_fe_claim = classify_claim_type({
+        "source_text": "Faradaic efficiency is presented in Fig. 2.",
+        "claim_type": "performance_claim",
+    })
+    voltage_yield_claim = classify_claim_type({
+        "source_text": "The catalyst showed high NH3 yield at -0.5 V.",
+        "claim_type": "performance_claim",
+    })
+    structured_conflict_record = {
+        "source_text": "No ammonia quantification was performed.",
+        "validation_gates": {"ammonia_quantification": "explicit"},
+    }
+    structured_conflict_claim = classify_claim_type(structured_conflict_record)
+    no_product_gate = detect_validation_gate("NO_source_defined", "NO was detected as a product.")
+    parallel_context = {
+        "paper_id": "P_FIXTURE", "source_span_id": "S_FIXTURE",
+        "reaction_family": "eNRR", "effective_reaction_family": "LiNRR",
+        "effective_reaction_family_source": "high_confidence_document",
+        "semantic_claim_type": "performance_context_claim",
+        "performance_result_evidence": False, "primary_semantic_eligibility": False,
+    }
+    parallel_record = build_parallel_comparison_index([parallel_context])[0]
 
     cases = [
         _sentinel_case(
@@ -746,6 +848,74 @@ def _semantic_sentinel_sample(packets: list[dict]) -> tuple[str, bool]:
             },
             cited_scope["span_claim_scope"] == "external_or_cited_work"
             and cited_owner["claim_ownership"] == "external_or_cited_authors",
+        ),
+        _sentinel_case(
+            "P0021 Li-mediated title is LiNRR",
+            p0021_title,
+            {"document_reaction_family": "LiNRR", "confidence": "high"},
+            {
+                "document_reaction_family": p0021_family["document_reaction_family"],
+                "confidence": p0021_family["document_reaction_family_confidence"],
+            },
+            p0021_family["document_reaction_family"] == "LiNRR"
+            and p0021_family["document_reaction_family_confidence"] == "high",
+        ),
+        _sentinel_case(
+            "P0056 Li-mediated title is LiNRR",
+            p0056_title,
+            {"document_reaction_family": "LiNRR", "confidence": "high"},
+            {
+                "document_reaction_family": p0056_family["document_reaction_family"],
+                "confidence": p0056_family["document_reaction_family_confidence"],
+            },
+            p0056_family["document_reaction_family"] == "LiNRR"
+            and p0056_family["document_reaction_family_confidence"] == "high",
+        ),
+        _sentinel_case(
+            "HOR activity inside LiNRR is not ammonia performance",
+            "The HOR activity of Pt/C decreased after cycling.",
+            {"performance_result_evidence": False},
+            {"performance_result_evidence": hor_claim["performance_result_evidence"]},
+            not hor_claim["performance_result_evidence"],
+        ),
+        _sentinel_case(
+            "Faradaic efficiency figure reference is not a numeric result",
+            "Faradaic efficiency is presented in Fig. 2.",
+            {"performance_result_evidence": False},
+            {"performance_result_evidence": figure_fe_claim["performance_result_evidence"]},
+            not figure_fe_claim["performance_result_evidence"],
+        ),
+        _sentinel_case(
+            "High NH3 yield at voltage without yield value is context",
+            "The catalyst showed high NH3 yield at -0.5 V.",
+            {"semantic_claim_type": "performance_context_claim"},
+            {"semantic_claim_type": voltage_yield_claim["semantic_claim_type"]},
+            voltage_yield_claim["semantic_claim_type"] == "performance_context_claim",
+        ),
+        _sentinel_case(
+            "Structured quantification plus text negation conflicts",
+            structured_conflict_record,
+            {"gate_conflict": True, "ammonia_quantification_signal": False},
+            {
+                "gate_conflict": structured_conflict_claim["structured_gate_text_conflict"],
+                "ammonia_quantification_signal": structured_conflict_claim["ammonia_quantification_signal"],
+            },
+            structured_conflict_claim["structured_gate_text_conflict"]
+            and not structured_conflict_claim["ammonia_quantification_signal"],
+        ),
+        _sentinel_case(
+            "NO detected as product is not NO source",
+            "NO was detected as a product.",
+            {"satisfied": False},
+            no_product_gate,
+            not no_product_gate["satisfied"],
+        ),
+        _sentinel_case(
+            "Parallel index family equals context packet family",
+            {"source_span_id": "S_FIXTURE", "effective_reaction_family": "LiNRR"},
+            {"effective_reaction_family": "LiNRR"},
+            {"effective_reaction_family": parallel_record["effective_reaction_family"]},
+            parallel_record["effective_reaction_family"] == parallel_context["effective_reaction_family"],
         ),
     ]
     passed = all(case["passed"] for case in cases)

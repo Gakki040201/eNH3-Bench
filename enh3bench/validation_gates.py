@@ -23,8 +23,12 @@ _ISOTOPE_NEGATION = re.compile(
     re.IGNORECASE,
 )
 _NO_SOURCE_NEGATION = re.compile(
-    r"\b(?:[Nn]o gas was supplied|[Nn]o feed was used|[Nn]o source was identified|"
-    r"[Nn]o concentration was reported|[Ww]ithout (?:an? )?(?:NO|nitric[- ]oxide) (?:feed|source))\b",
+    r"\b(?:no gas was supplied|no feed was used|no source was identified|"
+    r"no concentration was reported|without (?:an? )?(?:NO|nitric[- ]oxide) (?:feed|source)|"
+    r"no (?:NO|nitric[- ]oxide) (?:gas )?(?:feed|source)(?: was)? (?:used|defined|supplied)|"
+    r"(?:NO|nitric[- ]oxide)(?: gas)?(?: feed| source)? was not (?:supplied|used|defined)|"
+    r"(?:NO|nitric[- ]oxide) (?:gas )?(?:feed|source) was absent)\b",
+    re.IGNORECASE,
 )
 _NOX_BALANCE_NEGATION = re.compile(
     r"\b(?:[Nn]o mass balance(?: was reported)?|[Ww]ithout (?:a )?mass balance|"
@@ -172,11 +176,16 @@ def _text_gate_satisfied(gate: str, text: str) -> bool:
 def _no_source_positive(text: str) -> bool:
     if has_negated_no_source(text):
         return False
-    return bool(
-        re.search(r"\bnitric[- ]oxide\b", text, re.IGNORECASE)
-        or re.search(r"\bNO\b", text)
-        or re.search(r"\b\d+(?:\.\d+)?\s*%\s+NO\s+in\s+(?:Ar|argon)\b", text)
+    patterns = (
+        r"\b\d+(?:\.\d+)?\s*%\s+NO\s+in\s+(?:Ar|argon|N2|nitrogen)\b",
+        r"\b(?:NO|nitric[- ]oxide) (?:gas )?(?:feed|stream)\b",
+        r"\b(?:NO|nitric[- ]oxide)(?: gas)? was (?:supplied|introduced)\b",
+        r"\b(?:NO|nitric[- ]oxide)(?: gas)? was used as (?:the |a )?(?:reactant|nitrogen source)\b",
+        r"\b(?:NO|nitric[- ]oxide) concentration (?:of|was) \d+(?:\.\d+)?\s*%",
+        r"\b(?:feed|feed gas|gas feed) (?:contained|containing) \d+(?:\.\d+)?\s*%\s+NO\b",
+        r"\b(?:feed|feed gas|gas feed) containing (?:NO|nitric[- ]oxide)\b",
     )
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
 
 
 def _nox_balance_positive(text: str) -> bool:

@@ -24,6 +24,21 @@ class DocumentReactionFamilyTests(unittest.TestCase):
                 self.assertEqual(result["document_reaction_family"], expected)
                 self.assertEqual(result["document_reaction_family_confidence"], "high")
 
+    def test_li_mediated_title_forms_override_generic_nrr(self) -> None:
+        titles = (
+            "Electrocatalytic oxidation of hydrogen as an anode reaction for the Li-mediated N2 reduction to ammonia",
+            "The effect of applied potential on the Li-mediated nitrogen reduction reaction performance",
+            "Li-mediated ammonia electrosynthesis",
+            "Lithium-mediated NRR",
+            "Lithium-mediated ammonia synthesis",
+            "Lithium-mediated ammonia electrosynthesis",
+        )
+        for title in titles:
+            with self.subTest(title=title):
+                result = assess_document_reaction_family({"paper_title": title})
+                self.assertEqual(result["document_reaction_family"], "LiNRR")
+                self.assertEqual(result["document_reaction_family_confidence"], "high")
+
     def test_document_title_corrects_nonexplicit_legacy_family_and_marks_conflict(self) -> None:
         result = assess_effective_reaction_family({
             "paper_title": "Electrochemical ammonia synthesis via nitrate reduction",

@@ -5,7 +5,6 @@ import unittest
 
 from scripts.build_ordered_review_artifacts import (
     _artifact_diagnostics,
-    _enrich_comparison_record,
     _gas_purification_trap,
     _parallel_sample,
     _performance,
@@ -167,7 +166,7 @@ class StageBSemanticSampleTests(unittest.TestCase):
                 candidate[field] = value
                 self.assertFalse(_gas_purification_trap(candidate))
 
-    def test_semantic_sentinel_contains_twelve_passing_cases(self) -> None:
+    def test_semantic_sentinel_contains_twenty_passing_cases(self) -> None:
         p0090 = _packets(
             "p0090", 1, "NO3RR", semantic="performance_result_claim", primary=True,
         )[0]
@@ -180,8 +179,8 @@ class StageBSemanticSampleTests(unittest.TestCase):
         })
         text, passed = _semantic_sentinel_sample([p0090])
         self.assertTrue(passed)
-        self.assertEqual(text.count("\n## "), 12)
-        self.assertEqual(text.count("- case_id: `SB_SENTINEL_"), 12)
+        self.assertEqual(text.count("\n## "), 20)
+        self.assertEqual(text.count("- case_id: `SB_SENTINEL_"), 20)
         self.assertIn("P0090 nitrate family correction", text)
         self.assertIn("- Overall pass: `True`", text)
 
@@ -192,14 +191,16 @@ class StageBSemanticSampleTests(unittest.TestCase):
             "reaction_family": "LiNRR",
             "source_text_excerpt": "Faradaic efficiency was discussed.",
         }
-        result = _enrich_comparison_record(
-            {**base, "paper_id": "P_RESULT", "source_span_id": "S_RESULT"},
-            _packets("result", 1, "LiNRR", semantic="performance_result_claim", primary=True)[0],
-        )
-        context = _enrich_comparison_record(
-            {**base, "paper_id": "P_CONTEXT", "source_span_id": "S_CONTEXT"},
-            _packets("context", 1, "LiNRR", semantic="performance_context_claim", primary=True)[0],
-        )
+        result = {
+            **base, "paper_id": "P_RESULT", "source_span_id": "S_RESULT",
+            "effective_reaction_family": "LiNRR", "semantic_claim_type": "performance_result_claim",
+            "performance_result_evidence": True, "primary_semantic_eligibility": True,
+        }
+        context = {
+            **base, "paper_id": "P_CONTEXT", "source_span_id": "S_CONTEXT",
+            "effective_reaction_family": "LiNRR", "semantic_claim_type": "performance_context_claim",
+            "performance_result_evidence": False, "primary_semantic_eligibility": True,
+        }
         text = _parallel_sample([context, result])
         result_group = text.split("## LiNRR results/performance", 1)[1].split("\n## ", 1)[0]
         self.assertIn("P_RESULT", result_group)
@@ -223,7 +224,12 @@ class StageBSemanticSampleTests(unittest.TestCase):
             "- case_id: `SB_SENTINEL_01`",
             "- pass: `True`",
         ))
-        diagnostics = _artifact_diagnostics(semantic_text, sentinel_text, [])
+        diagnostics = _artifact_diagnostics(
+            semantic_text,
+            sentinel_text,
+            "target semantic type may differ from linked validation role",
+            [],
+        )
         self.assertEqual(diagnostics["family_specific_primary_with_mismatched_effective_family_count"], 1)
         self.assertEqual(diagnostics["performance_context_primary_performance_strata_count"], 1)
         self.assertEqual(diagnostics["primary_performance_without_result_evidence_count"], 1)
@@ -274,6 +280,8 @@ def _packets(
             ),
             "performance_result_evidence": semantic == "performance_result_claim",
             "quantitative_performance_evidence": semantic == "performance_result_claim",
+            "target_ammonia_reaction_outcome_anchor": semantic == "performance_result_claim",
+            "non_ammonia_reaction_activity": False,
             "semantic_claim_type_confidence": "high",
             "semantic_claim_type_conflict": conflict,
             "document_genre": document_genre,
@@ -286,6 +294,8 @@ def _packets(
             "target_text_class": "primary_performance",
             "ammonia_quantification_signal": quantification,
             "gas_purification_trap_signal": gas_trap,
+            "structured_quantification_present": False,
+            "structured_gate_text_conflict": False,
             "mass_spectrometry_quantification_signal": False,
             "enzymatic_quantification_signal": False,
             "local_off_target_reaction_conflict": off_target,

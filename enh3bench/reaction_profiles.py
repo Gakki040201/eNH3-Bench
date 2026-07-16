@@ -1041,7 +1041,12 @@ def _strong_document_family(text: str) -> str:
         ("NO3RR", r"\b(?:NO3RR|nitrate (?:electro)?reduction|nitrate[- ]to[- ]ammonia)\b"),
         ("NO2RR", r"\b(?:NO2RR|nitrite (?:electro)?reduction|nitrite[- ]to[- ]ammonia)\b"),
         ("NORR", r"\b(?:NORR|nitric[- ]oxide (?:electro)?reduction|NO[- ]to[- ]ammonia)\b"),
-        ("LiNRR", r"\b(?:LiNRR|lithium[- ]mediated (?:nitrogen reduction|N2 reduction|NRR))\b"),
+        (
+            "LiNRR",
+            r"\b(?:LiNRR|(?:Li|lithium)[- ]mediated (?:"
+            r"nitrogen reduction(?: reaction)?|N2 reduction|NRR|"
+            r"ammonia (?:synthesis|electrosynthesis)))\b",
+        ),
         ("eNRR", r"\b(?:eNRR|dinitrogen (?:electro)?reduction|N2 (?:electro)?reduction|nitrogen reduction reaction|NRR)\b"),
     )
     for family, pattern in patterns:

@@ -176,6 +176,9 @@ def main() -> int:
                 "reject_or_low_trust_primary_semantic_eligible_count",
                 "target_primary_gate_supported_by_nonprimary_count",
                 "reaction_family_correction_count", "document_target_family_conflict_count",
+                "P0021_document_family", "P0056_document_family",
+                "P0021_family_specific_primary_eNRR_count",
+                "P0056_family_specific_primary_eNRR_count",
                 "primary_eligible_unclear_family_count", "performance_result_claim_count",
                 "performance_context_claim_count", "quantitative_performance_primary_count",
                 "performance_context_quantitative_primary_count",
@@ -183,6 +186,17 @@ def main() -> int:
                 "FeS_false_performance_count", "generic_isotope_false_15N_count",
                 "NO_negation_false_source_count", "NOx_balance_negation_false_positive_count",
                 "conflicted_gate_counted_as_observed_count",
+                "primary_eligible_with_local_primary_family_conflict_count",
+                "non_ammonia_reaction_activity_primary_performance_count",
+                "HOR_primary_ammonia_performance_count", "HER_primary_ammonia_performance_count",
+                "OER_primary_ammonia_performance_count", "CO2RR_primary_ammonia_performance_count",
+                "unrelated_numeric_false_performance_count", "figure_reference_false_performance_count",
+                "equation_reference_false_performance_count", "voltage_only_false_performance_count",
+                "runtime_only_false_performance_count", "structured_gate_text_conflict_count",
+                "structured_gate_conflict_primary_eligible_count",
+                "conflicted_quantification_claim_primary_count", "bare_NO_false_source_count",
+                "NO_product_false_source_count", "NO_negated_feed_false_source_count",
+                "NO_absent_feed_false_source_count",
             ):
                 print(f"{key}: {summary[key]}")
             for key in (
@@ -241,6 +255,23 @@ def main() -> int:
         and summary.get("performance_context_quantitative_primary_count", 0) == 0
         and summary.get("primary_performance_without_result_evidence_count", 0) == 0
         and summary.get("conflicted_gate_counted_as_observed_count", 0) == 0
+        and summary.get("primary_eligible_with_local_primary_family_conflict_count", 0) == 0
+        and summary.get("non_ammonia_reaction_activity_primary_performance_count", 0) == 0
+        and summary.get("HOR_primary_ammonia_performance_count", 0) == 0
+        and summary.get("HER_primary_ammonia_performance_count", 0) == 0
+        and summary.get("OER_primary_ammonia_performance_count", 0) == 0
+        and summary.get("CO2RR_primary_ammonia_performance_count", 0) == 0
+        and summary.get("unrelated_numeric_false_performance_count", 0) == 0
+        and summary.get("figure_reference_false_performance_count", 0) == 0
+        and summary.get("equation_reference_false_performance_count", 0) == 0
+        and summary.get("voltage_only_false_performance_count", 0) == 0
+        and summary.get("runtime_only_false_performance_count", 0) == 0
+        and summary.get("structured_gate_conflict_primary_eligible_count", 0) == 0
+        and summary.get("conflicted_quantification_claim_primary_count", 0) == 0
+        and summary.get("bare_NO_false_source_count", 0) == 0
+        and summary.get("NO_product_false_source_count", 0) == 0
+        and summary.get("NO_negated_feed_false_source_count", 0) == 0
+        and summary.get("NO_absent_feed_false_source_count", 0) == 0
     ) else 1
 
 

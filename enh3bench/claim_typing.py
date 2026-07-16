@@ -55,6 +55,37 @@ _NUMERIC_RESULT = re.compile(
     r"(?:mV|V)|(?:h|hr|hours?|min|minutes?|s|seconds?))\b",
     re.IGNORECASE,
 )
+_PERCENT_VALUE = re.compile(r"\d+(?:\.\d+)?\s*%")
+_RATE_VALUE = re.compile(
+    r"\d+(?:\.\d+)?\s*(?:[numk\u00b5\u03bc]?g|渭g|碌g|[numk\u00b5\u03bc]?mol)\s*"
+    r"(?:g\s*(?:cat(?:alyst)?)?\s*)?(?:[-/]?\s*(?:h|hr|s)\s*(?:[-\u2212\u2013^]?\s*1)?)"
+    r"(?:\s*(?:cm|m)\s*(?:[-\u2212\u2013^]?\s*2))?",
+    re.IGNORECASE,
+)
+_CURRENT_DENSITY_VALUE = re.compile(
+    r"\d+(?:\.\d+)?\s*(?:[mun\u00b5\u03bc]?A)\s*(?:cm|m)\s*(?:[-\u2212\u2013^]?\s*2)",
+    re.IGNORECASE,
+)
+_YIELD_OR_RATE_METRIC = re.compile(
+    rf"(?:{_AMMONIA}.{{0,45}}(?:yield|production rate)|(?:yield|production rate).{{0,45}}{_AMMONIA})",
+    re.IGNORECASE,
+)
+_AMMONIA_CURRENT_METRIC = re.compile(
+    rf"(?:{_AMMONIA}.{{0,35}}(?:partial )?current density|"
+    rf"(?:partial )?current density.{{0,35}}{_AMMONIA})",
+    re.IGNORECASE,
+)
+_AMMONIA_OUTCOME = re.compile(_AMMONIA, re.IGNORECASE)
+_NON_AMMONIA_REACTION_ACTIVITY = re.compile(
+    r"\b(?:HOR|HER|OER|ORR|CO2RR|hydrogen oxidation|hydrogen evolution|"
+    r"oxygen evolution|oxygen reduction|carbon dioxide reduction)\b.{0,80}"
+    r"\b(?:activity|performance|current density|deactivation|poisoning|stability)\b|"
+    r"\b(?:activity|performance|current density|deactivation|poisoning|stability)\b.{0,80}"
+    r"\b(?:HOR|HER|OER|ORR|CO2RR|hydrogen oxidation|hydrogen evolution|"
+    r"oxygen evolution|oxygen reduction|carbon dioxide reduction)\b|"
+    r"\b(?:Pt/C|anode|auxiliary electrode)\b.{0,60}\b(?:activity|deactivation|poisoning|stability)\b",
+    re.IGNORECASE,
+)
 _COMPARATIVE_RESULT = re.compile(
     r"\b(?:increased|decreased|higher|lower|maximum|maximal|achieved|reached|improved|enhanced)\b",
     re.IGNORECASE,
@@ -116,13 +147,14 @@ def has_ammonia_quantification_signal(value: str | dict[str, Any]) -> bool:
     """
 
     if isinstance(value, dict):
-        gates = value.get("validation_gates") if isinstance(value.get("validation_gates"), dict) else {}
-        stored = gates.get("ammonia_quantification", gates.get("quantification_method"))
-        if str(stored or "").strip().casefold() in {"yes", "explicit", "pass", "present"}:
-            return True
-        text = _record_text(value)
-    else:
-        text = str(value or "")
+        # Validation-gate text detection calls back with a plain string, so
+        # this local import has no recursive record-level decision.
+        from enh3bench.validation_gates import detect_validation_gate
+
+        return bool(detect_validation_gate(
+            "ammonia_quantification", _record_text(value), value
+        )["satisfied"])
+    text = str(value or "")
     normalized = " ".join(text.casefold().split())
     if not re.search(_AMMONIA, normalized, re.IGNORECASE):
         return False
@@ -170,21 +202,53 @@ def assess_performance_evidence(record: dict[str, Any]) -> dict[str, Any]:
         signals.append("structured_performance_result_field")
     faradaic = bool(_FARADAIC_EFFICIENCY_WORDS.search(text) or _FE_ACRONYM.search(text))
     if faradaic:
-        signals.append("faradaic_efficiency_result")
-    numeric = bool(_NUMERIC_RESULT.search(text))
+        signals.append("faradaic_efficiency_context")
+    fe_numeric = _metric_value_near(
+        text, _FARADAIC_EFFICIENCY_WORDS, _PERCENT_VALUE, 60
+    ) or _metric_value_near(text, _FE_ACRONYM, _PERCENT_VALUE, 60)
+    yield_numeric = _metric_value_near(text, _YIELD_OR_RATE_METRIC, _RATE_VALUE, 85)
+    current_numeric = _metric_value_near(
+        text, _AMMONIA_CURRENT_METRIC, _CURRENT_DENSITY_VALUE, 70
+    )
+    if fe_numeric:
+        signals.append("faradaic_efficiency_value_proximity")
+    if yield_numeric:
+        signals.append("ammonia_yield_rate_value_proximity")
+    if current_numeric:
+        signals.append("ammonia_current_density_value_proximity")
+    numeric = bool(fe_numeric or yield_numeric or current_numeric)
     if numeric:
-        signals.append("numeric_value_with_unit")
+        signals.append("metric_specific_numeric_result")
+    target_anchor = has_target_ammonia_reaction_outcome_anchor(record, text=text)
+    if target_anchor:
+        signals.append("target_ammonia_reaction_outcome_anchor")
+    non_ammonia_activity_signal = bool(_NON_AMMONIA_REACTION_ACTIVITY.search(text))
     comparative = bool(
         _COMPARATIVE_RESULT.search(text)
-        and _TARGET_SAMPLE.search(text)
+        and target_anchor
+        and (
+            _AMMONIA_CURRENT_METRIC.search(text)
+            or _YIELD_OR_RATE_METRIC.search(text)
+            or faradaic
+            or (_AMMONIA_OUTCOME.search(text) and _TARGET_SAMPLE.search(text))
+        )
         and str(record.get("claim_ownership") or "target_authors") == "target_authors"
     )
     if comparative:
         signals.append("current_study_comparative_result")
+    non_ammonia_activity = bool(
+        non_ammonia_activity_signal and not (numeric or comparative)
+    )
+    if non_ammonia_activity:
+        signals.append("non_ammonia_reaction_activity")
     context = bool(_PERFORMANCE_CONTEXT.search(text) or faradaic)
-    result = bool(structured or (context and numeric) or (faradaic and re.search(r"\d|%", text)) or comparative)
+    result = bool(
+        target_anchor
+        and not (non_ammonia_activity and not _AMMONIA_OUTCOME.search(text))
+        and (structured or numeric or comparative)
+    )
     if result:
-        strength = "quantitative_result" if structured or numeric or faradaic else "comparative_result"
+        strength = "quantitative_result" if structured or numeric else "comparative_result"
     elif context:
         strength = "context_only"
         signals.append("qualitative_performance_context")
@@ -195,7 +259,42 @@ def assess_performance_evidence(record: dict[str, Any]) -> dict[str, Any]:
         "performance_evidence_signals": list(dict.fromkeys(signals)),
         "performance_result_evidence": result,
         "quantitative_performance_evidence": strength == "quantitative_result",
+        "target_ammonia_reaction_outcome_anchor": target_anchor,
+        "non_ammonia_reaction_activity": non_ammonia_activity,
     }
+
+
+def has_target_ammonia_reaction_outcome_anchor(
+    record: dict[str, Any], *, text: str | None = None
+) -> bool:
+    """Require an ammonia outcome, while retaining canonical FE shorthand."""
+
+    source = text if text is not None else _record_text(record)
+    if _AMMONIA_OUTCOME.search(source):
+        return True
+    if (
+        (_FARADAIC_EFFICIENCY_WORDS.search(source) or _FE_ACRONYM.search(source))
+        and not _NON_AMMONIA_REACTION_ACTIVITY.search(source)
+    ):
+        return True
+    return any(
+        record.get(key) is not None and str(record.get(key)).strip()
+        for key in ("nh3_yield", "ammonia_yield", "yield_rate")
+    )
+
+
+def _metric_value_near(
+    text: str, metric: re.Pattern[str], value: re.Pattern[str], window: int
+) -> bool:
+    metric_matches = list(metric.finditer(text))
+    value_matches = list(value.finditer(text))
+    return any(
+        max(metric_match.start(), value_match.start())
+        - min(metric_match.end(), value_match.end())
+        <= window
+        for metric_match in metric_matches
+        for value_match in value_matches
+    )
 
 
 def is_fe_material_only_false_performance(record: dict[str, Any]) -> bool:
@@ -211,7 +310,13 @@ def classify_claim_type(record: dict[str, Any]) -> dict[str, Any]:
     """Infer a corrective semantic type without rewriting the v0.13 label."""
 
     text = _record_text(record)
-    quantification = has_ammonia_quantification_signal(record)
+    from enh3bench.validation_gates import detect_validation_gate
+
+    quantification_gate = detect_validation_gate(
+        "ammonia_quantification", text, record, text_source="target_text"
+    )
+    quantification = bool(quantification_gate["satisfied"])
+    structured_quantification = _structured_quantification_present(record)
     gas_trap = has_gas_purification_trap_signal(record)
     performance = assess_performance_evidence(record)
     provenance = str(record.get("provenance_type") or "unknown").casefold()
@@ -239,6 +344,10 @@ def classify_claim_type(record: dict[str, Any]) -> dict[str, Any]:
         semantic_type = "secondary_context_claim"
         confidence = "high"
         signals.append("secondary_context_source" if low_trust else "review_or_perspective_recommendation")
+    elif quantification_gate["gate_conflict"]:
+        semantic_type = "untyped_claim"
+        confidence = "high"
+        signals.append("structured_quantification_conflicts_with_target_text")
     elif quantification:
         semantic_type = "ammonia_quantification_claim"
         confidence = "high"
@@ -300,6 +409,9 @@ def classify_claim_type(record: dict[str, Any]) -> dict[str, Any]:
         "semantic_claim_type_signals": signals,
         **performance,
         "ammonia_quantification_signal": quantification,
+        "structured_quantification_present": structured_quantification,
+        "structured_gate_text_conflict": bool(quantification_gate["gate_conflict"]),
+        "ammonia_quantification_gate": quantification_gate,
         "gas_purification_trap_signal": gas_trap,
         "mass_spectrometry_quantification_signal": has_mass_spectrometry_quantification_signal(record),
         "enzymatic_quantification_signal": has_enzymatic_quantification_signal(record),
@@ -323,9 +435,15 @@ def _record_text(record: dict[str, Any]) -> str:
 def _structured_performance_field(record: dict[str, Any]) -> bool:
     for key in (
         "faradaic_efficiency", "faradaic_efficiency_percent", "FE", "nh3_yield", "ammonia_yield",
-        "yield_rate", "current_density", "runtime", "stability_runtime",
+        "yield_rate", "current_density",
     ):
         value = record.get(key)
         if value is not None and str(value).strip():
             return True
     return False
+
+
+def _structured_quantification_present(record: dict[str, Any]) -> bool:
+    gates = record.get("validation_gates") if isinstance(record.get("validation_gates"), dict) else {}
+    stored = gates.get("ammonia_quantification", gates.get("quantification_method"))
+    return str(stored or "").strip().casefold() in {"yes", "explicit", "pass", "present"}

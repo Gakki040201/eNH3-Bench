@@ -93,6 +93,30 @@ class ClaimTypingTests(unittest.TestCase):
         }
         self.assertTrue(has_ammonia_quantification_signal(record))
 
+    def test_structured_quantification_cannot_override_explicit_text_negation(self) -> None:
+        for text in (
+            "No ammonia quantification was performed.",
+            "NH3 was not measured.",
+        ):
+            with self.subTest(text=text):
+                record = {
+                    "source_text": text,
+                    "validation_gates": {"ammonia_quantification": "explicit"},
+                    "claim_type": "ammonia_quantification_claim",
+                }
+                result = classify_claim_type(record)
+                self.assertTrue(result["structured_quantification_present"])
+                self.assertTrue(result["structured_gate_text_conflict"])
+                self.assertFalse(result["ammonia_quantification_signal"])
+                self.assertNotEqual(result["semantic_claim_type"], "ammonia_quantification_claim")
+
+        positive = classify_claim_type({
+            "source_text": "Ammonia was quantified by ion chromatography.",
+            "validation_gates": {"ammonia_quantification": "explicit"},
+        })
+        self.assertFalse(positive["structured_gate_text_conflict"])
+        self.assertTrue(positive["ammonia_quantification_signal"])
+
     def test_nadh_ammonium_calibration_is_quantification(self) -> None:
         text = "NADH consumption was calibrated against NH4+ standards in the enzymatic ammonium assay."
         result = classify_claim_type({"source_text": text, "provenance_type": "methods"})

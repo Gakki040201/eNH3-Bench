@@ -7,6 +7,7 @@ from pathlib import Path
 from enh3bench.context_packet import (
     _local_reaction_family_assessment,
     _off_target_reaction_assessment,
+    _packet_local_assessment,
     build_context_packets,
 )
 from enh3bench.evidence_linking import ORDERED_SOURCE_PROFILE
@@ -202,6 +203,50 @@ class StageBSemanticEligibilityTests(unittest.TestCase):
         self.assertTrue(result["local_reaction_family_conflict_any_source"])
         self.assertTrue(result["local_reaction_family_conflict_primary_admissible"])
         self.assertEqual(result["local_reaction_family_conflict_span_ids"], ["S2"])
+
+    def test_local_primary_family_conflict_blocks_primary(self) -> None:
+        text = "The NH3 Faradaic efficiency reached 20%."
+        target = {
+            "source_span_id": "S1", "source_text": text,
+            "provenance_type": "body", "text_class": "primary_performance",
+            "reaction_family": "eNRR", "reaction_family_confidence": "high",
+            "reaction_family_scope": "explicit_span", "claim_type": "performance_claim",
+            "document_genre": "primary_research", "span_claim_scope": "target_document",
+            "claim_ownership": "target_authors", "is_primary_admissible": True,
+            "is_secondary_or_context": False, "is_reject_or_low_trust": False,
+            "source_mapping_method": "explicit_verified", "source_mapping_confidence": "high",
+            "offset_text_match": True,
+        }
+        assessment = _packet_local_assessment(
+            target,
+            {"paragraph_uid": "PAR_TARGET", "text": text},
+            None,
+            {"paragraph_uid": "PAR_LINK", "text": "Li-mediated N2 reduction evidence."},
+            {"section_uid": "SEC1", "section_type": "results"},
+            [{
+                "span_id": "S2", "paragraph_uid": "PAR_LINK",
+                "text": "Li-mediated N2 reduction evidence.",
+                "reaction_family": "LiNRR", "effective_reaction_family": "LiNRR",
+                "reaction_family_scope": "explicit_span", "reaction_family_confidence": "high",
+                "primary_admissible_gate_source": True,
+            }],
+        )
+        self.assertTrue(assessment["local_reaction_family_conflict_primary_admissible"])
+        self.assertFalse(assessment["applicable"])
+        self.assertIn("local_primary_reaction_family_conflict", assessment["hard_gate_failures"])
+
+    def test_structured_quantification_text_conflict_is_a_hard_gate(self) -> None:
+        body = "## Results\n\nNo ammonia quantification was performed."
+        text = "No ammonia quantification was performed."
+        record = _record(
+            "P1_S001", body, text, "eNRR", claim_type="ammonia_quantification_claim"
+        )
+        record["validation_gates"] = {"ammonia_quantification": "explicit"}
+        packet = self._packets(body, [record])[0]
+        self.assertTrue(packet["structured_gate_text_conflict"])
+        self.assertFalse(packet["ammonia_quantification_signal"])
+        self.assertFalse(packet["primary_semantic_eligibility"])
+        self.assertIn("structured_gate_text_conflict", packet["primary_applicability_hard_gate_failures"])
 
 
 def _record(

@@ -32,10 +32,20 @@ class ValidationGateSafetyTests(unittest.TestCase):
         self.assertIn("structured_explicit_15N", result["gate_detection_signals"])
 
     def test_no_source_preserves_case_and_negation(self) -> None:
-        for text in ("NO", "nitric oxide", "10% NO in Ar", "NO feed", "nitric-oxide feed"):
+        for text in (
+            "10% NO in Ar was supplied.",
+            "NO gas was used as the reactant.",
+            "Nitric oxide feed entered the cathode.",
+            "The feed contained 5% NO.",
+            "NO was used as the nitrogen source.",
+        ):
             with self.subTest(text=text):
                 self.assertTrue(detect_validation_gate("NO_source_defined", text)["satisfied"])
-        for text in ("no gas was supplied", "no feed was used", "no source was identified", "no concentration was reported"):
+        for text in (
+            "NO", "nitric oxide", "NO was detected as a product.", "NO conversion increased.",
+            "NO was not supplied.", "No NO feed was used.", "NO feed was absent.",
+            "NO was analyzed by mass spectrometry.", "no nitric oxide source was defined",
+        ):
             with self.subTest(text=text):
                 self.assertFalse(detect_validation_gate("NO_source_defined", text)["satisfied"])
 

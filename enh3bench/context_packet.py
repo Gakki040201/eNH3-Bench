@@ -125,7 +125,9 @@ ORDERED_PACKET_FIELDS = (
     "semantic_claim_type", "semantic_claim_type_confidence", "semantic_claim_type_conflict",
     "legacy_claim_type", "semantic_claim_type_signals", "ammonia_quantification_signal",
     "performance_evidence_strength", "performance_evidence_signals", "performance_result_evidence",
-    "quantitative_performance_evidence",
+    "quantitative_performance_evidence", "target_ammonia_reaction_outcome_anchor",
+    "non_ammonia_reaction_activity", "structured_quantification_present",
+    "structured_gate_text_conflict", "ammonia_quantification_gate",
     "gas_purification_trap_signal", "mass_spectrometry_quantification_signal",
     "enzymatic_quantification_signal", "primary_applicability_hard_gate_failures",
     "base_claim_support_applicable", "primary_semantic_eligibility",
@@ -604,7 +606,12 @@ def _ordered_packet(
         "performance_evidence_signals": assessment["performance_evidence_signals"],
         "performance_result_evidence": assessment["performance_result_evidence"],
         "quantitative_performance_evidence": assessment["quantitative_performance_evidence"],
+        "target_ammonia_reaction_outcome_anchor": assessment["target_ammonia_reaction_outcome_anchor"],
+        "non_ammonia_reaction_activity": assessment["non_ammonia_reaction_activity"],
         "ammonia_quantification_signal": assessment["ammonia_quantification_signal"],
+        "structured_quantification_present": assessment["structured_quantification_present"],
+        "structured_gate_text_conflict": assessment["structured_gate_text_conflict"],
+        "ammonia_quantification_gate": assessment["ammonia_quantification_gate"],
         "gas_purification_trap_signal": assessment["gas_purification_trap_signal"],
         "mass_spectrometry_quantification_signal": assessment["mass_spectrometry_quantification_signal"],
         "enzymatic_quantification_signal": assessment["enzymatic_quantification_signal"],
@@ -698,6 +705,7 @@ def _unique_evidence_items(
                 and document_scope["span_claim_scope"] == TARGET_DOCUMENT_SCOPE
                 and claim_ownership["claim_ownership_primary_applicable"]
                 and not family_assessment["document_target_reaction_family_conflict"]
+                and not claim_typing["structured_gate_text_conflict"]
                 and not linked.get("context_only")
                 and not off_target["local_off_target_reaction_conflict"]
             )
@@ -749,8 +757,12 @@ def _unique_evidence_items(
                 "performance_evidence_strength": claim_typing["performance_evidence_strength"],
                 "performance_result_evidence": claim_typing["performance_result_evidence"],
                 "quantitative_performance_evidence": claim_typing["quantitative_performance_evidence"],
+                "target_ammonia_reaction_outcome_anchor": claim_typing["target_ammonia_reaction_outcome_anchor"],
+                "non_ammonia_reaction_activity": claim_typing["non_ammonia_reaction_activity"],
                 "validation_gates": _copy_value(original.get("validation_gates") or {}),
                 "ammonia_quantification_signal": claim_typing["ammonia_quantification_signal"],
+                "structured_quantification_present": claim_typing["structured_quantification_present"],
+                "structured_gate_text_conflict": claim_typing["structured_gate_text_conflict"],
                 "gas_purification_trap_signal": claim_typing["gas_purification_trap_signal"],
                 "local_off_target_reaction_conflict": off_target["local_off_target_reaction_conflict"],
                 "primary_admissible_gate_source": gate_source_primary,
@@ -891,6 +903,10 @@ def _packet_local_assessment(
         hard_gate_failures.append("semantic_claim_type_not_primary_eligible")
     if family_assessment["document_target_reaction_family_conflict"]:
         hard_gate_failures.append("document_target_reaction_family_conflict")
+    if local_family["local_reaction_family_conflict_primary_admissible"]:
+        hard_gate_failures.append("local_primary_reaction_family_conflict")
+    if claim_typing["structured_gate_text_conflict"]:
+        hard_gate_failures.append("structured_gate_text_conflict")
     if off_target["local_off_target_reaction_conflict"]:
         hard_gate_failures.append("local_off_target_reaction_conflict")
     hard_gate_failures = _dedupe(hard_gate_failures)
@@ -1292,6 +1308,8 @@ def _packet_primary_gate_target_eligible(packet: dict[str, Any]) -> bool:
         and str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
         and str(packet.get("claim_ownership") or "") == "target_authors"
         and not packet.get("document_target_reaction_family_conflict")
+        and not packet.get("local_reaction_family_conflict_primary_admissible")
+        and not packet.get("structured_gate_text_conflict")
         and not packet.get("local_off_target_reaction_conflict")
     )
 
@@ -1307,6 +1325,7 @@ def _evidence_primary_gate_source_eligible(item: dict[str, Any]) -> bool:
         and str(item.get("span_claim_scope") or item.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
         and str(item.get("claim_ownership") or "") == "target_authors"
         and not item.get("document_target_reaction_family_conflict")
+        and not item.get("structured_gate_text_conflict")
         and not item.get("local_off_target_reaction_conflict")
     )
 
@@ -1320,6 +1339,62 @@ def _explicit_validation_role(target: dict[str, Any]) -> bool:
         return True
     gates = target.get("validation_gates") if isinstance(target.get("validation_gates"), dict) else {}
     return any(str(value or "").casefold() in {"yes", "explicit", "pass", "present"} for value in gates.values())
+
+
+def _non_ammonia_primary_performance_count(packets: list[dict[str, Any]], pattern: str) -> int:
+    return sum(
+        bool(packet.get("primary_semantic_eligibility"))
+        and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+        and bool(packet.get("non_ammonia_reaction_activity"))
+        and bool(re.search(pattern, str(packet.get("target_text") or ""), re.IGNORECASE))
+        for packet in packets
+    )
+
+
+def _paper_document_family(packets: list[dict[str, Any]], prefix: str) -> str:
+    families = {
+        str(packet.get("document_reaction_family") or "unclear")
+        for packet in packets
+        if str(packet.get("paper_id") or "").startswith(prefix)
+    }
+    return next(iter(families)) if len(families) == 1 else ("mixed" if families else "missing")
+
+
+def _paper_primary_family_count(
+    packets: list[dict[str, Any]], prefix: str, family: str
+) -> int:
+    return sum(
+        str(packet.get("paper_id") or "").startswith(prefix)
+        and bool(packet.get("primary_semantic_eligibility"))
+        and str(packet.get("effective_reaction_family") or "unclear") == family
+        for packet in packets
+    )
+
+
+def _false_performance_text_count(packets: list[dict[str, Any]], pattern: str) -> int:
+    return sum(
+        str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+        and bool(re.search(pattern, str(packet.get("target_text") or ""), re.IGNORECASE))
+        and not bool(set(packet.get("performance_evidence_signals") or []) & {
+            "faradaic_efficiency_value_proximity",
+            "ammonia_yield_rate_value_proximity",
+            "ammonia_current_density_value_proximity",
+            "current_study_comparative_result",
+            "structured_performance_result_field",
+        })
+        for packet in packets
+    )
+
+
+def _false_no_source_count(packets: list[dict[str, Any]], pattern: str) -> int:
+    return sum(
+        bool(re.search(pattern, str(packet.get("target_text") or ""), re.IGNORECASE))
+        and str(
+            ((packet.get("family_gate_coverage_any_source") or {}).get("NO_source_defined") or {}).get("status")
+            or ""
+        ) == "observed_in_target"
+        for packet in packets
+    )
 
 
 def _section_type_source(record: dict[str, Any]) -> str:
@@ -1511,6 +1586,14 @@ def summarize_context_packets(
         "document_reaction_family_distribution": dict(sorted(
             Counter(document_reaction_family_by_id.values()).items()
         )),
+        "P0021_document_family": _paper_document_family(packets, "P0021"),
+        "P0056_document_family": _paper_document_family(packets, "P0056"),
+        "P0021_family_specific_primary_eNRR_count": _paper_primary_family_count(
+            packets, "P0021", "eNRR"
+        ),
+        "P0056_family_specific_primary_eNRR_count": _paper_primary_family_count(
+            packets, "P0056", "eNRR"
+        ),
         "effective_reaction_family_distribution": dict(sorted(effective_reaction_family_distribution.items())),
         "reaction_family_correction_count": sum(bool(packet.get("reaction_family_correction")) for packet in packets),
         "document_target_family_conflict_count": sum(
@@ -1598,6 +1681,11 @@ def summarize_context_packets(
         "local_reaction_family_conflict_primary_admissible_count": sum(
             bool(packet.get("local_reaction_family_conflict_primary_admissible")) for packet in packets
         ),
+        "primary_eligible_with_local_primary_family_conflict_count": sum(
+            bool(packet.get("primary_semantic_eligibility"))
+            and bool(packet.get("local_reaction_family_conflict_primary_admissible"))
+            for packet in packets
+        ),
         "ammonia_quantification_semantic_count": sum(
             bool(packet.get("ammonia_quantification_signal")) for packet in packets
         ),
@@ -1638,6 +1726,31 @@ def summarize_context_packets(
             and not bool(packet.get("performance_result_evidence"))
             for packet in packets
         ),
+        "non_ammonia_reaction_activity_primary_performance_count": sum(
+            bool(packet.get("primary_semantic_eligibility"))
+            and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+            and bool(packet.get("non_ammonia_reaction_activity"))
+            for packet in packets
+        ),
+        "HOR_primary_ammonia_performance_count": _non_ammonia_primary_performance_count(packets, r"\bHOR\b|hydrogen oxidation"),
+        "HER_primary_ammonia_performance_count": _non_ammonia_primary_performance_count(packets, r"\bHER\b|hydrogen evolution"),
+        "OER_primary_ammonia_performance_count": _non_ammonia_primary_performance_count(packets, r"\bOER\b|oxygen evolution"),
+        "CO2RR_primary_ammonia_performance_count": _non_ammonia_primary_performance_count(packets, r"\bCO2RR\b|carbon dioxide reduction"),
+        "unrelated_numeric_false_performance_count": _false_performance_text_count(
+            packets, r"\b(?:Fig(?:ure)?\.?|Eq(?:uation)?\.?|Ref(?:erence)?\.?)\s*\d+\b|\bmeasured for \d+(?:\.\d+)?\s*(?:h|hr|min)\b"
+        ),
+        "figure_reference_false_performance_count": _false_performance_text_count(
+            packets, r"\b(?:Fig(?:ure)?\.?)\s*\d+\b"
+        ),
+        "equation_reference_false_performance_count": _false_performance_text_count(
+            packets, r"\b(?:Eq(?:uation)?\.?)\s*\d+\b"
+        ),
+        "voltage_only_false_performance_count": _false_performance_text_count(
+            packets, r"\b(?:high\s+)?(?:ammonia|NH\s*3)?\s*yield\b.{0,40}\bat\s+-?\d+(?:\.\d+)?\s*V\b"
+        ),
+        "runtime_only_false_performance_count": _false_performance_text_count(
+            packets, r"\bcurrent density\b.{0,50}\b(?:for|over)\s+\d+(?:\.\d+)?\s*(?:h|hr|hours?|min|minutes?)\b"
+        ),
         "FeS_false_performance_count": sum(
             is_fe_material_only_false_performance({
                 **packet,
@@ -1674,6 +1787,30 @@ def summarize_context_packets(
             )
             for gate_result in (packet.get(coverage_name) or {}).values()
             if isinstance(gate_result, dict)
+        ),
+        "structured_gate_text_conflict_count": sum(
+            bool(packet.get("structured_gate_text_conflict")) for packet in packets
+        ),
+        "structured_gate_conflict_primary_eligible_count": sum(
+            bool(packet.get("structured_gate_text_conflict"))
+            and bool(packet.get("primary_semantic_eligibility"))
+            for packet in packets
+        ),
+        "conflicted_quantification_claim_primary_count": sum(
+            bool(packet.get("structured_gate_text_conflict"))
+            and bool(packet.get("primary_semantic_eligibility"))
+            and str(packet.get("semantic_claim_type") or "") == "ammonia_quantification_claim"
+            for packet in packets
+        ),
+        "bare_NO_false_source_count": _false_no_source_count(packets, r"^\s*NO\s*[.!]?\s*$"),
+        "NO_product_false_source_count": _false_no_source_count(
+            packets, r"\bNO\b.{0,50}\b(?:detected|observed|analy[sz]ed|product|conversion)\b|\bNO conversion\b"
+        ),
+        "NO_negated_feed_false_source_count": _false_no_source_count(
+            packets, r"\b(?:NO|nitric[- ]oxide)\b.{0,50}\bnot (?:supplied|used|introduced)\b|\bno NO feed\b"
+        ),
+        "NO_absent_feed_false_source_count": _false_no_source_count(
+            packets, r"\b(?:NO|nitric[- ]oxide) (?:gas )?(?:feed|source) was absent\b"
         ),
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
@@ -1878,6 +2015,7 @@ def _render_report(summary: dict[str, Any]) -> str:
         "paper_gate_primary_admissible_partial_count", "paper_gate_primary_admissible_not_evaluated_count",
         "local_reaction_family_conflict_any_source_count",
         "local_reaction_family_conflict_primary_admissible_count", "ammonia_quantification_semantic_count",
+        "primary_eligible_with_local_primary_family_conflict_count",
         "gas_purification_trap_semantic_count", "semantic_claim_type_conflict_count",
         "primary_semantic_eligibility_count", "off_target_reaction_conflict_count",
         "review_removed_from_primary_count", "perspective_removed_from_primary_count",
@@ -1890,9 +2028,22 @@ def _render_report(summary: dict[str, Any]) -> str:
         "primary_performance_without_result_evidence_count",
         "generic_isotope_false_15N_count", "NO_negation_false_source_count",
         "NOx_balance_negation_false_positive_count", "conflicted_gate_counted_as_observed_count",
+        "non_ammonia_reaction_activity_primary_performance_count",
+        "HOR_primary_ammonia_performance_count", "HER_primary_ammonia_performance_count",
+        "OER_primary_ammonia_performance_count", "CO2RR_primary_ammonia_performance_count",
+        "unrelated_numeric_false_performance_count", "figure_reference_false_performance_count",
+        "equation_reference_false_performance_count", "voltage_only_false_performance_count",
+        "runtime_only_false_performance_count", "structured_gate_text_conflict_count",
+        "structured_gate_conflict_primary_eligible_count",
+        "conflicted_quantification_claim_primary_count", "bare_NO_false_source_count",
+        "NO_product_false_source_count", "NO_negated_feed_false_source_count",
+        "NO_absent_feed_false_source_count",
         "document_genre_distribution", "document_genre_span_distribution", "span_claim_scope_distribution",
         "document_reaction_family_distribution", "effective_reaction_family_distribution",
         "reaction_family_correction_count", "document_target_family_conflict_count",
+        "P0021_document_family", "P0056_document_family",
+        "P0021_family_specific_primary_eNRR_count",
+        "P0056_family_specific_primary_eNRR_count",
         "claim_ownership_distribution", "semantic_claim_type_distribution",
         "document_genre_inconsistent_document_count", "semantic_claim_type_conflict_matrix",
         "semantic_claim_type_conflict_by_document_genre",
