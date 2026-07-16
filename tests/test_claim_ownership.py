@@ -7,6 +7,25 @@ from enh3bench.document_scope import assess_document_scope
 
 
 class ClaimOwnershipTests(unittest.TestCase):
+    def test_expanded_external_action_verbs_override_target_document_defaults(self) -> None:
+        verbs = (
+            "synthesized", "prepared", "designed", "fabricated", "constructed", "investigated",
+            "evaluated", "studied", "tested", "introduced", "reported", "demonstrated", "showed",
+            "found", "developed", "achieved", "observed", "proposed",
+        )
+        examples = [f"Yang et al. {verb} the catalyst." for verb in verbs]
+        examples.extend((
+            "Li and co-workers prepared the membrane.",
+            "Previous work designed the flow cell.",
+        ))
+        for text in examples:
+            with self.subTest(text=text):
+                record = _record(text, "results")
+                scope = assess_document_scope(record)
+                result = assess_claim_ownership(record, scope)
+                self.assertEqual(scope["span_claim_scope"], "external_or_cited_work")
+                self.assertEqual(result["claim_ownership"], "external_or_cited_authors")
+
     def test_external_attribution_blocks_target_author_ownership(self) -> None:
         record = _record("Jones and co-workers demonstrated an ammonia yield of 10 mmol h-1.", "introduction")
         scope = assess_document_scope(record)

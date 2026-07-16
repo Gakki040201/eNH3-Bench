@@ -2,13 +2,57 @@ from __future__ import annotations
 
 import unittest
 
-from enh3bench.document_scope import assess_document_scope
+from enh3bench.document_scope import assess_document_genre, assess_document_scope
 
 
 class DocumentScopeTests(unittest.TestCase):
+    def test_document_genre_is_independent_from_span_claim_scope(self) -> None:
+        genre = assess_document_genre({
+            "paper_title": "A Perspective and Roadmap for Nitrogen Electroreduction",
+            "article_type": "perspective",
+            "document_headings": ["Introduction", "Outlook"],
+            "document_body_text": "We recommend a common validation protocol.",
+        })
+        scope = assess_document_scope(_record("We recommend a common validation protocol.", "introduction"))
+        self.assertEqual(genre["document_genre"], "perspective")
+        self.assertEqual(scope["span_claim_scope"], "target_document")
+
+    def test_review_genre_uses_title_and_article_type(self) -> None:
+        result = assess_document_genre({
+            "paper_title": "Oxygen vacancies in electrocatalysis: a critical review",
+            "article_type": "review article",
+            "document_headings": ["Overview", "Mechanisms"],
+        })
+        self.assertEqual(result["document_genre"], "review")
+        self.assertFalse(result["document_genre_primary_applicable"])
+
+    def test_methods_results_and_current_study_language_identify_primary_research(self) -> None:
+        result = assess_document_genre({
+            "paper_abstract": "Here we report a catalyst and its measured ammonia yield.",
+            "document_headings": ["Methods", "Results"],
+            "document_body_text": "In this work we prepared samples and measured current density.",
+        })
+        self.assertEqual(result["document_genre"], "primary_research")
+        self.assertTrue(result["document_genre_primary_applicable"])
+
+    def test_document_genre_article_type_categories_are_canonical(self) -> None:
+        cases = {
+            "experimental protocol": "protocol_or_guideline",
+            "computational study": "computational_study",
+            "techno economic analysis": "process_or_tea",
+            "data descriptor": "dataset_or_metadata",
+        }
+        for article_type, expected in cases.items():
+            with self.subTest(article_type=article_type):
+                self.assertEqual(
+                    assess_document_genre({"article_type": article_type})["document_genre"],
+                    expected,
+                )
+
     def test_cited_performance_in_introduction_is_external(self) -> None:
         result = assess_document_scope(_record("Smith et al. reported a Faradaic efficiency of 20%.", "introduction"))
         self.assertEqual(result["document_scope"], "external_or_cited_work")
+        self.assertEqual(result["span_claim_scope"], "external_or_cited_work")
         self.assertFalse(result["document_scope_primary_applicable"])
 
     def test_current_work_cue_establishes_target_document_scope(self) -> None:

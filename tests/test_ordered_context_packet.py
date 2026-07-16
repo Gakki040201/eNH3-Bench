@@ -31,15 +31,15 @@ class OrderedContextPacketTests(unittest.TestCase):
             self.assertNotIn("full_body_text", target)
             self.assertEqual(reference["claim_support_context_sufficient"], False)
             summary = summarize_context_packets(packets, "fixture")
-            self.assertEqual(summary["claim_support_applicable_count"], 1)
-            self.assertEqual(summary["claim_support_not_applicable_count"], 2)
+            self.assertEqual(summary["claim_support_applicable_count"], 2)
+            self.assertEqual(summary["claim_support_not_applicable_count"], 1)
             self.assertEqual(summary["claim_support_context_insufficient_count"], 0)
-            self.assertEqual(summary["packet_local_sufficient_count"], 1)
+            self.assertEqual(summary["packet_local_sufficient_count"], 2)
 
 
 def _record(span_id: str, body: str, text: str, text_class: str, provenance: str) -> dict[str, object]:
     start = body.index(text)
-    return {"paper_id": "P1", "document_id": "P1", "source_span_id": span_id, "source_text": text, "source_start_offset": start, "source_end_offset": start + len(text), "text_class": text_class, "provenance_type": provenance, "reaction_family": "eNRR", "is_primary_admissible": provenance in {"body", "methods"}}
+    return {"paper_id": "P1", "document_id": "P1", "source_span_id": span_id, "source_text": text, "source_start_offset": start, "source_end_offset": start + len(text), "text_class": text_class, "provenance_type": provenance, "reaction_family": "eNRR", "is_primary_admissible": provenance in {"body", "methods"}, "document_genre": "primary_research"}
 
 
 if __name__ == "__main__":

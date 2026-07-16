@@ -21,7 +21,13 @@ from enh3bench.document_context import (
     resolve_document_for_span,
     resolve_span_mapping,
 )
-from enh3bench.document_scope import assess_document_scope
+from enh3bench.document_scope import (
+    PRIMARY_RESEARCH_GENRE,
+    TARGET_DOCUMENT_SCOPE,
+    assess_document_genre,
+    assess_document_scope,
+    build_document_genre_context,
+)
 from enh3bench.evidence_linking import (
     DEFAULT_LINK_LIMITS,
     DEFAULT_MINIMUM_LINK_SCORE,
@@ -92,12 +98,19 @@ ORDERED_PACKET_FIELDS = (
     "target_source_start_offset", "target_source_end_offset", "target_text", "target_text_class",
     "target_provenance_type", "target_reaction_family", "target_span_boundary",
     "target_admissibility_status", "target_claim_type", "target_mapping",
-    "semantic_eligibility_schema_version", "document_scope", "document_scope_confidence",
+    "semantic_eligibility_schema_version", "document_genre", "document_genre_confidence",
+    "document_genre_signals", "document_genre_primary_applicable",
+    "span_claim_scope", "span_claim_scope_confidence", "span_claim_scope_signals",
+    "span_claim_scope_primary_applicable", "document_scope", "document_scope_confidence",
     "document_scope_signals", "document_scope_primary_applicable", "claim_ownership",
     "claim_ownership_confidence", "claim_ownership_signals", "claim_ownership_primary_applicable",
-    "semantic_claim_type", "semantic_claim_type_signals", "ammonia_quantification_signal",
-    "gas_purification_trap_signal", "primary_applicability_hard_gate_failures",
+    "semantic_claim_type", "semantic_claim_type_confidence", "semantic_claim_type_conflict",
+    "legacy_claim_type", "semantic_claim_type_signals", "ammonia_quantification_signal",
+    "gas_purification_trap_signal", "mass_spectrometry_quantification_signal",
+    "enzymatic_quantification_signal", "primary_applicability_hard_gate_failures",
     "base_claim_support_applicable", "primary_semantic_eligibility",
+    "target_is_primary_admissible", "target_is_secondary_or_context",
+    "target_is_reject_or_low_trust",
     "previous_paragraph", "target_paragraph", "next_paragraph",
     "section_context", "document_outline", "evidence_items", "evidence_role_index",
     "classification_context_sufficient", "claim_support_applicable", "claim_support_context_sufficient",
@@ -110,7 +123,8 @@ ORDERED_PACKET_FIELDS = (
     "paper_gate_coverage_primary_admissible_missing", "paper_gate_coverage_primary_admissible_status",
     "local_reaction_family_conflict", "local_reaction_family_conflict_any_source",
     "local_reaction_family_conflict_primary_admissible", "local_reaction_family_conflict_span_ids",
-    "local_reaction_family_conflict_signals",
+    "local_reaction_family_conflict_signals", "local_off_target_reaction_conflict",
+    "local_off_target_reaction_conflict_signals",
     "context_purpose", "context_sufficient",
     "context_missing_types", "context_confidence", "linking_signals", "linking_diagnostics", "warnings",
 )
@@ -125,6 +139,28 @@ LINK_PACKET_FIELDS = {
 }
 LOW_TRUST_PROVENANCE = {"reference", "bibliography", "figure_caption", "scheme_caption", "review_table"}
 LOW_TRUST_TEXT_CLASSES = {"reference_list", "figure_caption", "scheme_caption", "review_table", "background_context"}
+PRIMARY_SEMANTIC_CLAIM_TYPES = {
+    "performance_claim", "validation_claim", "ammonia_quantification_claim", "reactor_claim", "process_claim",
+}
+AMMONIA_REACTION_FAMILIES = {"eNRR", "LiNRR", "NO3RR", "NO2RR", "NORR"}
+_OFF_TARGET_REACTION_PATTERNS = (
+    ("CO2RR", re.compile(r"\bco2rr\b|\bcarbon dioxide reduction\b", re.IGNORECASE)),
+    ("ORR", re.compile(r"\borr\b|\boxygen reduction\b", re.IGNORECASE)),
+    ("OER", re.compile(r"\boer\b|\boxygen evolution\b", re.IGNORECASE)),
+    ("HER", re.compile(r"\bher\b|\bhydrogen evolution\b", re.IGNORECASE)),
+    ("water_splitting", re.compile(r"\bwater splitting\b", re.IGNORECASE)),
+    ("Zn_air_battery", re.compile(r"\bzn[- ]air batter(?:y|ies)\b|\bzinc[- ]air batter(?:y|ies)\b", re.IGNORECASE)),
+    ("fuel_cell", re.compile(r"\bfuel cells?\b|\bpemfc\b", re.IGNORECASE)),
+    ("lithium_sulfur_battery", re.compile(r"\blithium[- ]sulfur batter(?:y|ies)\b|\bli[- ]s batter(?:y|ies)\b", re.IGNORECASE)),
+    ("methanol_oxidation", re.compile(r"\bmethanol oxidation\b", re.IGNORECASE)),
+    ("formic_acid_oxidation", re.compile(r"\bformic acid oxidation\b", re.IGNORECASE)),
+)
+_AMMONIA_REACTION_SUBJECT = re.compile(
+    r"\b(?:enrr|linrr|no3rr|no2rr|norr|nitrogen reduction|n2 reduction|nitrate reduction|"
+    r"nitrite reduction|nitric oxide reduction|no reduction|nitrogen fixation|ammonia (?:synthesis|"
+    r"electrosynthesis|production)|lithium[- ]mediated (?:nitrogen reduction|nrr))\b",
+    re.IGNORECASE,
+)
 BOUNDARY_RANK = {
     "unsupported_or_secondary": 0, "product_admissibility": 1, "cell_metric": 2,
     "reactor_legibility": 3, "process_partial": 4, "plant_facing_insufficient": 5,
@@ -188,7 +224,7 @@ def merge_context_sources(
                 record.setdefault(key, _copy_value(value))
         raw = record.get("raw_record") if isinstance(record.get("raw_record"), dict) else {}
         for key in (
-            "paper_title", "title", "paper_abstract", "abstract", "section_path",
+            "paper_title", "title", "paper_abstract", "abstract", "article_type", "paper_article_type", "section_path",
             "section_heading", "span_order", "candidate_score", "matched_keywords",
         ):
             if _present(raw.get(key)):
@@ -214,6 +250,30 @@ def merge_context_sources(
         record["source_span_id"] = span_id
         merged.append(record)
     return merged
+
+
+def _attach_document_genre_assessments(
+    records: list[dict[str, Any]], source_ledger: OrderedSourceLedger
+) -> list[dict[str, Any]]:
+    """Compute one genre assessment per document and attach only its compact result."""
+
+    records_by_document: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        records_by_document[str(record.get("document_id") or "")].append(record)
+    assessments: dict[str, dict[str, Any]] = {}
+    for document_id, document_records in records_by_document.items():
+        document = source_ledger.documents_by_id.get(document_id, {"document_id": document_id})
+        genre_context = build_document_genre_context(
+            document,
+            document_records,
+            source_ledger.sections_by_document.get(document_id, []),
+        )
+        assessments[document_id] = assess_document_genre(genre_context)
+    attached: list[dict[str, Any]] = []
+    for record in records:
+        document_id = str(record.get("document_id") or "")
+        attached.append({**record, **assessments[document_id]})
+    return attached
 
 
 def build_context_packets(
@@ -242,6 +302,7 @@ def build_context_packets(
             raise ValueError("ordered_source_v1 requires source_ledger")
         merged = attach_source_coordinates_to_spans(merged, source_ledger)
         merged = sort_spans_by_source_order(merged)
+        merged = _attach_document_genre_assessments(merged, source_ledger)
     index = build_document_span_index(merged)
     limits = {
         **DEFAULT_LINK_LIMITS, "adjacent_before": adjacent_before, "adjacent_after": adjacent_after,
@@ -393,6 +454,12 @@ def _ordered_packet(
     assessment = _packet_local_assessment(
         target, paragraph, previous_paragraph, next_paragraph, section, evidence_items
     )
+    target_primary_admissible = (
+        assessment["applicable"]
+        and assessment["target_is_primary_admissible"]
+        and not assessment["target_is_secondary_or_context"]
+        and not assessment["target_is_reject_or_low_trust"]
+    )
     family_coverage_any, paper_observed_any, paper_missing_any, paper_status_any = _family_gate_coverage(
         target,
         evidence_items,
@@ -409,7 +476,7 @@ def _ordered_packet(
         next_paragraph,
         applicable=assessment["applicable"],
         primary_admissible_only=True,
-        target_primary_admissible=assessment["applicable"],
+        target_primary_admissible=target_primary_admissible,
     )
     diagnostics = dict(links.get("diagnostics") or {})
     diagnostics.update({
@@ -471,6 +538,14 @@ def _ordered_packet(
         "target_claim_type": str(target.get("claim_type") or ""),
         "target_mapping": target_mapping,
         "semantic_eligibility_schema_version": assessment["semantic_eligibility_schema_version"],
+        "document_genre": assessment["document_genre"],
+        "document_genre_confidence": assessment["document_genre_confidence"],
+        "document_genre_signals": assessment["document_genre_signals"],
+        "document_genre_primary_applicable": assessment["document_genre_primary_applicable"],
+        "span_claim_scope": assessment["span_claim_scope"],
+        "span_claim_scope_confidence": assessment["span_claim_scope_confidence"],
+        "span_claim_scope_signals": assessment["span_claim_scope_signals"],
+        "span_claim_scope_primary_applicable": assessment["span_claim_scope_primary_applicable"],
         "document_scope": assessment["document_scope"],
         "document_scope_confidence": assessment["document_scope_confidence"],
         "document_scope_signals": assessment["document_scope_signals"],
@@ -480,12 +555,20 @@ def _ordered_packet(
         "claim_ownership_signals": assessment["claim_ownership_signals"],
         "claim_ownership_primary_applicable": assessment["claim_ownership_primary_applicable"],
         "semantic_claim_type": assessment["semantic_claim_type"],
+        "semantic_claim_type_confidence": assessment["semantic_claim_type_confidence"],
+        "semantic_claim_type_conflict": assessment["semantic_claim_type_conflict"],
+        "legacy_claim_type": assessment["legacy_claim_type"],
         "semantic_claim_type_signals": assessment["semantic_claim_type_signals"],
         "ammonia_quantification_signal": assessment["ammonia_quantification_signal"],
         "gas_purification_trap_signal": assessment["gas_purification_trap_signal"],
+        "mass_spectrometry_quantification_signal": assessment["mass_spectrometry_quantification_signal"],
+        "enzymatic_quantification_signal": assessment["enzymatic_quantification_signal"],
         "primary_applicability_hard_gate_failures": assessment["hard_gate_failures"],
         "base_claim_support_applicable": assessment["base_applicable"],
         "primary_semantic_eligibility": assessment["applicable"],
+        "target_is_primary_admissible": assessment["target_is_primary_admissible"],
+        "target_is_secondary_or_context": assessment["target_is_secondary_or_context"],
+        "target_is_reject_or_low_trust": assessment["target_is_reject_or_low_trust"],
         "previous_paragraph": _compact_paragraph(previous_paragraph),
         "target_paragraph": _compact_paragraph(paragraph),
         "next_paragraph": _compact_paragraph(next_paragraph),
@@ -525,6 +608,8 @@ def _ordered_packet(
         "local_reaction_family_conflict_primary_admissible": assessment["local_reaction_family_conflict_primary_admissible"],
         "local_reaction_family_conflict_span_ids": assessment["local_reaction_family_conflict_span_ids"],
         "local_reaction_family_conflict_signals": assessment["local_reaction_family_conflict_signals"],
+        "local_off_target_reaction_conflict": assessment["local_off_target_reaction_conflict"],
+        "local_off_target_reaction_conflict_signals": assessment["local_off_target_reaction_conflict_signals"],
         "context_purpose": assessment["purpose"], "context_sufficient": assessment["sufficient"],
         "context_missing_types": assessment["missing"], "context_confidence": assessment["confidence"],
         "linking_signals": links.get("linking_signals") or [], "linking_diagnostics": diagnostics,
@@ -545,20 +630,24 @@ def _unique_evidence_items(
             original = records_by_id.get(span_id, {})
             semantic_record = {**original, **linked}
             semantic_record["source_text"] = str(linked.get("source_text") or original.get("source_text") or "")
+            document_genre = assess_document_genre(semantic_record)
             document_scope = assess_document_scope(semantic_record)
             claim_ownership = assess_claim_ownership(semantic_record, document_scope)
+            semantic_record.update({**document_genre, **document_scope, **claim_ownership})
             claim_typing = classify_claim_type(semantic_record)
-            if "is_primary_admissible" in original:
-                provenance_primary = bool(original.get("is_primary_admissible"))
-            else:
-                provenance_primary = not bool(linked.get("context_only")) and str(
-                    linked.get("provenance_type") or "unknown"
-                ).casefold() not in LOW_TRUST_PROVENANCE
+            provenance_flags = _provenance_flags(original or semantic_record)
+            provenance_primary = provenance_flags["is_primary_admissible"]
+            off_target = _off_target_reaction_assessment(semantic_record)
             gate_source_primary = bool(
-                provenance_primary
-                and document_scope["document_scope_primary_applicable"]
+                linked.get("primary_support")
+                and provenance_primary
+                and not provenance_flags["is_secondary_or_context"]
+                and not provenance_flags["is_reject_or_low_trust"]
+                and document_genre["document_genre"] == PRIMARY_RESEARCH_GENRE
+                and document_scope["span_claim_scope"] == TARGET_DOCUMENT_SCOPE
                 and claim_ownership["claim_ownership_primary_applicable"]
                 and not linked.get("context_only")
+                and not off_target["local_off_target_reaction_conflict"]
             )
             mapping = resolve_span_mapping(original, document_index) if document_index else {
                 "confidence": original.get("source_mapping_confidence") or "unresolved"
@@ -586,13 +675,21 @@ def _unique_evidence_items(
                 "reaction_family_confidence": str(original.get("reaction_family_confidence") or "unclear"),
                 "reaction_family_scope": str(original.get("reaction_family_scope") or "fallback"),
                 "is_primary_admissible": provenance_primary,
+                "is_secondary_or_context": provenance_flags["is_secondary_or_context"],
+                "is_reject_or_low_trust": provenance_flags["is_reject_or_low_trust"],
+                "document_genre": document_genre["document_genre"],
+                "document_genre_primary_applicable": document_genre["document_genre_primary_applicable"],
+                "span_claim_scope": document_scope["span_claim_scope"],
+                "span_claim_scope_primary_applicable": document_scope["span_claim_scope_primary_applicable"],
                 "document_scope": document_scope["document_scope"],
                 "document_scope_primary_applicable": document_scope["document_scope_primary_applicable"],
                 "claim_ownership": claim_ownership["claim_ownership"],
                 "claim_ownership_primary_applicable": claim_ownership["claim_ownership_primary_applicable"],
                 "semantic_claim_type": claim_typing["semantic_claim_type"],
+                "semantic_claim_type_confidence": claim_typing["semantic_claim_type_confidence"],
                 "ammonia_quantification_signal": claim_typing["ammonia_quantification_signal"],
                 "gas_purification_trap_signal": claim_typing["gas_purification_trap_signal"],
+                "local_off_target_reaction_conflict": off_target["local_off_target_reaction_conflict"],
                 "primary_admissible_gate_source": gate_source_primary,
                 "link_roles": [], "normalized_link_score": 0.0, "linking_signals": [],
                 "context_only": bool(linked.get("context_only")), "primary_support": False,
@@ -718,28 +815,57 @@ def _packet_local_assessment(
     text_class = str(target.get("text_class") or "unknown").casefold()
     classification = bool(text.strip() and provenance != "unknown" and text_class != "unknown")
     base_applicable = _claim_support_applicable(target)
+    document_genre = assess_document_genre(target)
     document_scope = assess_document_scope(target)
     claim_ownership = assess_claim_ownership(target, document_scope)
-    claim_typing = classify_claim_type(target)
-    hard_gate_failures: list[str] = []
-    if base_applicable and not document_scope["document_scope_primary_applicable"]:
-        hard_gate_failures.append("document_scope_not_target_document")
-    if base_applicable and not claim_ownership["claim_ownership_primary_applicable"]:
-        hard_gate_failures.append("claim_not_owned_by_target_authors")
-    applicable = base_applicable and not hard_gate_failures
+    semantic_target = {**target, **document_genre, **document_scope, **claim_ownership}
+    claim_typing = classify_claim_type(semantic_target)
+    provenance_flags = _provenance_flags(target)
+    off_target = _off_target_reaction_assessment(target)
+    preliminary_primary = bool(
+        provenance_flags["is_primary_admissible"]
+        and not provenance_flags["is_secondary_or_context"]
+        and not provenance_flags["is_reject_or_low_trust"]
+    )
     local_family = _local_reaction_family_assessment(
         target,
         evidence_items or [],
         [previous_paragraph, target_paragraph, next_paragraph],
-        target_primary_admissible=applicable,
+        target_primary_admissible=preliminary_primary,
     )
+    hard_gate_failures: list[str] = []
+    if document_genre["document_genre"] != PRIMARY_RESEARCH_GENRE:
+        hard_gate_failures.append("document_genre_not_primary_research")
+    if document_scope["span_claim_scope"] != TARGET_DOCUMENT_SCOPE:
+        hard_gate_failures.append("span_claim_scope_not_target_document")
+    if not claim_ownership["claim_ownership_primary_applicable"]:
+        hard_gate_failures.append("claim_not_owned_by_target_authors")
+    if not provenance_flags["is_primary_admissible"]:
+        hard_gate_failures.append("target_not_primary_admissible")
+    if provenance_flags["is_secondary_or_context"]:
+        hard_gate_failures.append("target_is_secondary_or_context")
+    if provenance_flags["is_reject_or_low_trust"]:
+        hard_gate_failures.append("target_is_reject_or_low_trust")
+    if claim_typing["semantic_claim_type_confidence"] not in {"high", "medium"}:
+        hard_gate_failures.append("semantic_claim_type_confidence_not_high_or_medium")
+    if claim_typing["semantic_claim_type"] not in PRIMARY_SEMANTIC_CLAIM_TYPES:
+        hard_gate_failures.append("semantic_claim_type_not_primary_eligible")
+    if off_target["local_off_target_reaction_conflict"]:
+        hard_gate_failures.append("local_off_target_reaction_conflict")
+    hard_gate_failures = _dedupe(hard_gate_failures)
+    applicable = not hard_gate_failures
     semantic = {
+        **document_genre,
         **document_scope,
         **claim_ownership,
         **claim_typing,
         **local_family,
+        **off_target,
         "base_applicable": base_applicable,
         "hard_gate_failures": hard_gate_failures,
+        "target_is_primary_admissible": provenance_flags["is_primary_admissible"],
+        "target_is_secondary_or_context": provenance_flags["is_secondary_or_context"],
+        "target_is_reject_or_low_trust": provenance_flags["is_reject_or_low_trust"],
     }
     if not applicable:
         return {
@@ -759,16 +885,6 @@ def _packet_local_assessment(
     if mapping_method == "unresolved" or mapping_confidence != "high" or not bool(target.get("offset_text_match")):
         missing.append("verified_target_mapping")
 
-    if "is_primary_admissible" in target:
-        primary_admissible = bool(target.get("is_primary_admissible"))
-    else:
-        primary_admissible = (
-            provenance not in LOW_TRUST_PROVENANCE
-            and text_class in {"primary_performance", "primary_performance_with_validation"}
-        )
-    if not primary_admissible:
-        missing.append("primary_admissible_provenance")
-
     raw_family = str(target.get("reaction_family") or "").strip()
     family = normalize_reaction_family(raw_family)
     family_token = re.sub(r"[^a-z0-9]+", "_", raw_family.casefold()).strip("_")
@@ -785,12 +901,13 @@ def _packet_local_assessment(
     if not target_paragraph or not str(target_paragraph.get("text") or "").strip() or section is None:
         missing.append("readable_local_context")
 
-    claim_type = str(target.get("claim_type") or "").casefold()
+    claim_type = str(claim_typing.get("semantic_claim_type") or "").casefold()
     if claim_type == "validation_claim":
-        if not _explicit_validation_role(target):
-            missing.append("explicit_validation_role")
         if _negative_target(text):
             missing.append("positive_validation_evidence")
+    elif claim_type == "ammonia_quantification_claim":
+        if not claim_typing["ammonia_quantification_signal"]:
+            missing.append("ammonia_quantification_signal")
     elif claim_type == "reactor_claim":
         if not _reactor_signal(local_text):
             missing.append("reactor_signal")
@@ -912,6 +1029,53 @@ def _local_reaction_family_assessment(
     }
 
 
+def _provenance_flags(record: dict[str, Any]) -> dict[str, bool]:
+    provenance = str(record.get("provenance_type") or "unknown").casefold()
+    text_class = str(record.get("text_class") or "unknown").casefold()
+    admissibility = str(record.get("admissibility_status") or "").casefold()
+    low_trust_context = provenance in LOW_TRUST_PROVENANCE or text_class in LOW_TRUST_TEXT_CLASSES
+    if "is_secondary_or_context" in record:
+        secondary = bool(record.get("is_secondary_or_context"))
+    else:
+        secondary = low_trust_context or any(token in admissibility for token in ("secondary", "context_only"))
+    if "is_reject_or_low_trust" in record:
+        reject = bool(record.get("is_reject_or_low_trust"))
+    else:
+        reject = (
+            provenance in {"reference", "bibliography", "front_matter", "metadata", "copyright_note"}
+            or any(token in admissibility for token in ("reject", "low_trust"))
+        )
+    if "is_primary_admissible" in record:
+        primary = bool(record.get("is_primary_admissible"))
+    else:
+        primary = not secondary and not reject and provenance in {
+            "abstract", "body", "methods", "results", "discussion", "supplementary", "protocol",
+        }
+    return {
+        "is_primary_admissible": primary,
+        "is_secondary_or_context": secondary,
+        "is_reject_or_low_trust": reject,
+    }
+
+
+def _off_target_reaction_assessment(record: dict[str, Any]) -> dict[str, Any]:
+    explicit = bool(record.get("local_off_target_reaction_conflict"))
+    text = str(record.get("source_text") or record.get("target_text") or "")
+    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    signals = [str(value) for value in record.get("local_off_target_reaction_conflict_signals") or []]
+    hits = [name for name, pattern in _OFF_TARGET_REACTION_PATTERNS if pattern.search(text)]
+    inferred = bool(family in AMMONIA_REACTION_FAMILIES and hits and not _AMMONIA_REACTION_SUBJECT.search(text))
+    if inferred:
+        signals.extend(f"off_target_system:{name}" for name in hits)
+        signals.append(f"ammonia_family_without_ammonia_subject:{family}")
+    if explicit and not signals:
+        signals.append("explicit_local_off_target_reaction_conflict")
+    return {
+        "local_off_target_reaction_conflict": bool(explicit or inferred),
+        "local_off_target_reaction_conflict_signals": _dedupe(signals),
+    }
+
+
 def _conflicting_inferred_family(text: str, target_family: str) -> str:
     if not str(text or "").strip():
         return ""
@@ -1008,6 +1172,61 @@ def _supporting_local_span_ids(
     ])
 
 
+def _target_primary_gate_nonprimary_support_count(packets: list[dict[str, Any]]) -> int:
+    """Count primary-gate support references that violate source eligibility."""
+
+    invalid: set[tuple[str, str, str]] = set()
+    for packet in packets:
+        packet_id = str(packet.get("context_packet_id") or packet.get("target_span_id") or "")
+        target_id = str(packet.get("target_span_id") or "")
+        items = {
+            str(item.get("span_id") or ""): item
+            for item in packet.get("evidence_items") or []
+            if str(item.get("span_id") or "")
+        }
+        for gate, gate_result in (packet.get("family_gate_coverage_primary_admissible") or {}).items():
+            status = str((gate_result or {}).get("status") or "")
+            if not status.startswith("observed_in_"):
+                continue
+            for source_id in (gate_result or {}).get("supporting_span_ids") or []:
+                source_id = str(source_id or "")
+                eligible = (
+                    _packet_primary_gate_target_eligible(packet)
+                    if source_id == target_id
+                    else _evidence_primary_gate_source_eligible(items.get(source_id, {}))
+                )
+                if not eligible:
+                    invalid.add((packet_id, str(gate), source_id or "missing_source_id"))
+    return len(invalid)
+
+
+def _packet_primary_gate_target_eligible(packet: dict[str, Any]) -> bool:
+    return bool(
+        packet.get("primary_semantic_eligibility")
+        and packet.get("target_is_primary_admissible")
+        and not packet.get("target_is_secondary_or_context")
+        and not packet.get("target_is_reject_or_low_trust")
+        and str(packet.get("document_genre") or "") == PRIMARY_RESEARCH_GENRE
+        and str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
+        and str(packet.get("claim_ownership") or "") == "target_authors"
+        and not packet.get("local_off_target_reaction_conflict")
+    )
+
+
+def _evidence_primary_gate_source_eligible(item: dict[str, Any]) -> bool:
+    return bool(
+        item.get("primary_support")
+        and item.get("primary_admissible_gate_source")
+        and item.get("is_primary_admissible")
+        and not item.get("is_secondary_or_context")
+        and not item.get("is_reject_or_low_trust")
+        and str(item.get("document_genre") or "") == PRIMARY_RESEARCH_GENRE
+        and str(item.get("span_claim_scope") or item.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
+        and str(item.get("claim_ownership") or "") == "target_authors"
+        and not item.get("local_off_target_reaction_conflict")
+    )
+
+
 def _explicit_validation_role(target: dict[str, Any]) -> bool:
     if str(target.get("claim_type") or "").casefold() == "validation_claim":
         return True
@@ -1049,6 +1268,9 @@ def summarize_context_packets(
     packet_local_status = Counter()
     paper_gate_status = Counter()
     paper_gate_primary_status = Counter()
+    document_genre_span_distribution = Counter()
+    document_genres_by_id: dict[str, set[str]] = defaultdict(set)
+    span_claim_scope_distribution = Counter()
     document_scope_distribution = Counter()
     claim_ownership_distribution = Counter()
     semantic_claim_type_distribution = Counter()
@@ -1063,6 +1285,14 @@ def summarize_context_packets(
         paper_gate_status[str(packet.get("paper_gate_coverage_status") or "not_reported")] += 1
         paper_gate_primary_status[str(
             packet.get("paper_gate_coverage_primary_admissible_status") or "not_reported"
+        )] += 1
+        document_genre = str(packet.get("document_genre") or "not_reported")
+        document_genre_span_distribution[document_genre] += 1
+        document_id = str(packet.get("document_id") or packet.get("paper_id") or "")
+        if document_id:
+            document_genres_by_id[document_id].add(document_genre)
+        span_claim_scope_distribution[str(
+            packet.get("span_claim_scope") or packet.get("document_scope") or "not_reported"
         )] += 1
         document_scope_distribution[str(packet.get("document_scope") or "not_reported")] += 1
         claim_ownership_distribution[str(packet.get("claim_ownership") or "not_reported")] += 1
@@ -1099,6 +1329,49 @@ def summarize_context_packets(
     applicable_sufficient = sum(bool(packet.get("claim_support_context_sufficient")) for packet in applicable_packets)
     role_total = sum(role_distribution.values())
     unique_total = sum(unique_counts)
+    document_genre_inconsistent_document_count = sum(
+        len(genres) > 1 for genres in document_genres_by_id.values()
+    )
+    document_genre_by_id = {
+        document_id: sorted(genres)[0]
+        for document_id, genres in document_genres_by_id.items()
+        if genres
+    }
+    conflict_packets = [packet for packet in packets if bool(packet.get("semantic_claim_type_conflict"))]
+    conflict_matrix: dict[str, Counter[str]] = defaultdict(Counter)
+    for packet in conflict_packets:
+        legacy = str(packet.get("legacy_claim_type") or "untyped_claim")
+        semantic = str(packet.get("semantic_claim_type") or "untyped_claim")
+        conflict_matrix[legacy][semantic] += 1
+    conflict_by_genre = Counter(str(packet.get("document_genre") or "not_reported") for packet in conflict_packets)
+    conflict_by_family = Counter(
+        normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+        for packet in conflict_packets
+    )
+    primary_packets = [packet for packet in packets if bool(packet.get("primary_semantic_eligibility"))]
+    primary_by_genre = Counter(str(packet.get("document_genre") or "not_reported") for packet in primary_packets)
+    primary_by_semantic_type = Counter(
+        str(packet.get("semantic_claim_type") or "untyped_claim") for packet in primary_packets
+    )
+    for claim_type in {
+        *PRIMARY_SEMANTIC_CLAIM_TYPES,
+        "mechanism_claim", "protocol_claim", "secondary_context_claim",
+        "gas_purification_or_capture_claim", "untyped_claim",
+    }:
+        primary_by_semantic_type.setdefault(claim_type, 0)
+    primary_by_family = Counter(
+        normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+        for packet in primary_packets
+    )
+    primary_by_provenance = Counter(
+        str(packet.get("target_provenance_type") or "unknown") for packet in primary_packets
+    )
+    primary_by_ownership_confidence = Counter(
+        str(packet.get("claim_ownership_confidence") or "unknown") for packet in primary_packets
+    )
+    primary_by_semantic_confidence = Counter(
+        str(packet.get("semantic_claim_type_confidence") or "unknown") for packet in primary_packets
+    )
     summary = {
         "run_name": run_name, "context_profile": profile_name,
         "packet_count": packet_count, "paper_count": len(paper_ids),
@@ -1129,10 +1402,81 @@ def summarize_context_packets(
         "paper_gate_primary_admissible_partial_count": paper_gate_primary_status["partial_observed"],
         "paper_gate_primary_admissible_not_evaluated_count": paper_gate_primary_status["not_evaluated"],
         "paper_gate_primary_admissible_status_distribution": dict(sorted(paper_gate_primary_status.items())),
+        "document_genre_distribution": dict(sorted(Counter(document_genre_by_id.values()).items())),
+        "document_genre_inconsistent_document_count": document_genre_inconsistent_document_count,
+        "document_genre_span_distribution": dict(sorted(document_genre_span_distribution.items())),
+        "span_claim_scope_distribution": dict(sorted(span_claim_scope_distribution.items())),
         "document_scope_distribution": dict(sorted(document_scope_distribution.items())),
         "claim_ownership_distribution": dict(sorted(claim_ownership_distribution.items())),
         "semantic_claim_type_distribution": dict(sorted(semantic_claim_type_distribution.items())),
+        "semantic_claim_type_conflict_count": len(conflict_packets),
+        "semantic_claim_type_conflict_matrix": {
+            legacy: dict(sorted(transitions.items()))
+            for legacy, transitions in sorted(conflict_matrix.items())
+        },
+        "semantic_claim_type_conflict_by_document_genre": dict(sorted(conflict_by_genre.items())),
+        "semantic_claim_type_conflict_by_reaction_family": dict(sorted(conflict_by_family.items())),
+        "semantic_claim_type_conflict_primary_eligible_count": sum(
+            bool(packet.get("primary_semantic_eligibility")) for packet in conflict_packets
+        ),
+        "semantic_claim_type_conflict_not_applicable_count": sum(
+            str(packet.get("packet_local_context_status") or "") == "not_applicable"
+            for packet in conflict_packets
+        ),
+        "primary_semantic_eligibility_count": len(primary_packets),
+        "primary_semantic_eligible_by_document_genre": dict(sorted(primary_by_genre.items())),
+        "primary_semantic_eligible_by_semantic_claim_type": dict(sorted(primary_by_semantic_type.items())),
+        "primary_semantic_eligible_by_reaction_family": dict(sorted(primary_by_family.items())),
+        "primary_semantic_eligible_by_provenance_type": dict(sorted(primary_by_provenance.items())),
+        "primary_semantic_eligible_by_ownership_confidence": dict(
+            sorted(primary_by_ownership_confidence.items())
+        ),
+        "primary_semantic_eligible_by_semantic_type_confidence": dict(
+            sorted(primary_by_semantic_confidence.items())
+        ),
+        "review_primary_semantic_eligible_count": primary_by_genre["review"],
+        "perspective_primary_semantic_eligible_count": primary_by_genre["perspective"],
+        "mixed_primary_semantic_eligible_count": primary_by_genre["mixed"],
+        "unclear_genre_primary_semantic_eligible_count": primary_by_genre["unclear"],
+        "off_target_primary_semantic_eligible_count": sum(
+            bool(packet.get("local_off_target_reaction_conflict")) for packet in primary_packets
+        ),
+        "non_primary_provenance_primary_semantic_eligible_count": sum(
+            not bool(packet.get("target_is_primary_admissible")) for packet in primary_packets
+        ),
+        "secondary_context_primary_semantic_eligible_count": sum(
+            bool(packet.get("target_is_secondary_or_context")) for packet in primary_packets
+        ),
+        "reject_or_low_trust_primary_semantic_eligible_count": sum(
+            bool(packet.get("target_is_reject_or_low_trust")) for packet in primary_packets
+        ),
+        "hard_gate_failure_distribution": dict(sorted(hard_gate_failures.items())),
         "primary_applicability_hard_gate_failure_distribution": dict(sorted(hard_gate_failures.items())),
+        "off_target_reaction_conflict_count": sum(
+            bool(packet.get("local_off_target_reaction_conflict")) for packet in packets
+        ),
+        "review_removed_from_primary_count": sum(
+            str(packet.get("document_genre") or "") == "review"
+            and not bool(packet.get("primary_semantic_eligibility"))
+            for packet in packets
+        ),
+        "perspective_removed_from_primary_count": sum(
+            str(packet.get("document_genre") or "") == "perspective"
+            and not bool(packet.get("primary_semantic_eligibility"))
+            for packet in packets
+        ),
+        "external_attribution_removed_count": sum(
+            (
+                str(packet.get("span_claim_scope") or packet.get("document_scope") or "")
+                == "external_or_cited_work"
+                or str(packet.get("claim_ownership") or "") == "external_or_cited_authors"
+            )
+            and not bool(packet.get("primary_semantic_eligibility"))
+            for packet in packets
+        ),
+        "target_primary_gate_complete_count": paper_gate_primary_status["apparently_complete_in_packet"],
+        "any_source_gate_complete_count": paper_gate_status["apparently_complete_in_packet"],
+        "target_primary_gate_supported_by_nonprimary_count": _target_primary_gate_nonprimary_support_count(packets),
         "local_reaction_family_conflict_any_source_count": sum(
             bool(packet.get("local_reaction_family_conflict_any_source")) for packet in packets
         ),
@@ -1142,8 +1486,22 @@ def summarize_context_packets(
         "ammonia_quantification_semantic_count": sum(
             bool(packet.get("ammonia_quantification_signal")) for packet in packets
         ),
+        "quantification_signal_count": sum(
+            bool(packet.get("ammonia_quantification_signal")) for packet in packets
+        ),
         "gas_purification_trap_semantic_count": sum(
             bool(packet.get("gas_purification_trap_signal")) for packet in packets
+        ),
+        "gas_trap_only_count": sum(
+            bool(packet.get("gas_purification_trap_signal"))
+            and not bool(packet.get("ammonia_quantification_signal"))
+            for packet in packets
+        ),
+        "mass_spec_quantification_count": sum(
+            bool(packet.get("mass_spectrometry_quantification_signal")) for packet in packets
+        ),
+        "enzymatic_quantification_count": sum(
+            bool(packet.get("enzymatic_quantification_signal")) for packet in packets
         ),
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
@@ -1348,7 +1706,32 @@ def _render_report(summary: dict[str, Any]) -> str:
         "paper_gate_primary_admissible_partial_count", "paper_gate_primary_admissible_not_evaluated_count",
         "local_reaction_family_conflict_any_source_count",
         "local_reaction_family_conflict_primary_admissible_count", "ammonia_quantification_semantic_count",
-        "gas_purification_trap_semantic_count",
+        "gas_purification_trap_semantic_count", "semantic_claim_type_conflict_count",
+        "primary_semantic_eligibility_count", "off_target_reaction_conflict_count",
+        "review_removed_from_primary_count", "perspective_removed_from_primary_count",
+        "external_attribution_removed_count", "target_primary_gate_complete_count",
+        "any_source_gate_complete_count", "quantification_signal_count", "gas_trap_only_count",
+        "mass_spec_quantification_count", "enzymatic_quantification_count",
+        "document_genre_distribution", "document_genre_span_distribution", "span_claim_scope_distribution",
+        "claim_ownership_distribution", "semantic_claim_type_distribution",
+        "document_genre_inconsistent_document_count", "semantic_claim_type_conflict_matrix",
+        "semantic_claim_type_conflict_by_document_genre",
+        "semantic_claim_type_conflict_by_reaction_family",
+        "semantic_claim_type_conflict_primary_eligible_count",
+        "semantic_claim_type_conflict_not_applicable_count",
+        "primary_semantic_eligible_by_document_genre",
+        "primary_semantic_eligible_by_semantic_claim_type",
+        "primary_semantic_eligible_by_reaction_family",
+        "primary_semantic_eligible_by_provenance_type",
+        "primary_semantic_eligible_by_ownership_confidence",
+        "primary_semantic_eligible_by_semantic_type_confidence",
+        "review_primary_semantic_eligible_count", "perspective_primary_semantic_eligible_count",
+        "mixed_primary_semantic_eligible_count", "unclear_genre_primary_semantic_eligible_count",
+        "off_target_primary_semantic_eligible_count",
+        "non_primary_provenance_primary_semantic_eligible_count",
+        "secondary_context_primary_semantic_eligible_count",
+        "reject_or_low_trust_primary_semantic_eligible_count",
+        "target_primary_gate_supported_by_nonprimary_count", "hard_gate_failure_distribution",
     ):
         if key in summary: lines.append(f"- {key}: {summary[key]}")
     lines.extend(["", "## Missing context", "", *[f"- {k}: {v}" for k, v in summary.get("missing_type_distribution", {}).items()],
@@ -1372,15 +1755,13 @@ def _sample_category(packet: dict[str, Any], category: str) -> bool:
 def _claim_support_applicable(target: dict[str, Any]) -> bool:
     text_class = str(target.get("text_class") or "unknown").casefold()
     provenance = str(target.get("provenance_type") or "unknown").casefold()
-    claim_type = str(target.get("claim_type") or "").casefold()
     if provenance in LOW_TRUST_PROVENANCE or text_class in {
         "reference_list", "figure_caption", "scheme_caption", "review_table",
         "background_context", "protocol_guideline", "metadata",
     }:
         return False
-    return text_class in {"primary_performance", "primary_performance_with_validation"} or claim_type in {
-        "performance_claim", "validation_claim", "reactor_claim", "process_claim",
-    }
+    semantic_type = str(classify_claim_type(target).get("semantic_claim_type") or "")
+    return semantic_type in PRIMARY_SEMANTIC_CLAIM_TYPES
 
 
 def _compact_paragraph(paragraph: dict[str, Any] | None) -> dict[str, Any] | None:

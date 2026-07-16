@@ -12,6 +12,7 @@ from enh3bench.document_scope import (
     SEMANTIC_ELIGIBILITY_SCHEMA_VERSION,
     TARGET_DOCUMENT_SCOPE,
     assess_document_scope,
+    has_external_attribution,
 )
 
 
@@ -24,12 +25,6 @@ UNCLEAR_OWNER = "unclear"
 _TARGET_OWNER_CUE = re.compile(
     r"\b(?:we|our|in this (?:work|study|paper)|the present (?:work|study)|here(?:in)? we)\b",
     re.IGNORECASE,
-)
-_EXTERNAL_OWNER_CUE = re.compile(
-    r"(?:\b(?:according to|as reported by|reported by|previously reported by)\b|"
-    r"\b(?:[A-Z][A-Za-z'’\-]+\s+(?:and\s+co[- ]?workers|et\s+al\.?)|"
-    r"previous (?:authors?|studies|work)|other (?:authors?|groups?|studies)|the literature)"
-    r"[,;]?\s+(?:reported|demonstrated|showed|found|developed|achieved|observed|proposed)\b)",
 )
 
 
@@ -46,20 +41,21 @@ def assess_claim_ownership(
 
     text = _record_text(record)
     scope = document_scope or assess_document_scope(record)
-    scope_value = str(scope.get("document_scope") or "unclear")
+    scope_value = str(scope.get("span_claim_scope") or scope.get("document_scope") or "unclear")
 
-    if scope_value == EXTERNAL_DOCUMENT_SCOPE:
-        return _result(EXTERNAL_AUTHORS, "high", ["external_document_scope"])
-    if scope_value == BACKGROUND_DOCUMENT_SCOPE:
-        return _result(GENERAL_LITERATURE, "high", ["background_document_scope"])
-    if scope_value == SECONDARY_DOCUMENT_SCOPE:
-        return _result(SECONDARY_OWNER, "high", ["secondary_document_scope"])
-    if _EXTERNAL_OWNER_CUE.search(text):
+    # Citation syntax has precedence over current-document defaults.
+    if has_external_attribution(text):
         return _result(EXTERNAL_AUTHORS, "high", ["explicit_external_claim_owner"])
+    if scope_value == EXTERNAL_DOCUMENT_SCOPE:
+        return _result(EXTERNAL_AUTHORS, "high", ["external_span_claim_scope"])
+    if scope_value == BACKGROUND_DOCUMENT_SCOPE:
+        return _result(GENERAL_LITERATURE, "high", ["background_span_claim_scope"])
+    if scope_value == SECONDARY_DOCUMENT_SCOPE:
+        return _result(SECONDARY_OWNER, "high", ["secondary_span_claim_scope"])
     if _TARGET_OWNER_CUE.search(text):
         return _result(TARGET_AUTHORS, "high", ["explicit_target_author_cue"])
     if scope_value == TARGET_DOCUMENT_SCOPE:
-        return _result(TARGET_AUTHORS, "medium", ["target_document_scope"])
+        return _result(TARGET_AUTHORS, "medium", ["target_document_span_claim_scope"])
     return _result(UNCLEAR_OWNER, "low", ["no_claim_owner_signal"])
 
 

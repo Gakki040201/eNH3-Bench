@@ -105,6 +105,32 @@ class PacketLocalVsPaperGateCoverageTests(unittest.TestCase):
         self.assertEqual(summary["packet_local_applicable_count"], 1)
         self.assertEqual(summary["packet_local_sufficient_count"], 1)
         self.assertEqual(summary["paper_gate_coverage_partial_count"], 1)
+        self.assertTrue({
+            "document_genre_distribution", "span_claim_scope_distribution",
+            "claim_ownership_distribution", "semantic_claim_type_distribution",
+            "semantic_claim_type_conflict_count", "primary_semantic_eligibility_count",
+            "hard_gate_failure_distribution", "off_target_reaction_conflict_count",
+            "review_removed_from_primary_count", "perspective_removed_from_primary_count",
+            "external_attribution_removed_count", "target_primary_gate_complete_count",
+            "any_source_gate_complete_count", "quantification_signal_count", "gas_trap_only_count",
+            "mass_spec_quantification_count", "enzymatic_quantification_count",
+            "document_genre_inconsistent_document_count", "semantic_claim_type_conflict_matrix",
+            "semantic_claim_type_conflict_by_document_genre",
+            "semantic_claim_type_conflict_by_reaction_family",
+            "semantic_claim_type_conflict_primary_eligible_count",
+            "semantic_claim_type_conflict_not_applicable_count",
+            "primary_semantic_eligible_by_document_genre",
+            "primary_semantic_eligible_by_semantic_claim_type",
+            "primary_semantic_eligible_by_reaction_family",
+            "primary_semantic_eligible_by_provenance_type",
+            "primary_semantic_eligible_by_ownership_confidence",
+            "primary_semantic_eligible_by_semantic_type_confidence",
+            "target_primary_gate_supported_by_nonprimary_count",
+        }.issubset(summary))
+        self.assertEqual(summary["document_genre_inconsistent_document_count"], 0)
+        self.assertEqual(summary["target_primary_gate_supported_by_nonprimary_count"], 0)
+        self.assertEqual(summary["primary_semantic_eligible_by_document_genre"], {"primary_research": 1})
+        self.assertEqual(summary["primary_semantic_eligible_by_semantic_claim_type"]["mechanism_claim"], 0)
 
     def test_v013_input_without_new_fields_remains_processable(self) -> None:
         body = "## Results\n\nThe ammonia Faradaic efficiency was 20%."
@@ -114,6 +140,64 @@ class PacketLocalVsPaperGateCoverageTests(unittest.TestCase):
         packet = self._packets(body, [record])[0]
         self.assertTrue(packet["packet_local_context_sufficient"])
         self.assertEqual(packet["claim_support_context_sufficient"], True)
+
+    def test_document_genre_distribution_counts_each_document_once(self) -> None:
+        body = "## Results\n\nThe ammonia Faradaic efficiency was 20%."
+        packet = self._packets(
+            body, [_record("P1_S001", body, "The ammonia Faradaic efficiency was 20%.", "performance_claim")]
+        )[0]
+        duplicate_span = {**packet, "target_span_id": "P1_S999", "context_packet_id": "CP_DUPLICATE"}
+        summary = summarize_context_packets([packet, duplicate_span], "fixture")
+        self.assertEqual(sum(summary["document_genre_distribution"].values()), 1)
+        self.assertEqual(sum(summary["document_genre_span_distribution"].values()), 2)
+        self.assertEqual(summary["document_genre_inconsistent_document_count"], 0)
+
+        inconsistent = {**duplicate_span, "document_genre": "review"}
+        inconsistent_summary = summarize_context_packets([packet, inconsistent], "fixture")
+        self.assertEqual(inconsistent_summary["document_genre_inconsistent_document_count"], 1)
+
+    def test_conflict_matrix_and_primary_cross_tables_are_auditable(self) -> None:
+        body = "## Results\n\nThe ammonia Faradaic efficiency was 20%."
+        packet = self._packets(
+            body, [_record("P1_S001", body, "The ammonia Faradaic efficiency was 20%.", "performance_claim")]
+        )[0]
+        conflict = {
+            **packet,
+            "legacy_claim_type": "process_claim",
+            "semantic_claim_type": "performance_claim",
+            "semantic_claim_type_conflict": True,
+        }
+        summary = summarize_context_packets([conflict], "fixture")
+        self.assertEqual(summary["semantic_claim_type_conflict_matrix"], {
+            "process_claim": {"performance_claim": 1}
+        })
+        self.assertEqual(summary["semantic_claim_type_conflict_primary_eligible_count"], 1)
+        self.assertEqual(summary["semantic_claim_type_conflict_not_applicable_count"], 0)
+        self.assertEqual(summary["primary_semantic_eligible_by_semantic_claim_type"]["performance_claim"], 1)
+        self.assertEqual(summary["primary_semantic_eligible_by_provenance_type"], {"body": 1})
+
+    def test_primary_gate_audit_detects_nonprimary_target_support(self) -> None:
+        body = "## Results\n\nAmmonia was quantified by NMR using a calibration curve."
+        packet = self._packets(
+            body,
+            [_record(
+                "P1_S001", body, "Ammonia was quantified by NMR using a calibration curve.",
+                "performance_claim",
+            )],
+        )[0]
+        invalid = {
+            **packet,
+            "target_is_primary_admissible": False,
+            "family_gate_coverage_primary_admissible": {
+                "ammonia_quantification": {
+                    "status": "observed_in_target",
+                    "supporting_span_ids": [packet["target_span_id"]],
+                }
+            },
+        }
+        summary = summarize_context_packets([invalid], "fixture")
+        self.assertEqual(summary["target_primary_gate_supported_by_nonprimary_count"], 1)
+        self.assertEqual(summary["non_primary_provenance_primary_semantic_eligible_count"], 1)
 
 
 def _record(span_id: str, body: str, text: str, claim_type: str) -> dict[str, object]:

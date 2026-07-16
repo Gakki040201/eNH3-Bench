@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -13,12 +14,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.ledger_router import load_jsonl  # noqa: E402
-from enh3bench.claim_typing import (  # noqa: E402
-    has_ammonia_quantification_signal,
-    has_gas_purification_trap_signal,
-)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build trimmed PR1 ordered-source review artifacts.")
     parser.add_argument("--run-name", required=True)
@@ -152,17 +147,29 @@ def _parallel_sample(records: list[dict]) -> str:
 
 
 def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
+    requested_gas_trap_quota = 10
+    available_gas_trap_ids = {
+        str(packet.get("context_packet_id") or packet.get("target_span_id") or "")
+        for packet in packets
+        if _gas_purification_trap(packet)
+    }
+    available_gas_trap_count = len(available_gas_trap_ids)
+    gas_trap_quota = min(requested_gas_trap_quota, available_gas_trap_count)
     quotas = (
         ("eNRR performance", 15, lambda p: _family(p) == "eNRR" and _performance(p)),
         ("eNRR validation", 15, lambda p: _family(p) == "eNRR" and _validation(p)),
         ("LiNRR performance", 15, lambda p: _family(p) == "LiNRR" and _performance(p)),
-        ("LiNRR methods/protocol", 15, lambda p: _family(p) == "LiNRR" and _methods_or_protocol(p)),
         ("NO3RR performance", 15, lambda p: _family(p) == "NO3RR" and _performance(p)),
         ("NO3RR quantification", 15, lambda p: _family(p) == "NO3RR" and _quantification(p)),
-        ("NO2RR/NORR", 10, lambda p: _family(p) in {"NO2RR", "NORR"}),
+        ("NO2RR/NORR primary", 10, lambda p: _family(p) in {"NO2RR", "NORR"} and _primary(p)),
         ("reactor/process", 10, _reactor_or_process),
-        ("gas-purification trap (not quantification)", 10, _gas_purification_trap),
-        ("reference/caption/review table", 10, _low_trust),
+        ("gas-purification trap (target-only, not quantification)", gas_trap_quota, _gas_purification_trap),
+        ("review_or_perspective", 6, _review_or_perspective),
+        ("external_cited_claim", 6, _external_cited_claim),
+        ("background", 4, _background),
+        ("legacy_claim_type_conflict", 4, _legacy_claim_type_conflict),
+        ("off_target_reaction_conflict", 4, _off_target_reaction_conflict),
+        ("quantification_false_negative_candidates", 4, _quantification_false_negative_candidate),
     )
     selected: list[tuple[str, dict]] = []
     used: set[str] = set()
@@ -191,15 +198,24 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
         "- paper-level validation;",
         "- scientific comparability;",
         "- paper admissibility.", "",
-        "Primary applicability requires both target-document scope and target-author claim ownership.",
+        "Primary applicability requires primary-research document genre, target-document span scope,",
+        "target-author ownership, admissible provenance, eligible semantic type, and no local off-target conflict.",
         "Gate coverage is shown separately for any source and primary-admissible evidence.",
         "Gas purification or trapping is not ammonia quantification without analytical measurement semantics.", "",
         f"- Seed: {seed}",
         f"- Samples: {len(selected)}",
         f"- Quotas: `{json.dumps(category_counts, ensure_ascii=False, sort_keys=True)}`",
+        f"- Requested gas-trap quota: {requested_gas_trap_quota}",
+        f"- Unique target-level gas-trap records available: {available_gas_trap_count}",
+        f"- Gas-trap records sampled: {gas_trap_quota}",
+        "- No duplicate or synthetic gas-trap samples were added.",
         "- 结构对齐不代表科学可比性。", "",
     ]
     for number, (category, packet) in enumerate(selected, 1):
+        stratum_type = "primary" if category in {
+            "eNRR performance", "eNRR validation", "LiNRR performance", "NO3RR performance",
+            "NO3RR quantification", "NO2RR/NORR primary", "reactor/process",
+        } else "secondary"
         section = packet.get("section_context") or {}
         evidence_items = packet.get("evidence_items") or []
         roles = sorted({str(role) for item in evidence_items for role in item.get("link_roles") or []})
@@ -208,6 +224,8 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
                 "span_id": item.get("span_id"),
                 "roles": item.get("link_roles") or [],
                 "primary_admissible_gate_source": bool(item.get("primary_admissible_gate_source")),
+                "document_genre": item.get("document_genre") or "unknown",
+                "span_claim_scope": item.get("span_claim_scope") or item.get("document_scope") or "unknown",
                 "document_scope": item.get("document_scope") or "unknown",
                 "claim_ownership": item.get("claim_ownership") or "unknown",
                 "preview": _preview(item.get("text"), 580),
@@ -216,6 +234,9 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
         ]
         lines.extend([
             f"## {number}. {category}", "",
+            f"- context_packet_id: `{packet.get('context_packet_id') or ''}`",
+            f"- sample_stratum_type: `{stratum_type}`",
+            f"- secondary_stratum_reason: `{category if stratum_type == 'secondary' else 'not_applicable'}`",
             f"- paper_id: `{packet.get('paper_id') or ''}`",
             f"- source_span_id: `{packet.get('target_span_id') or ''}`",
             f"- source_locator: `{packet.get('target_source_locator') or 'unresolved'}`",
@@ -224,13 +245,21 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             f"- effective_section_type: `{packet.get('target_effective_section_type') or packet.get('target_section_type') or 'unknown'}`",
             f"- section_type_source: `{packet.get('target_section_type_source') or 'unknown'}`",
             f"- target_claim_type: `{packet.get('target_claim_type') or 'unknown'}`",
+            f"- legacy_claim_type: `{packet.get('legacy_claim_type') or packet.get('target_claim_type') or 'unknown'}`",
             f"- semantic_claim_type: `{packet.get('semantic_claim_type') or 'unknown'}`",
+            f"- semantic_claim_type_confidence: `{packet.get('semantic_claim_type_confidence') or 'unknown'}`",
+            f"- semantic_claim_type_conflict: `{bool(packet.get('semantic_claim_type_conflict'))}`",
+            f"- document_genre: `{packet.get('document_genre') or 'unknown'}`",
+            f"- span_claim_scope: `{packet.get('span_claim_scope') or packet.get('document_scope') or 'unknown'}`",
             f"- document_scope: `{packet.get('document_scope') or 'unknown'}`",
             f"- claim_ownership: `{packet.get('claim_ownership') or 'unknown'}`",
             f"- primary_semantic_eligibility: `{bool(packet.get('primary_semantic_eligibility'))}`",
+            f"- hard_gate_failures: `{json.dumps(packet.get('primary_applicability_hard_gate_failures') or [], ensure_ascii=False)}`",
             f"- primary_applicability_hard_gate_failures: `{json.dumps(packet.get('primary_applicability_hard_gate_failures') or [], ensure_ascii=False)}`",
             f"- ammonia_quantification_signal: `{bool(packet.get('ammonia_quantification_signal'))}`",
             f"- gas_purification_trap_signal: `{bool(packet.get('gas_purification_trap_signal'))}`",
+            f"- mass_spectrometry_quantification_signal: `{bool(packet.get('mass_spectrometry_quantification_signal'))}`",
+            f"- enzymatic_quantification_signal: `{bool(packet.get('enzymatic_quantification_signal'))}`",
             f"- previous_paragraph_preview: {_preview((packet.get('previous_paragraph') or {}).get('text'), 580)}",
             f"- target_paragraph: {_preview((packet.get('target_paragraph') or {}).get('text') or packet.get('target_text'), 780)}",
             f"- next_paragraph_preview: {_preview((packet.get('next_paragraph') or {}).get('text'), 580)}",
@@ -245,7 +274,11 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             f"- paper_gate_coverage_primary_admissible_missing: `{json.dumps(packet.get('paper_gate_coverage_primary_admissible_missing') or [], ensure_ascii=False)}`",
             f"- local_reaction_family_conflict_any_source: `{bool(packet.get('local_reaction_family_conflict_any_source'))}`",
             f"- local_reaction_family_conflict_primary_admissible: `{bool(packet.get('local_reaction_family_conflict_primary_admissible'))}`",
+            f"- local_off_target_reaction_conflict: `{bool(packet.get('local_off_target_reaction_conflict'))}`",
+            f"- off_target_reaction_conflict: `{bool(packet.get('local_off_target_reaction_conflict'))}`",
             "- human_section_type_correct:",
+            "- human_document_genre_correct:",
+            "- human_span_claim_scope_correct:",
             "- human_document_scope_correct:",
             "- human_claim_ownership_correct:",
             "- human_claim_type_correct:",
@@ -268,83 +301,85 @@ def _family(packet: dict) -> str:
 
 
 def _performance(packet: dict) -> bool:
-    if not bool(packet.get("packet_local_context_applicable")):
-        return False
-    claim_type = str(packet.get("target_claim_type") or "")
-    if claim_type:
-        return claim_type == "performance_claim"
-    return str(packet.get("target_text_class") or "") in {
-        "primary_performance", "primary_performance_with_validation"
-    }
+    return _primary(packet) and str(packet.get("semantic_claim_type") or "") == "performance_claim"
 
 
 def _validation(packet: dict) -> bool:
-    return (
-        str(packet.get("target_claim_type") or "") == "validation_claim"
-        or bool((packet.get("evidence_role_index") or {}).get("validation"))
-        or "validation" in str(packet.get("target_text_class") or "")
-    )
-
-
-def _methods_or_protocol(packet: dict) -> bool:
-    if _low_trust(packet):
-        return False
-    if str(packet.get("target_effective_section_type") or packet.get("target_section_type") or "") == "methods":
-        return True
-    if str(packet.get("target_text_class") or "") == "protocol_guideline":
-        return True
-    if str(packet.get("target_provenance_type") or "") in {"methods", "protocol"}:
-        return True
-    text = _packet_review_text(packet)
-    return any(term in text for term in (
-        "experimental method", "experimental section", "was prepared", "were prepared",
-        "was measured", "were measured", "protocol", "electrolyte preparation", "materials and methods",
-    ))
+    return _primary(packet) and str(packet.get("semantic_claim_type") or "") == "validation_claim"
 
 
 def _quantification(packet: dict) -> bool:
-    if bool(packet.get("ammonia_quantification_signal")):
-        return True
-    gate = (packet.get("family_gate_coverage_primary_admissible") or {}).get("ammonia_quantification") or {}
-    if gate.get("status") in {
-        "observed_in_target", "observed_in_local_context", "observed_in_linked_evidence"
-    }:
-        return True
-    return has_ammonia_quantification_signal(_packet_review_text(packet))
+    return bool(
+        _primary(packet)
+        and packet.get("ammonia_quantification_signal")
+        and str(packet.get("semantic_claim_type") or "") == "ammonia_quantification_claim"
+    )
 
 
 def _gas_purification_trap(packet: dict) -> bool:
-    quantification = bool(packet.get("ammonia_quantification_signal")) or has_ammonia_quantification_signal(
-        _packet_review_text(packet)
+    target_text = str(packet.get("target_text") or "")
+    return bool(
+        packet.get("gas_purification_trap_signal")
+        and not packet.get("ammonia_quantification_signal")
+        and re.search(r"\b(?:ammonia|ammonium|nh\s*3|nh\s*4)\b", target_text, re.IGNORECASE)
+        and str(packet.get("semantic_claim_type") or "") == "gas_purification_or_capture_claim"
+        and str(packet.get("document_genre") or "") == "primary_research"
+        and str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == "target_document"
+        and str(packet.get("claim_ownership") or "") == "target_authors"
+        and _family(packet) in {"eNRR", "LiNRR", "NO2RR", "NO3RR", "NORR", "mixed"}
+        and not re.search(
+            r"\b(?:did\s+not|does\s+not|do\s+not|without|no)\b.{0,100}"
+            r"\b(?:acid\s+|base\s+|downstream\s+)?trap\b",
+            target_text,
+            re.IGNORECASE,
+        )
     )
-    trap = bool(packet.get("gas_purification_trap_signal")) or has_gas_purification_trap_signal(
-        _packet_review_text(packet)
-    )
-    return trap and not quantification
 
 
 def _reactor_or_process(packet: dict) -> bool:
-    return bool(packet.get("packet_local_context_applicable")) and (
-        str(packet.get("target_claim_type") or "") in {"reactor_claim", "process_claim"}
-        or bool(set(role for item in packet.get("evidence_items") or [] for role in item.get("link_roles") or []) & {"reactor", "process"})
-    )
+    return _primary(packet) and str(packet.get("semantic_claim_type") or "") in {
+        "reactor_claim", "process_claim",
+    }
 
 
-def _low_trust(packet: dict) -> bool:
+def _primary(packet: dict) -> bool:
+    return bool(packet.get("primary_semantic_eligibility"))
+
+
+def _review_or_perspective(packet: dict) -> bool:
+    return str(packet.get("document_genre") or "") in {"review", "perspective"}
+
+
+def _external_cited_claim(packet: dict) -> bool:
     return (
-        str(packet.get("target_provenance_type") or "").casefold()
-        in {"reference", "bibliography", "figure_caption", "scheme_caption", "review_table"}
-        or str(packet.get("target_text_class") or "").casefold()
-        in {"reference_list", "figure_caption", "scheme_caption", "review_table"}
+        str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == "external_or_cited_work"
+        or str(packet.get("claim_ownership") or "") == "external_or_cited_authors"
     )
 
 
-def _packet_review_text(packet: dict) -> str:
-    values = [packet.get("target_text") or ""]
-    for key in ("previous_paragraph", "target_paragraph", "next_paragraph"):
-        values.append((packet.get(key) or {}).get("text") or "")
-    values.extend(item.get("text") or "" for item in packet.get("evidence_items") or [])
-    return " ".join(str(value) for value in values).casefold()
+def _background(packet: dict) -> bool:
+    return str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == "background_or_review"
+
+
+def _legacy_claim_type_conflict(packet: dict) -> bool:
+    return bool(packet.get("semantic_claim_type_conflict"))
+
+
+def _off_target_reaction_conflict(packet: dict) -> bool:
+    return bool(packet.get("local_off_target_reaction_conflict"))
+
+
+def _quantification_false_negative_candidate(packet: dict) -> bool:
+    if bool(packet.get("ammonia_quantification_signal")):
+        return False
+    text = str(packet.get("target_text") or "").casefold()
+    analyte = any(term in text for term in ("ammonia", "nh3", "nh 3", "nh4", "nh 4", "ammonium"))
+    possible_method = any(term in text for term in (
+        "mass spectrometry", "gc-ms", "gas chromatography-mass spectrometry", "enzymatic",
+        "nadh", "selective electrode", "titration", "conductivity", "calibration", "assay",
+        "measured", "quantified", "determined",
+    ))
+    return analyte and possible_method
 
 
 def _section_type_source(record: dict) -> str:

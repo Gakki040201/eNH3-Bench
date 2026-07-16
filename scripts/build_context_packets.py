@@ -156,6 +156,42 @@ def main() -> int:
             )
             print(f"ammonia_quantification_semantic_count: {summary['ammonia_quantification_semantic_count']}")
             print(f"gas_purification_trap_semantic_count: {summary['gas_purification_trap_semantic_count']}")
+            for key in (
+                "semantic_claim_type_conflict_count", "primary_semantic_eligibility_count",
+                "off_target_reaction_conflict_count", "review_removed_from_primary_count",
+                "perspective_removed_from_primary_count", "external_attribution_removed_count",
+                "target_primary_gate_complete_count", "any_source_gate_complete_count",
+                "quantification_signal_count", "gas_trap_only_count",
+                "mass_spec_quantification_count", "enzymatic_quantification_count",
+                "document_genre_inconsistent_document_count",
+                "semantic_claim_type_conflict_primary_eligible_count",
+                "semantic_claim_type_conflict_not_applicable_count",
+                "review_primary_semantic_eligible_count",
+                "perspective_primary_semantic_eligible_count",
+                "mixed_primary_semantic_eligible_count",
+                "unclear_genre_primary_semantic_eligible_count",
+                "off_target_primary_semantic_eligible_count",
+                "non_primary_provenance_primary_semantic_eligible_count",
+                "secondary_context_primary_semantic_eligible_count",
+                "reject_or_low_trust_primary_semantic_eligible_count",
+                "target_primary_gate_supported_by_nonprimary_count",
+            ):
+                print(f"{key}: {summary[key]}")
+            for key in (
+                "document_genre_distribution", "span_claim_scope_distribution",
+                "claim_ownership_distribution", "semantic_claim_type_distribution",
+                "semantic_claim_type_conflict_matrix",
+                "semantic_claim_type_conflict_by_document_genre",
+                "semantic_claim_type_conflict_by_reaction_family",
+                "primary_semantic_eligible_by_document_genre",
+                "primary_semantic_eligible_by_semantic_claim_type",
+                "primary_semantic_eligible_by_reaction_family",
+                "primary_semantic_eligible_by_provenance_type",
+                "primary_semantic_eligible_by_ownership_confidence",
+                "primary_semantic_eligible_by_semantic_type_confidence",
+                "hard_gate_failure_distribution",
+            ):
+                print(f"{key}: {summary[key]}")
     else:
         print(f"context_sufficient: {summary['packets_with_context_sufficient']}")
         print(f"context_insufficient: {summary['packets_with_context_insufficient']}")
@@ -178,6 +214,16 @@ def main() -> int:
         and summary["reference_primary_support_count"] == 0
         and summary["caption_primary_support_count"] == 0
         and summary["review_table_primary_support_count"] == 0
+        and summary.get("document_genre_inconsistent_document_count", 0) == 0
+        and summary.get("review_primary_semantic_eligible_count", 0) == 0
+        and summary.get("perspective_primary_semantic_eligible_count", 0) == 0
+        and summary.get("mixed_primary_semantic_eligible_count", 0) == 0
+        and summary.get("unclear_genre_primary_semantic_eligible_count", 0) == 0
+        and summary.get("off_target_primary_semantic_eligible_count", 0) == 0
+        and summary.get("non_primary_provenance_primary_semantic_eligible_count", 0) == 0
+        and summary.get("secondary_context_primary_semantic_eligible_count", 0) == 0
+        and summary.get("reject_or_low_trust_primary_semantic_eligible_count", 0) == 0
+        and summary.get("target_primary_gate_supported_by_nonprimary_count", 0) == 0
     ) else 1
 
 
