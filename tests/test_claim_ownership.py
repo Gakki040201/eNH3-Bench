@@ -33,6 +33,24 @@ class ClaimOwnershipTests(unittest.TestCase):
         self.assertEqual(result["claim_ownership"], "external_or_cited_authors")
         self.assertFalse(result["claim_ownership_primary_applicable"])
 
+    def test_citation_grammar_variants_remain_external(self) -> None:
+        examples = (
+            "Yang et al. [12] synthesized the catalyst.",
+            "Yang et al. have synthesized the catalyst.",
+            "Yang et al., in 2020, developed the catalyst.",
+            "Yang and colleagues reported a high ammonia yield.",
+            "A previous report achieved a Faradaic efficiency of 20%.",
+            "A high yield was reported in Ref. 12.",
+            "The catalyst described in Ref. 12 reached a Faradaic efficiency of 20%.",
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                record = _record(text, "results")
+                scope = assess_document_scope(record)
+                ownership = assess_claim_ownership(record, scope)
+                self.assertEqual(scope["span_claim_scope"], "external_or_cited_work")
+                self.assertEqual(ownership["claim_ownership"], "external_or_cited_authors")
+
     def test_current_work_cue_assigns_target_authors(self) -> None:
         record = _record("Here we demonstrate an ammonia yield of 10 mmol h-1.", "introduction")
         result = assess_claim_ownership(record, assess_document_scope(record))

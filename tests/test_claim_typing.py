@@ -51,12 +51,14 @@ class ClaimTypingTests(unittest.TestCase):
         self.assertEqual(result["semantic_claim_type"], "secondary_context_claim")
         self.assertTrue(result["semantic_claim_type_conflict"])
 
-    def test_current_study_fe_and_rate_statement_is_semantic_performance(self) -> None:
+    def test_fe_and_rate_assessment_without_a_result_is_performance_context(self) -> None:
         result = classify_claim_type({
             "source_text": "We systematically assessed FEs and the NH3 rate for each catalyst.",
             "provenance_type": "results",
         })
-        self.assertEqual(result["semantic_claim_type"], "performance_claim")
+        self.assertEqual(result["semantic_claim_type"], "performance_context_claim")
+        self.assertFalse(result["performance_result_evidence"])
+        self.assertEqual(result["legacy_claim_type"], "")
         self.assertFalse(result["ammonia_quantification_signal"])
 
     def test_gas_purification_trap_is_not_ammonia_quantification(self) -> None:

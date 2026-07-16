@@ -53,6 +53,8 @@ class PacketLocalVsPaperGateCoverageTests(unittest.TestCase):
         self.assertEqual(coverage["isotope_15N"]["status"], "observed_in_target")
         self.assertEqual(coverage["blank_control"]["status"], "observed_in_local_context")
         self.assertEqual(coverage["ammonia_quantification"]["status"], "observed_in_local_context")
+        self.assertEqual(coverage["isotope_15N"]["gate_detection_source"], "target_text")
+        self.assertEqual(coverage["blank_control"]["gate_detection_source"], "local_text")
 
     def test_family_gate_records_linked_evidence_and_supporting_span(self) -> None:
         target = {
@@ -70,8 +72,28 @@ class PacketLocalVsPaperGateCoverageTests(unittest.TestCase):
         quantification = coverage["ammonia_quantification"]
         self.assertEqual(quantification["status"], "observed_in_linked_evidence")
         self.assertEqual(quantification["supporting_span_ids"], ["P1_S002"])
+        self.assertEqual(quantification["gate_detection_source"], "linked_primary_evidence")
         self.assertIn("ammonia_quantification", observed)
         self.assertNotIn("ammonia_quantification", missing)
+        self.assertEqual(status, "partial_observed")
+
+    def test_structured_gate_conflict_is_missing_and_not_complete(self) -> None:
+        target = {
+            "source_span_id": "P1_S001",
+            "source_text": "No isotope experiment was performed.",
+            "reaction_family": "eNRR",
+            "validation_gates": {"isotope_15N": "explicit"},
+        }
+        coverage, observed, missing, status = _family_gate_coverage(
+            target, [], None, {"paragraph_uid": "PAR1", "text": target["source_text"]}, None,
+            applicable=True,
+        )
+        isotope = coverage["isotope_15N"]
+        self.assertEqual(isotope["status"], "conflict_in_target")
+        self.assertEqual(isotope["gate_detection_source"], "structured_explicit")
+        self.assertTrue(isotope["gate_conflict"])
+        self.assertNotIn("isotope_15N", observed)
+        self.assertIn("isotope_15N", missing)
         self.assertEqual(status, "partial_observed")
 
     def test_negative_validation_statement_is_not_positive_support(self) -> None:
@@ -126,11 +148,29 @@ class PacketLocalVsPaperGateCoverageTests(unittest.TestCase):
             "primary_semantic_eligible_by_ownership_confidence",
             "primary_semantic_eligible_by_semantic_type_confidence",
             "target_primary_gate_supported_by_nonprimary_count",
+            "document_reaction_family_distribution", "effective_reaction_family_distribution",
+            "reaction_family_correction_count", "document_target_family_conflict_count",
+            "primary_eligible_by_effective_family", "primary_eligible_unclear_family_count",
+            "performance_result_claim_count", "performance_context_claim_count",
+            "quantitative_performance_primary_count", "FeS_false_performance_count",
+            "performance_context_quantitative_primary_count",
+            "primary_performance_without_result_evidence_count",
+            "generic_isotope_false_15N_count", "NO_negation_false_source_count",
+            "NOx_balance_negation_false_positive_count", "conflicted_gate_counted_as_observed_count",
         }.issubset(summary))
         self.assertEqual(summary["document_genre_inconsistent_document_count"], 0)
         self.assertEqual(summary["target_primary_gate_supported_by_nonprimary_count"], 0)
         self.assertEqual(summary["primary_semantic_eligible_by_document_genre"], {"primary_research": 1})
         self.assertEqual(summary["primary_semantic_eligible_by_semantic_claim_type"]["mechanism_claim"], 0)
+        self.assertEqual(summary["primary_eligible_by_effective_family"], {"eNRR": 1})
+        self.assertEqual(summary["quantitative_performance_primary_count"], 1)
+        self.assertEqual(summary["FeS_false_performance_count"], 0)
+        self.assertEqual(summary["generic_isotope_false_15N_count"], 0)
+        self.assertEqual(summary["NO_negation_false_source_count"], 0)
+        self.assertEqual(summary["NOx_balance_negation_false_positive_count"], 0)
+        self.assertEqual(summary["performance_context_quantitative_primary_count"], 0)
+        self.assertEqual(summary["primary_performance_without_result_evidence_count"], 0)
+        self.assertEqual(summary["conflicted_gate_counted_as_observed_count"], 0)
 
     def test_v013_input_without_new_fields_remains_processable(self) -> None:
         body = "## Results\n\nThe ammonia Faradaic efficiency was 20%."

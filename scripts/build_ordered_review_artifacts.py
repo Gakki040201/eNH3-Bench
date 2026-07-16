@@ -14,6 +14,16 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.ledger_router import load_jsonl  # noqa: E402
+from enh3bench.claim_ownership import assess_claim_ownership  # noqa: E402
+from enh3bench.claim_typing import (  # noqa: E402
+    classify_claim_type,
+    has_ammonia_quantification_signal,
+    has_gas_purification_trap_signal,
+)
+from enh3bench.document_scope import assess_document_genre, assess_document_scope  # noqa: E402
+from enh3bench.validation_gates import detect_validation_gate  # noqa: E402
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build trimmed PR1 ordered-source review artifacts.")
     parser.add_argument("--run-name", required=True)
@@ -25,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("data") / "reports" / "stage_b_semantic_closure_sample.md",
     )
     parser.add_argument("--review-semantic-output", type=Path)
+    parser.add_argument(
+        "--sentinel-output",
+        type=Path,
+        default=Path("review_artifacts") / "pr1" / "stage_b_semantic_sentinel_sample.md",
+    )
     parser.add_argument("--seed", type=int, default=13)
     return parser.parse_args()
 
@@ -46,7 +61,16 @@ def main() -> int:
     ordered_path = args.output_dir / "ordered_source_sample.md"
     parallel_path = args.output_dir / "parallel_comparison_sample.md"
     ordered_path.write_text(_ordered_sample(sections, spans), encoding="utf-8", newline="\n")
-    parallel_path.write_text(_parallel_sample(comparison), encoding="utf-8", newline="\n")
+    packets_by_span = {str(packet.get("target_span_id") or ""): packet for packet in packets}
+    enriched_comparison = [
+        _enrich_comparison_record(
+            record,
+            packets_by_span.get(str(record.get("source_span_id") or ""), {}),
+        )
+        for record in comparison
+    ]
+    parallel_text = _parallel_sample(enriched_comparison)
+    parallel_path.write_text(parallel_text, encoding="utf-8", newline="\n")
     semantic_text = _semantic_closure_sample(packets, args.seed)
     args.semantic_output.parent.mkdir(parents=True, exist_ok=True)
     args.semantic_output.write_text(semantic_text, encoding="utf-8", newline="\n")
@@ -55,11 +79,32 @@ def main() -> int:
     )
     review_semantic_path.parent.mkdir(parents=True, exist_ok=True)
     review_semantic_path.write_text(semantic_text, encoding="utf-8", newline="\n")
+    sentinel_text, sentinel_passed = _semantic_sentinel_sample(packets)
+    args.sentinel_output.parent.mkdir(parents=True, exist_ok=True)
+    args.sentinel_output.write_text(sentinel_text, encoding="utf-8", newline="\n")
+    diagnostics = _artifact_diagnostics(semantic_text, sentinel_text, enriched_comparison)
     print(f"ordered_source_sample: {ordered_path}")
     print(f"parallel_comparison_sample: {parallel_path}")
     print(f"semantic_closure_sample: {args.semantic_output}")
     print(f"semantic_closure_review_sample: {review_semantic_path}")
-    return 0
+    print(f"semantic_sentinel_sample: {args.sentinel_output}")
+    print(f"semantic_sentinel_passed: {sentinel_passed}")
+    for key, value in diagnostics.items():
+        print(f"{key}: {value}")
+    diagnostics_passed = (
+        diagnostics["sample_count"] == 130
+        and diagnostics["sentinel_count"] == 12
+        and diagnostics["sentinel_pass_count"] == 12
+        and diagnostics["sentinel_fail_count"] == 0
+        and all(
+            diagnostics[key] == 0
+            for key in diagnostics
+            if key.endswith("_count")
+            and key not in {"sample_count", "sentinel_count", "sentinel_pass_count"}
+        )
+    )
+    print(f"artifact_diagnostics_passed: {diagnostics_passed}")
+    return 0 if sentinel_passed and diagnostics_passed else 1
 
 
 def _ordered_sample(sections: list[dict], spans: list[dict]) -> str:
@@ -107,18 +152,7 @@ def _ordered_sample(sections: list[dict], spans: list[dict]) -> str:
 
 
 def _parallel_sample(records: list[dict]) -> str:
-    groups = [
-        ("LiNRR methods/protocol", lambda r: r.get("reaction_family") == "LiNRR" and r.get("semantic_section_type") == "methods"),
-        ("LiNRR results/performance", lambda r: r.get("reaction_family") == "LiNRR" and r.get("semantic_section_type") == "results" and "performance" in (r.get("evidence_roles") or [])),
-        ("eNRR validation", lambda r: r.get("reaction_family") == "eNRR" and "validation" in (r.get("evidence_roles") or [])),
-        ("NO3RR quantification", lambda r: r.get("reaction_family") == "NO3RR" and (
-            "quantification" in (r.get("evidence_roles") or [])
-            or any(term in str(r.get("source_text_excerpt") or "").casefold() for term in (
-                "ion chromatography", "colorimetric", "calibration", "ammonia quantification", "nmr",
-            ))
-        )),
-        ("reactor/process", lambda r: bool(set(r.get("evidence_roles") or []) & {"reactor", "process"})),
-    ]
+    groups = _parallel_groups()
     lines = [
         "# Parallel Comparison Sample", "",
         "For manual structural and semantic review only. These alignments do not establish scientific comparability.",
@@ -137,6 +171,13 @@ def _parallel_sample(records: list[dict]) -> str:
                 f"source=`{record.get('section_type_source') or 'unknown'}`",
                 f"  - comparison keys: raw=`{record.get('raw_comparison_key') or ''}`; "
                 f"effective=`{record.get('comparison_key') or ''}`",
+                f"  - reaction family: legacy=`{record.get('legacy_reaction_family') or record.get('reaction_family') or 'unclear'}`; "
+                f"document=`{record.get('document_reaction_family') or 'unclear'}`; "
+                f"effective=`{_family(record)}`; source=`{record.get('effective_reaction_family_source') or 'legacy'}`; "
+                f"corrected=`{bool(record.get('reaction_family_correction'))}`",
+                f"  - semantic claim type: `{record.get('semantic_claim_type') or 'unknown'}`; "
+                f"performance result=`{bool(record.get('performance_result_evidence'))}`; "
+                f"strength=`{record.get('performance_evidence_strength') or 'none'}`",
                 f"  - roles: {', '.join(record.get('evidence_roles') or [])}",
                 f"  - text: {' '.join(str(record.get('source_text_excerpt') or '').split())[:500].rstrip()}",
             ])
@@ -146,15 +187,42 @@ def _parallel_sample(records: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _parallel_groups() -> list[tuple[str, object]]:
+    return [
+        ("LiNRR methods/protocol", lambda r: _family(r) == "LiNRR" and r.get("semantic_section_type") == "methods"),
+        ("LiNRR results/performance", lambda r: _family(r) == "LiNRR" and r.get("semantic_section_type") == "results" and "performance" in (r.get("evidence_roles") or []) and _parallel_performance_result(r)),
+        ("eNRR validation", lambda r: _family(r) == "eNRR" and "validation" in (r.get("evidence_roles") or [])),
+        ("NO3RR quantification", lambda r: _family(r) == "NO3RR" and (
+            "quantification" in (r.get("evidence_roles") or [])
+            or any(term in str(r.get("source_text_excerpt") or "").casefold() for term in (
+                "ion chromatography", "colorimetric", "calibration", "ammonia quantification", "nmr",
+            ))
+        )),
+        ("reactor/process", lambda r: bool(set(r.get("evidence_roles") or []) & {"reactor", "process"})),
+    ]
+
+
+def _parallel_performance_result(record: dict) -> bool:
+    return bool(
+        str(record.get("semantic_claim_type") or "") == "performance_result_claim"
+        and record.get("performance_result_evidence")
+    )
+
+
 def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
     requested_gas_trap_quota = 10
+    sample_capacity_gas_trap_quota = 7
     available_gas_trap_ids = {
         str(packet.get("context_packet_id") or packet.get("target_span_id") or "")
         for packet in packets
         if _gas_purification_trap(packet)
     }
     available_gas_trap_count = len(available_gas_trap_ids)
-    gas_trap_quota = min(requested_gas_trap_quota, available_gas_trap_count)
+    gas_trap_quota = min(
+        requested_gas_trap_quota,
+        sample_capacity_gas_trap_quota,
+        available_gas_trap_count,
+    )
     quotas = (
         ("eNRR performance", 15, lambda p: _family(p) == "eNRR" and _performance(p)),
         ("eNRR validation", 15, lambda p: _family(p) == "eNRR" and _validation(p)),
@@ -199,13 +267,15 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
         "- scientific comparability;",
         "- paper admissibility.", "",
         "Primary applicability requires primary-research document genre, target-document span scope,",
-        "target-author ownership, admissible provenance, eligible semantic type, and no local off-target conflict.",
+        "target-author ownership, admissible provenance, an eligible result-bearing semantic type,",
+        "a safe effective reaction family, and no local off-target conflict.",
         "Gate coverage is shown separately for any source and primary-admissible evidence.",
         "Gas purification or trapping is not ammonia quantification without analytical measurement semantics.", "",
         f"- Seed: {seed}",
         f"- Samples: {len(selected)}",
         f"- Quotas: `{json.dumps(category_counts, ensure_ascii=False, sort_keys=True)}`",
         f"- Requested gas-trap quota: {requested_gas_trap_quota}",
+        f"- 130-sample capacity for gas-trap stratum: {sample_capacity_gas_trap_quota}",
         f"- Unique target-level gas-trap records available: {available_gas_trap_count}",
         f"- Gas-trap records sampled: {gas_trap_quota}",
         "- No duplicate or synthetic gas-trap samples were added.",
@@ -249,7 +319,18 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             f"- semantic_claim_type: `{packet.get('semantic_claim_type') or 'unknown'}`",
             f"- semantic_claim_type_confidence: `{packet.get('semantic_claim_type_confidence') or 'unknown'}`",
             f"- semantic_claim_type_conflict: `{bool(packet.get('semantic_claim_type_conflict'))}`",
+            f"- performance_evidence_strength: `{packet.get('performance_evidence_strength') or 'none'}`",
+            f"- performance_evidence_signals: `{json.dumps(packet.get('performance_evidence_signals') or [], ensure_ascii=False)}`",
+            f"- performance_result_evidence: `{bool(packet.get('performance_result_evidence'))}`",
+            f"- quantitative_performance_evidence: `{bool(packet.get('quantitative_performance_evidence'))}`",
             f"- document_genre: `{packet.get('document_genre') or 'unknown'}`",
+            f"- legacy_reaction_family: `{packet.get('legacy_reaction_family') or packet.get('target_reaction_family') or 'unclear'}`",
+            f"- document_reaction_family: `{packet.get('document_reaction_family') or 'unclear'}`",
+            f"- document_reaction_family_confidence: `{packet.get('document_reaction_family_confidence') or 'unclear'}`",
+            f"- effective_reaction_family: `{_family(packet)}`",
+            f"- effective_reaction_family_source: `{packet.get('effective_reaction_family_source') or 'legacy'}`",
+            f"- reaction_family_correction: `{bool(packet.get('reaction_family_correction'))}`",
+            f"- document_target_reaction_family_conflict: `{bool(packet.get('document_target_reaction_family_conflict'))}`",
             f"- span_claim_scope: `{packet.get('span_claim_scope') or packet.get('document_scope') or 'unknown'}`",
             f"- document_scope: `{packet.get('document_scope') or 'unknown'}`",
             f"- claim_ownership: `{packet.get('claim_ownership') or 'unknown'}`",
@@ -282,6 +363,8 @@ def _semantic_closure_sample(packets: list[dict], seed: int = 13) -> str:
             "- human_document_scope_correct:",
             "- human_claim_ownership_correct:",
             "- human_claim_type_correct:",
+            "- human_effective_reaction_family_correct:",
+            "- human_performance_result_evidence_correct:",
             "- human_local_context_sufficient:",
             "- human_link_roles_correct:",
             "- human_gate_source_eligibility_correct:",
@@ -297,11 +380,20 @@ def _sample_hash(seed: int, category: str, packet: dict) -> str:
 
 
 def _family(packet: dict) -> str:
-    return str(packet.get("target_reaction_family") or "unclear")
+    return str(
+        packet.get("effective_reaction_family")
+        or packet.get("reaction_family")
+        or packet.get("target_reaction_family")
+        or "unclear"
+    )
 
 
 def _performance(packet: dict) -> bool:
-    return _primary(packet) and str(packet.get("semantic_claim_type") or "") == "performance_claim"
+    return bool(
+        _primary(packet)
+        and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+        and bool(packet.get("performance_result_evidence"))
+    )
 
 
 def _validation(packet: dict) -> bool:
@@ -380,6 +472,316 @@ def _quantification_false_negative_candidate(packet: dict) -> bool:
         "measured", "quantified", "determined",
     ))
     return analyte and possible_method
+
+
+def _enrich_comparison_record(record: dict, packet: dict) -> dict:
+    """Apply packet-level effective family semantics to a review-only comparison row."""
+
+    enriched = {
+        **record,
+        **_comparison_packet_fields(packet),
+    }
+    family = _family(enriched)
+    roles = enriched.get("evidence_roles") or []
+    primary_role = str(roles[0]) if roles else "context_hint"
+    semantic_section = str(enriched.get("semantic_section_type") or "unknown")
+    enriched["reaction_family"] = family
+    enriched["effective_reaction_family"] = family
+    enriched["comparison_key"] = f"{family}|{semantic_section}|{primary_role}"
+    return enriched
+
+
+def _comparison_packet_fields(packet: dict) -> dict:
+    if not packet:
+        return {}
+    return {
+        "legacy_reaction_family": packet.get("legacy_reaction_family") or packet.get("target_reaction_family"),
+        "document_reaction_family": packet.get("document_reaction_family") or "unclear",
+        "effective_reaction_family": packet.get("effective_reaction_family") or packet.get("target_reaction_family"),
+        "effective_reaction_family_source": packet.get("effective_reaction_family_source") or "legacy",
+        "reaction_family_correction": bool(packet.get("reaction_family_correction")),
+        "document_target_reaction_family_conflict": bool(
+            packet.get("document_target_reaction_family_conflict")
+        ),
+        "semantic_claim_type": packet.get("semantic_claim_type") or "unknown",
+        "performance_result_evidence": bool(packet.get("performance_result_evidence")),
+        "performance_evidence_strength": packet.get("performance_evidence_strength") or "none",
+    }
+
+
+def _artifact_diagnostics(
+    semantic_text: str,
+    sentinel_text: str,
+    comparison_records: list[dict],
+) -> dict[str, int]:
+    """Validate the generated review artifacts, not just their source predicates."""
+
+    sample_sections = _numbered_markdown_sections(semantic_text)
+    expected_families = {
+        "eNRR performance": {"eNRR"},
+        "eNRR validation": {"eNRR"},
+        "LiNRR performance": {"LiNRR"},
+        "NO3RR performance": {"NO3RR"},
+        "NO3RR quantification": {"NO3RR"},
+        "NO2RR/NORR primary": {"NO2RR", "NORR"},
+    }
+    family_sections = [
+        (category, block, expected_families[category])
+        for category, block in sample_sections
+        if category in expected_families
+    ]
+    performance_sections = [
+        block for category, block in sample_sections
+        if category in {"eNRR performance", "LiNRR performance", "NO3RR performance"}
+    ]
+    packet_ids = [_markdown_field(block, "context_packet_id") for _, block in sample_sections]
+
+    group_expectations = {
+        "LiNRR methods/protocol": {"LiNRR"},
+        "LiNRR results/performance": {"LiNRR"},
+        "eNRR validation": {"eNRR"},
+        "NO3RR quantification": {"NO3RR"},
+    }
+    selected_groups = {
+        name: [record for record in comparison_records if predicate(record)][:10]
+        for name, predicate in _parallel_groups()
+    }
+    family_comparison = [
+        (name, record, group_expectations[name])
+        for name, records in selected_groups.items()
+        if name in group_expectations
+        for record in records
+    ]
+    parallel_unclear = sum(1 for _, record, _ in family_comparison if _family(record) == "unclear")
+    parallel_mismatch = sum(
+        1 for _, record, expected in family_comparison if _family(record) not in expected
+    )
+    result_group = selected_groups.get("LiNRR results/performance", [])
+    sentinel_sections = _numbered_markdown_sections(sentinel_text)
+    sentinel_passes = sum(
+        1 for _, block in sentinel_sections if _markdown_field(block, "pass") == "True"
+    )
+
+    return {
+        "sample_count": len(sample_sections),
+        "duplicate_packet_id_count": len(packet_ids) - len(set(packet_ids)),
+        "filled_human_review_field_count": len(re.findall(
+            r"(?m)^- human_[^:\n]+:[ \t]*\S+", semantic_text
+        )),
+        "absolute_local_path_count": len(re.findall(
+            r"(?:[A-Za-z]:[\\/](?![\\/])|(?i:file://)|/(?:home|Users|tmp)/)", semantic_text
+        )),
+        "full_document_embedding_count": len(re.findall(
+            r"(?im)^- (?:full_document_text|full_body_text|document_body_text):", semantic_text
+        )),
+        "family_specific_primary_with_unclear_effective_family_count": sum(
+            1 for _, block, _ in family_sections
+            if _markdown_field(block, "effective_reaction_family") == "unclear"
+        ),
+        "family_specific_primary_with_mismatched_effective_family_count": sum(
+            1 for _, block, expected in family_sections
+            if _markdown_field(block, "effective_reaction_family") not in expected
+        ),
+        "family_specific_parallel_comparison_with_unclear_family_count": parallel_unclear,
+        "performance_context_primary_performance_strata_count": sum(
+            1 for block in performance_sections
+            if _markdown_field(block, "semantic_claim_type") == "performance_context_claim"
+        ),
+        "primary_performance_without_result_evidence_count": sum(
+            1 for block in performance_sections
+            if _markdown_field(block, "semantic_claim_type") != "performance_result_claim"
+            or _markdown_field(block, "performance_result_evidence") != "True"
+        ),
+        "P0090_eNRR_sample_count": sum(
+            1 for category, block in sample_sections
+            if category.startswith("eNRR") and _markdown_field(block, "paper_id").startswith("P0090")
+        ),
+        "sentinel_count": len(sentinel_sections),
+        "sentinel_pass_count": sentinel_passes,
+        "sentinel_fail_count": len(sentinel_sections) - sentinel_passes,
+        "sentinel_missing_case_id_count": sum(
+            1 for _, block in sentinel_sections if not _markdown_field(block, "case_id")
+        ),
+        "parallel_family_mismatch_count": parallel_mismatch,
+        "parallel_unclear_in_family_specific_group_count": parallel_unclear,
+        "parallel_performance_context_in_result_group_count": sum(
+            1 for record in result_group if not _parallel_performance_result(record)
+        ),
+        "P0090_eNRR_parallel_comparison_count": sum(
+            1 for name, records in selected_groups.items()
+            if name.startswith("eNRR")
+            for record in records
+            if str(record.get("paper_id") or "").startswith("P0090")
+        ),
+    }
+
+
+def _numbered_markdown_sections(text: str) -> list[tuple[str, str]]:
+    matches = list(re.finditer(r"(?m)^## \d+\. ([^\n]+)$", text))
+    return [
+        (
+            match.group(1),
+            text[match.start(): matches[index + 1].start()]
+            if index + 1 < len(matches)
+            else text[match.start():],
+        )
+        for index, match in enumerate(matches)
+    ]
+
+
+def _markdown_field(block: str, field: str) -> str:
+    match = re.search(rf"(?m)^- {re.escape(field)}:\s*`?([^`\n]*)`?\s*$", block)
+    return match.group(1).strip() if match else ""
+
+
+def _semantic_sentinel_sample(packets: list[dict]) -> tuple[str, bool]:
+    """Build deterministic, human-readable semantic safety sentinels."""
+
+    p0090_packets = [
+        packet for packet in packets
+        if str(packet.get("paper_id") or "").startswith("P0090")
+    ]
+    p0090_primary = [packet for packet in p0090_packets if bool(packet.get("primary_semantic_eligibility"))]
+    p0090_document_families = sorted({
+        str(packet.get("document_reaction_family") or "unclear") for packet in p0090_packets
+    })
+    p0090_enrr_primary_ids = [
+        str(packet.get("target_span_id") or "")
+        for packet in p0090_primary
+        if str(packet.get("effective_reaction_family") or "unclear") == "eNRR"
+    ]
+    p0090_actual = {
+        "packet_count": len(p0090_packets),
+        "primary_eligible_count": len(p0090_primary),
+        "document_families": p0090_document_families,
+        "primary_effective_eNRR_span_ids": p0090_enrr_primary_ids,
+    }
+    fe_material = classify_claim_type({"source_text": "FeS catalyst was synthesized.", "claim_type": "performance_claim"})
+    high_yield = classify_claim_type({
+        "source_text": "The catalyst showed high ammonia yield.",
+        "claim_type": "performance_claim",
+    })
+    explicit_15n = detect_validation_gate("isotope_15N", "15N2 isotope validation was performed.")
+    generic_isotope = detect_validation_gate("isotope_15N", "An isotope-labelled material was analyzed.")
+    no_gas = detect_validation_gate("NO_source_defined", "no gas was supplied")
+    ten_percent_no = detect_validation_gate("NO_source_defined", "10% NO in Ar was supplied")
+    no_balance = detect_validation_gate("NOx_balance", "no mass balance was reported")
+    nadh_text = "NH4+ concentration was measured by an NADH consumption assay."
+    trap_text = "The N2 feed passed through an acid trap to remove adventitious NH3."
+    genre = assess_document_genre({
+        "paper_title": "A critical review of electrochemical ammonia synthesis",
+        "article_type": "Article",
+    })
+    cited_record = {
+        "source_text": "Yang et al. [12] synthesized the catalyst.",
+        "effective_section_type": "results",
+        "provenance_type": "body",
+        "text_class": "primary_performance",
+    }
+    cited_scope = assess_document_scope(cited_record)
+    cited_owner = assess_claim_ownership(cited_record, cited_scope)
+
+    cases = [
+        _sentinel_case(
+            "P0090 nitrate family correction",
+            {"paper_id": "P0090"},
+            {"document_families": ["NO3RR"], "primary_effective_eNRR_span_ids": []},
+            p0090_actual,
+            bool(
+                p0090_packets
+                and p0090_document_families == ["NO3RR"]
+                and not p0090_enrr_primary_ids
+            ),
+        ),
+        _sentinel_case(
+            "FeS is not FE performance",
+            "FeS catalyst was synthesized.",
+            {"semantic_claim_type_not": "performance_result_claim"},
+            {"semantic_claim_type": fe_material["semantic_claim_type"]},
+            fe_material["semantic_claim_type"] != "performance_result_claim",
+        ),
+        _sentinel_case(
+            "Qualitative high yield is context",
+            "The catalyst showed high ammonia yield.",
+            {"semantic_claim_type": "performance_context_claim"},
+            {"semantic_claim_type": high_yield["semantic_claim_type"]},
+            high_yield["semantic_claim_type"] == "performance_context_claim",
+        ),
+        _sentinel_case("Explicit 15N is positive", "15N2 validation", {"satisfied": True}, explicit_15n, explicit_15n["satisfied"]),
+        _sentinel_case("Generic isotope is not 15N", "isotope-labelled material", {"satisfied": False}, generic_isotope, not generic_isotope["satisfied"]),
+        _sentinel_case("English no gas is not NO feed", "no gas was supplied", {"satisfied": False}, no_gas, not no_gas["satisfied"]),
+        _sentinel_case("Uppercase NO concentration is a source", "10% NO in Ar", {"satisfied": True}, ten_percent_no, ten_percent_no["satisfied"]),
+        _sentinel_case("Negated mass balance is not coverage", "no mass balance was reported", {"satisfied": False}, no_balance, not no_balance["satisfied"]),
+        _sentinel_case(
+            "NADH NH4 assay is quantification",
+            nadh_text,
+            {"ammonia_quantification": True},
+            {"ammonia_quantification": has_ammonia_quantification_signal(nadh_text)},
+            has_ammonia_quantification_signal(nadh_text),
+        ),
+        _sentinel_case(
+            "Gas purification trap is not quantification",
+            trap_text,
+            {"trap": True, "ammonia_quantification": False},
+            {
+                "trap": has_gas_purification_trap_signal(trap_text),
+                "ammonia_quantification": has_ammonia_quantification_signal(trap_text),
+            },
+            has_gas_purification_trap_signal(trap_text) and not has_ammonia_quantification_signal(trap_text),
+        ),
+        _sentinel_case(
+            "Review title overrides generic Article type",
+            {"title": "A critical review...", "article_type": "Article"},
+            {"document_genre": "review"},
+            {"document_genre": genre["document_genre"]},
+            genre["document_genre"] == "review",
+        ),
+        _sentinel_case(
+            "Bracketed cited-author action is external",
+            cited_record["source_text"],
+            {"span_claim_scope": "external_or_cited_work", "claim_ownership": "external_or_cited_authors"},
+            {
+                "span_claim_scope": cited_scope["span_claim_scope"],
+                "claim_ownership": cited_owner["claim_ownership"],
+            },
+            cited_scope["span_claim_scope"] == "external_or_cited_work"
+            and cited_owner["claim_ownership"] == "external_or_cited_authors",
+        ),
+    ]
+    passed = all(case["passed"] for case in cases)
+    lines = [
+        "# Stage B Semantic Sentinel Sample",
+        "",
+        "Deterministic safety sentinels for document reaction family, result-bearing performance,",
+        "validation-gate regex safety, document genre, and cited-claim ownership.",
+        "",
+        f"- Cases: {len(cases)}",
+        f"- Passed: {sum(case['passed'] for case in cases)}",
+        f"- Overall pass: `{passed}`",
+        "",
+    ]
+    for index, case in enumerate(cases, 1):
+        lines.extend([
+            f"## {index}. {case['name']}",
+            "",
+            f"- case_id: `SB_SENTINEL_{index:02d}`",
+            f"- input: `{json.dumps(case['input'], ensure_ascii=False, sort_keys=True)}`",
+            f"- expected: `{json.dumps(case['expected'], ensure_ascii=False, sort_keys=True)}`",
+            f"- actual: `{json.dumps(case['actual'], ensure_ascii=False, sort_keys=True)}`",
+            f"- pass: `{case['passed']}`",
+            "",
+        ])
+    return "\n".join(lines), passed
+
+
+def _sentinel_case(name: str, input_value: object, expected: object, actual: object, passed: bool) -> dict:
+    return {
+        "name": name,
+        "input": input_value,
+        "expected": expected,
+        "actual": actual,
+        "passed": bool(passed),
+    }
 
 
 def _section_type_source(record: dict) -> str:

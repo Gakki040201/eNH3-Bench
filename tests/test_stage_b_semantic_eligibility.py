@@ -4,7 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from enh3bench.context_packet import _off_target_reaction_assessment, build_context_packets
+from enh3bench.context_packet import (
+    _local_reaction_family_assessment,
+    _off_target_reaction_assessment,
+    build_context_packets,
+)
 from enh3bench.evidence_linking import ORDERED_SOURCE_PROFILE
 from enh3bench.source_ledger import build_ordered_source_ledger
 
@@ -60,13 +64,40 @@ class StageBSemanticEligibilityTests(unittest.TestCase):
         self.assertFalse(packet["primary_semantic_eligibility"])
 
     def test_current_study_performance_is_primary_when_all_hard_gates_pass(self) -> None:
-        body = "## Results\n\nIn this work, we systematically assessed FEs and the NH3 rate."
-        text = "In this work, we systematically assessed FEs and the NH3 rate."
+        body = "## Results\n\nIn this work, the NH3 Faradaic efficiency reached 20%."
+        text = "In this work, the NH3 Faradaic efficiency reached 20%."
         packet = self._packets(body, [_record("P1_S001", body, text, "eNRR")])[0]
         self.assertEqual(packet["document_genre"], "primary_research")
         self.assertEqual(packet["span_claim_scope"], "target_document")
-        self.assertEqual(packet["semantic_claim_type"], "performance_claim")
+        self.assertEqual(packet["semantic_claim_type"], "performance_result_claim")
+        self.assertTrue(packet["quantitative_performance_evidence"])
         self.assertTrue(packet["primary_semantic_eligibility"])
+
+    def test_performance_context_is_not_primary_eligible(self) -> None:
+        body = "## Results\n\nIn this work, the catalyst showed high ammonia yield."
+        text = "In this work, the catalyst showed high ammonia yield."
+        packet = self._packets(body, [_record("P1_S001", body, text, "eNRR")])[0]
+        self.assertEqual(packet["semantic_claim_type"], "performance_context_claim")
+        self.assertFalse(packet["primary_semantic_eligibility"])
+        self.assertIn(
+            "semantic_claim_type_not_primary_eligible",
+            packet["primary_applicability_hard_gate_failures"],
+        )
+
+    def test_high_confidence_document_family_conflict_is_a_hard_gate(self) -> None:
+        body = "## Results\n\nIn this work, the catalyst reached a Faradaic efficiency of 20%."
+        text = "In this work, the catalyst reached a Faradaic efficiency of 20%."
+        record = _record("P1_S001", body, text, "eNRR")
+        record["paper_title"] = "Electrochemical ammonia synthesis via nitrate reduction"
+        packet = self._packets(body, [record])[0]
+        self.assertEqual(packet["document_reaction_family"], "NO3RR")
+        self.assertEqual(packet["effective_reaction_family"], "NO3RR")
+        self.assertTrue(packet["document_target_reaction_family_conflict"])
+        self.assertFalse(packet["primary_semantic_eligibility"])
+        self.assertIn(
+            "document_target_reaction_family_conflict",
+            packet["primary_applicability_hard_gate_failures"],
+        )
 
     def test_secondary_provenance_flag_is_a_strict_primary_hard_gate(self) -> None:
         body = "## Results\n\nIn this work, we report an ammonia Faradaic efficiency of 20%."
@@ -135,13 +166,14 @@ class StageBSemanticEligibilityTests(unittest.TestCase):
         self.assertFalse(cited["primary_admissible_gate_source"])
         self.assertFalse(cited["primary_support"])
 
-    def test_reaction_family_conflict_is_local_and_blocks_sufficiency(self) -> None:
+    def test_explicit_target_family_corrects_legacy_without_a_local_conflict(self) -> None:
         body = "## Results\n\nIn this work, the nitrate reduction reaction (NO3RR) produced ammonia with a Faradaic efficiency of 20%."
         text = "In this work, the nitrate reduction reaction (NO3RR) produced ammonia with a Faradaic efficiency of 20%."
         packet = self._packets(body, [_record("P1_S001", body, text, "eNRR")])[0]
-        self.assertTrue(packet["local_reaction_family_conflict_any_source"])
-        self.assertTrue(packet["local_reaction_family_conflict_primary_admissible"])
-        self.assertIn("reaction_family_conflict", packet["packet_local_missing_types"])
+        self.assertEqual(packet["legacy_reaction_family"], "eNRR")
+        self.assertEqual(packet["effective_reaction_family"], "NO3RR")
+        self.assertTrue(packet["reaction_family_correction"])
+        self.assertFalse(packet["local_reaction_family_conflict_primary_admissible"])
 
     def test_paper_consensus_mismatch_alone_is_not_a_local_conflict(self) -> None:
         body = "## Results\n\nIn this work, N2 was reduced to ammonia with a Faradaic efficiency of 20%."
@@ -154,6 +186,22 @@ class StageBSemanticEligibilityTests(unittest.TestCase):
         packet = self._packets(body, [record])[0]
         self.assertFalse(packet["local_reaction_family_conflict_primary_admissible"])
         self.assertNotIn("reaction_family_conflict", packet["packet_local_missing_types"])
+
+    def test_explicit_local_primary_evidence_family_mismatch_is_a_conflict(self) -> None:
+        result = _local_reaction_family_assessment(
+            {"source_span_id": "S1", "reaction_family": "eNRR", "source_text": "N2 reduction."},
+            [{
+                "span_id": "S2", "reaction_family": "NO3RR",
+                "reaction_family_scope": "explicit_span", "reaction_family_confidence": "high",
+                "paragraph_uid": "PAR1", "text": "Nitrate reduction to ammonia.",
+                "primary_admissible_gate_source": True,
+            }],
+            [{"paragraph_uid": "PAR1", "text": "N2 reduction evidence."}],
+            target_primary_admissible=True,
+        )
+        self.assertTrue(result["local_reaction_family_conflict_any_source"])
+        self.assertTrue(result["local_reaction_family_conflict_primary_admissible"])
+        self.assertEqual(result["local_reaction_family_conflict_span_ids"], ["S2"])
 
 
 def _record(

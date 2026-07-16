@@ -77,9 +77,14 @@ _EXTERNAL_VERBS = (
 _EXTERNAL_ATTRIBUTION = re.compile(
     r"(?:\b(?:according to|as reported by|reported by|previously reported by)\b|"
     r"\b(?:[A-Z][A-Za-z'\u2019.-]*(?:\s+[A-Z][A-Za-z'\u2019.-]*)?\s+"
-    r"(?:and\s+co[- ]?workers|et\s+al\.?)|previous\s+(?:authors?|studies|work)|"
+    r"(?:and\s+(?:co[- ]?workers|colleagues)|et\s+al\.?)"
+    r"(?:\s*\[[^\]]+\])?(?:,\s*in\s+\d{4},)?\s+(?:have\s+|has\s+)?|"
+    r"previous\s+(?:authors?|studies|work|reports?)\s+|"
     r"other\s+(?:authors?|groups?|studies)|the\s+literature)"
-    r"[,;:]?\s+(?:" + "|".join(_EXTERNAL_VERBS) + r")\b)",
+    r"[,;:]?\s*(?:" + "|".join(_EXTERNAL_VERBS) + r")\b|"
+    r"\breported\s+in\s+(?:ref(?:erence)?\.?|citation)\s*\[?\d+\]?|"
+    r"\b(?:the\s+)?(?:catalyst|material|electrode|method|system)\s+described\s+in\s+"
+    r"(?:ref(?:erence)?\.?|citation)\s*\[?\d+\]?)",
     re.IGNORECASE,
 )
 _BACKGROUND_CUE = re.compile(
@@ -349,7 +354,7 @@ def _article_type_genre(article_type: str) -> str:
         return PROCESS_OR_TEA_GENRE
     if re.search(r"\b(?:dataset|data descriptor|metadata)\b", article_type):
         return DATASET_OR_METADATA_GENRE
-    if re.search(r"\b(?:primary research|research article|original article|journal article|article)\b", article_type):
+    if re.search(r"\b(?:primary research|original research article|original article)\b", article_type):
         return PRIMARY_RESEARCH_GENRE
     return ""
 

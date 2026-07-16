@@ -30,6 +30,19 @@ class ParallelComparisonIndexTests(unittest.TestCase):
         summary = summarize_parallel_comparison([item], "fixture")
         self.assertEqual(summary["comparison_groups_using_inherited_section"], 1)
 
+    def test_effective_reaction_family_drives_comparison_key(self) -> None:
+        item = build_parallel_comparison_index([{
+            "paper_id": "P0090", "source_span_id": "S1", "reaction_family": "eNRR",
+            "effective_reaction_family": "NO3RR",
+            "effective_reaction_family_source": "high_confidence_document",
+            "reaction_family_correction": True,
+            "section_type": "results", "source_text": "Faradaic efficiency reached 20%.",
+        }])[0]
+        self.assertEqual(item["legacy_reaction_family"], "eNRR")
+        self.assertEqual(item["effective_reaction_family"], "NO3RR")
+        self.assertEqual(item["comparison_key"], "NO3RR|results|performance")
+        self.assertTrue(item["reaction_family_correction"])
+
 
 if __name__ == "__main__":
     unittest.main()

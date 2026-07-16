@@ -177,7 +177,7 @@ def link_supporting_evidence(
                 diagnostics["low_trust_rejected_count"] += 1
                 continue
             if "reaction_family_mismatch" in signals and normalize_reaction_family(
-                str(target.get("reaction_family") or "unclear")
+                _effective_family(target)
             ) not in {"unclear", "mixed"}:
                 diagnostics["family_mismatch_rejected_count"] += 1
                 continue
@@ -264,8 +264,8 @@ def _score_link_detailed(
     else:
         score += LINK_WEIGHTS["context_only_provenance"]
         signals.append("context_only_provenance")
-    target_family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
-    candidate_family = normalize_reaction_family(str(candidate.get("reaction_family") or "unclear"))
+    target_family = normalize_reaction_family(_effective_family(target))
+    candidate_family = normalize_reaction_family(_effective_family(candidate))
     if target_family not in {"unclear", "mixed"} and candidate_family not in {"unclear", "mixed"}:
         if target_family == candidate_family:
             score += LINK_WEIGHTS["reaction_family_match"]
@@ -357,8 +357,8 @@ def _legacy_raw_score(target: dict[str, Any], candidate: dict[str, Any], role: s
         score -= 2.0; signals.append("context_only_provenance")
     if role in _legacy_link_types(candidate):
         score += 5.0; signals.append(f"explicit_{role}_signal")
-    target_family = str(target.get("reaction_family") or "unclear")
-    candidate_family = str(candidate.get("reaction_family") or "unclear")
+    target_family = _effective_family(target)
+    candidate_family = _effective_family(candidate)
     if target_family not in {"", "unclear"} and candidate_family not in {"", "unclear"}:
         if target_family == candidate_family:
             score += 3.0; signals.append("reaction_family_match")
@@ -425,6 +425,7 @@ def _linked_record(
         "text_class": str(candidate.get("text_class") or "unknown"),
         "provenance_type": str(candidate.get("provenance_type") or "unknown"),
         "reaction_family": str(candidate.get("reaction_family") or "unclear"),
+        "effective_reaction_family": _effective_family(candidate),
         "source_text": str(candidate.get("source_text") or candidate.get("text") or ""),
         "distance_from_target": _span_order(candidate) - _span_order(target),
         "relationship": f"linked_{link_type}",
@@ -519,6 +520,10 @@ def _is_context_only(record: dict[str, Any]) -> bool:
     provenance = str(record.get("provenance_type") or "unknown").casefold()
     text_class = str(record.get("text_class") or "unknown").casefold()
     return provenance in LOW_TRUST_PROVENANCE or text_class in LOW_TRUST_TEXT_CLASSES
+
+
+def _effective_family(record: dict[str, Any]) -> str:
+    return str(record.get("effective_reaction_family") or record.get("reaction_family") or "unclear")
 
 
 def _normalized_record_text(record: dict[str, Any]) -> str:

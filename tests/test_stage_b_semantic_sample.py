@@ -4,10 +4,14 @@ import re
 import unittest
 
 from scripts.build_ordered_review_artifacts import (
+    _artifact_diagnostics,
+    _enrich_comparison_record,
     _gas_purification_trap,
+    _parallel_sample,
     _performance,
     _quantification,
     _semantic_closure_sample,
+    _semantic_sentinel_sample,
     _validation,
 )
 
@@ -15,15 +19,15 @@ from scripts.build_ordered_review_artifacts import (
 class StageBSemanticSampleTests(unittest.TestCase):
     def test_fixed_seed_target_level_strata_and_quotas_are_deterministic(self) -> None:
         packets: list[dict[str, object]] = []
-        packets.extend(_packets("eperf", 15, "eNRR", semantic="performance_claim", primary=True))
+        packets.extend(_packets("eperf", 15, "eNRR", semantic="performance_result_claim", primary=True))
         packets.extend(_packets("eval", 15, "eNRR", semantic="validation_claim", primary=True))
-        packets.extend(_packets("liperf", 15, "LiNRR", semantic="performance_claim", primary=True))
-        packets.extend(_packets("n3perf", 15, "NO3RR", semantic="performance_claim", primary=True))
+        packets.extend(_packets("liperf", 15, "LiNRR", semantic="performance_result_claim", primary=True))
+        packets.extend(_packets("n3perf", 15, "NO3RR", semantic="performance_result_claim", primary=True))
         packets.extend(_packets(
             "n3quant", 15, "NO3RR", semantic="ammonia_quantification_claim",
             primary=True, quantification=True,
         ))
-        packets.extend(_packets("n2no", 10, "NO2RR", semantic="performance_claim", primary=True))
+        packets.extend(_packets("n2no", 10, "NO2RR", semantic="performance_result_claim", primary=True))
         packets.extend(_packets("process", 10, "mixed", semantic="process_claim", primary=True))
         packets.extend(_packets(
             "trap", 7, "eNRR", semantic="gas_purification_or_capture_claim", gas_trap=True,
@@ -66,6 +70,10 @@ class StageBSemanticSampleTests(unittest.TestCase):
         self.assertEqual(first.count("- human_span_claim_scope_correct:"), 130)
         self.assertEqual(first.count("- human_document_scope_correct:"), 130)
         self.assertEqual(first.count("- human_quantification_vs_trap_correct:"), 130)
+        self.assertEqual(first.count("- human_effective_reaction_family_correct:"), 130)
+        self.assertEqual(first.count("- human_performance_result_evidence_correct:"), 130)
+        self.assertEqual(first.count("- effective_reaction_family:"), 130)
+        self.assertEqual(first.count("- performance_evidence_strength:"), 130)
         self.assertEqual(first.count("- context_packet_id:"), 130)
         self.assertEqual(first.count("- sample_stratum_type:"), 130)
         self.assertEqual(first.count("- hard_gate_failures:"), 130)
@@ -116,7 +124,8 @@ class StageBSemanticSampleTests(unittest.TestCase):
         self.assertFalse(_performance(packet))
         self.assertTrue(_validation(packet))
 
-        packet["semantic_claim_type"] = "performance_claim"
+        packet["semantic_claim_type"] = "performance_result_claim"
+        packet["performance_result_evidence"] = True
         packet["ammonia_quantification_signal"] = False
         packet["family_gate_coverage_primary_admissible"] = {
             "ammonia_quantification": {"status": "observed_in_linked_evidence"}
@@ -151,12 +160,75 @@ class StageBSemanticSampleTests(unittest.TestCase):
             ("span_claim_scope", "external_or_cited_work"),
             ("claim_ownership", "external_or_cited_authors"),
             ("semantic_claim_type", "secondary_context_claim"),
-            ("target_reaction_family", "unclear"),
+            ("effective_reaction_family", "unclear"),
         ):
             with self.subTest(field=field):
                 candidate = dict(packet)
                 candidate[field] = value
                 self.assertFalse(_gas_purification_trap(candidate))
+
+    def test_semantic_sentinel_contains_twelve_passing_cases(self) -> None:
+        p0090 = _packets(
+            "p0090", 1, "NO3RR", semantic="performance_result_claim", primary=True,
+        )[0]
+        p0090.update({
+            "paper_id": "P0090",
+            "legacy_reaction_family": "eNRR",
+            "document_reaction_family": "NO3RR",
+            "effective_reaction_family": "NO3RR",
+            "reaction_family_correction": True,
+        })
+        text, passed = _semantic_sentinel_sample([p0090])
+        self.assertTrue(passed)
+        self.assertEqual(text.count("\n## "), 12)
+        self.assertEqual(text.count("- case_id: `SB_SENTINEL_"), 12)
+        self.assertIn("P0090 nitrate family correction", text)
+        self.assertIn("- Overall pass: `True`", text)
+
+    def test_parallel_performance_group_requires_result_semantics(self) -> None:
+        base = {
+            "semantic_section_type": "results",
+            "evidence_roles": ["performance"],
+            "reaction_family": "LiNRR",
+            "source_text_excerpt": "Faradaic efficiency was discussed.",
+        }
+        result = _enrich_comparison_record(
+            {**base, "paper_id": "P_RESULT", "source_span_id": "S_RESULT"},
+            _packets("result", 1, "LiNRR", semantic="performance_result_claim", primary=True)[0],
+        )
+        context = _enrich_comparison_record(
+            {**base, "paper_id": "P_CONTEXT", "source_span_id": "S_CONTEXT"},
+            _packets("context", 1, "LiNRR", semantic="performance_context_claim", primary=True)[0],
+        )
+        text = _parallel_sample([context, result])
+        result_group = text.split("## LiNRR results/performance", 1)[1].split("\n## ", 1)[0]
+        self.assertIn("P_RESULT", result_group)
+        self.assertNotIn("P_CONTEXT", result_group)
+        self.assertIn("semantic claim type: `performance_result_claim`", result_group)
+
+    def test_artifact_diagnostics_detect_family_and_performance_mismatch(self) -> None:
+        semantic_text = "\n".join((
+            "# Sample",
+            "## 1. eNRR performance",
+            "- context_packet_id: `CP1`",
+            "- paper_id: `P0090`",
+            "- effective_reaction_family: `NO3RR`",
+            "- semantic_claim_type: `performance_context_claim`",
+            "- performance_result_evidence: `False`",
+            "- human_notes:",
+        ))
+        sentinel_text = "\n".join((
+            "# Sentinels",
+            "## 1. Fixture",
+            "- case_id: `SB_SENTINEL_01`",
+            "- pass: `True`",
+        ))
+        diagnostics = _artifact_diagnostics(semantic_text, sentinel_text, [])
+        self.assertEqual(diagnostics["family_specific_primary_with_mismatched_effective_family_count"], 1)
+        self.assertEqual(diagnostics["performance_context_primary_performance_strata_count"], 1)
+        self.assertEqual(diagnostics["primary_performance_without_result_evidence_count"], 1)
+        self.assertEqual(diagnostics["P0090_eNRR_sample_count"], 1)
+        self.assertEqual(diagnostics["filled_human_review_field_count"], 0)
 
 
 def _packets(
@@ -184,9 +256,24 @@ def _packets(
             "paper_id": f"P_{span_id}",
             "target_span_id": span_id,
             "target_reaction_family": family,
+            "legacy_reaction_family": family,
+            "document_reaction_family": family,
+            "document_reaction_family_confidence": "high",
+            "effective_reaction_family": family,
+            "effective_reaction_family_source": "high_confidence_document",
+            "reaction_family_correction": False,
+            "document_target_reaction_family_conflict": False,
             "target_claim_type": legacy,
             "legacy_claim_type": legacy,
             "semantic_claim_type": semantic,
+            "performance_evidence_strength": (
+                "quantitative_result" if semantic == "performance_result_claim" else "none"
+            ),
+            "performance_evidence_signals": (
+                ["numeric_value_with_unit"] if semantic == "performance_result_claim" else []
+            ),
+            "performance_result_evidence": semantic == "performance_result_claim",
+            "quantitative_performance_evidence": semantic == "performance_result_claim",
             "semantic_claim_type_confidence": "high",
             "semantic_claim_type_conflict": conflict,
             "document_genre": document_genre,

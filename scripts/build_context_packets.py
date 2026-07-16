@@ -175,6 +175,14 @@ def main() -> int:
                 "secondary_context_primary_semantic_eligible_count",
                 "reject_or_low_trust_primary_semantic_eligible_count",
                 "target_primary_gate_supported_by_nonprimary_count",
+                "reaction_family_correction_count", "document_target_family_conflict_count",
+                "primary_eligible_unclear_family_count", "performance_result_claim_count",
+                "performance_context_claim_count", "quantitative_performance_primary_count",
+                "performance_context_quantitative_primary_count",
+                "primary_performance_without_result_evidence_count",
+                "FeS_false_performance_count", "generic_isotope_false_15N_count",
+                "NO_negation_false_source_count", "NOx_balance_negation_false_positive_count",
+                "conflicted_gate_counted_as_observed_count",
             ):
                 print(f"{key}: {summary[key]}")
             for key in (
@@ -190,6 +198,8 @@ def main() -> int:
                 "primary_semantic_eligible_by_ownership_confidence",
                 "primary_semantic_eligible_by_semantic_type_confidence",
                 "hard_gate_failure_distribution",
+                "document_reaction_family_distribution", "effective_reaction_family_distribution",
+                "primary_eligible_by_effective_family",
             ):
                 print(f"{key}: {summary[key]}")
     else:
@@ -224,6 +234,13 @@ def main() -> int:
         and summary.get("secondary_context_primary_semantic_eligible_count", 0) == 0
         and summary.get("reject_or_low_trust_primary_semantic_eligible_count", 0) == 0
         and summary.get("target_primary_gate_supported_by_nonprimary_count", 0) == 0
+        and summary.get("FeS_false_performance_count", 0) == 0
+        and summary.get("generic_isotope_false_15N_count", 0) == 0
+        and summary.get("NO_negation_false_source_count", 0) == 0
+        and summary.get("NOx_balance_negation_false_positive_count", 0) == 0
+        and summary.get("performance_context_quantitative_primary_count", 0) == 0
+        and summary.get("primary_performance_without_result_evidence_count", 0) == 0
+        and summary.get("conflicted_gate_counted_as_observed_count", 0) == 0
     ) else 1
 
 

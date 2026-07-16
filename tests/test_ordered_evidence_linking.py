@@ -17,6 +17,24 @@ class OrderedEvidenceLinkingTests(unittest.TestCase):
         self.assertEqual(accepted, sorted(accepted, key=lambda item: item["verified_source_start_offset"]))
         self.assertEqual(result["diagnostics"]["self_link_count"], 0)
 
+    def test_effective_family_controls_ordered_link_compatibility(self) -> None:
+        target = _record("S1", 2, 100, "Faradaic efficiency 20%.")
+        target["effective_reaction_family"] = "NO3RR"
+        compatible = _record("S2", 3, 200, "15N isotope validation and Ar blank.")
+        compatible["effective_reaction_family"] = "NO3RR"
+        mismatched = _record("S3", 4, 300, "15N isotope validation and Ar blank.")
+        mismatched["effective_reaction_family"] = "eNRR"
+        result = link_supporting_evidence(
+            target,
+            [target, compatible, mismatched],
+            profile=ORDERED_SOURCE_PROFILE,
+            minimum_link_score=0.60,
+        )
+        linked_ids = [item["span_id"] for item in result["validation"]]
+        self.assertIn("S2", linked_ids)
+        self.assertNotIn("S3", linked_ids)
+        self.assertGreater(result["diagnostics"]["family_mismatch_rejected_count"], 0)
+
 
 def _record(span_id: str, paragraph: int, offset: int, text: str) -> dict[str, object]:
     return {"paper_id": "P1", "document_id": "P1", "source_span_id": span_id, "source_text": text, "paragraph_uid": f"PAR{paragraph}", "paragraph_global_index": paragraph, "section_uid": "SEC1", "source_order_key": f"{offset:06d}", "verified_source_start_offset": offset, "verified_source_end_offset": offset + len(text), "provenance_type": "body", "text_class": "primary_performance", "reaction_family": "eNRR", "is_primary_admissible": True}

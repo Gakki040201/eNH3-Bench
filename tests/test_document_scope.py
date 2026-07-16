@@ -26,6 +26,16 @@ class DocumentScopeTests(unittest.TestCase):
         self.assertEqual(result["document_genre"], "review")
         self.assertFalse(result["document_genre_primary_applicable"])
 
+    def test_generic_article_type_does_not_override_review_title(self) -> None:
+        for article_type in ("article", "journal article", "research paper"):
+            with self.subTest(article_type=article_type):
+                result = assess_document_genre({
+                    "paper_title": "A critical review of electrochemical ammonia synthesis",
+                    "article_type": article_type,
+                })
+                self.assertEqual(result["document_genre"], "review")
+                self.assertFalse(result["document_genre_primary_applicable"])
+
     def test_methods_results_and_current_study_language_identify_primary_research(self) -> None:
         result = assess_document_genre({
             "paper_abstract": "Here we report a catalyst and its measured ammonia yield.",

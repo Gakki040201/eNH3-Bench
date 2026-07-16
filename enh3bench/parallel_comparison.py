@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.evidence_linking import classify_link_type
-from enh3bench.reaction_profiles import normalize_reaction_family
+from enh3bench.reaction_profiles import assess_effective_reaction_family, normalize_reaction_family
 from enh3bench.source_ledger import sort_spans_by_source_order
 
 
@@ -26,13 +26,31 @@ def build_parallel_comparison_index(records: list[dict[str, Any]]) -> list[dict[
         semantic_section = _semantic_section_type(effective_section)
         raw_semantic_section = _semantic_section_type(direct_section)
         section_source = _section_type_source(record, direct_section, effective_section)
-        family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+        family_assessment = assess_effective_reaction_family(record)
+        legacy_family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+        family = normalize_reaction_family(str(
+            record.get("effective_reaction_family")
+            or family_assessment.get("effective_reaction_family")
+            or legacy_family
+        ))
         primary_role = roles[0] if roles else "context_hint"
         comparison.append({
             "paper_id": str(record.get("paper_id") or ""),
             "source_span_id": str(record.get("source_span_id") or record.get("legacy_span_id") or ""),
             "source_locator": record.get("source_locator"),
             "reaction_family": family,
+            "legacy_reaction_family": legacy_family,
+            "effective_reaction_family": family,
+            "effective_reaction_family_source": str(
+                record.get("effective_reaction_family_source")
+                or family_assessment.get("effective_reaction_family_source")
+                or "existing_reaction_family"
+            ),
+            "reaction_family_correction": bool(
+                record.get("reaction_family_correction")
+                if "reaction_family_correction" in record
+                else family_assessment.get("reaction_family_correction")
+            ),
             "direct_section_type": direct_section,
             "effective_section_type": effective_section,
             "section_type_source": section_source,

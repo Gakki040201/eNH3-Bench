@@ -13,7 +13,11 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.claim_ownership import assess_claim_ownership
-from enh3bench.claim_typing import classify_claim_type, has_ammonia_quantification_signal
+from enh3bench.claim_typing import (
+    classify_claim_type,
+    has_ammonia_quantification_signal,
+    is_fe_material_only_false_performance,
+)
 from enh3bench.document_context import (
     DocumentContextIndex,
     get_local_paragraph_context,
@@ -38,9 +42,18 @@ from enh3bench.evidence_linking import (
     link_supporting_evidence,
 )
 from enh3bench.reaction_profiles import (
+    assess_document_reaction_family,
+    assess_effective_reaction_family,
+    build_document_reaction_family_context,
     get_reaction_profile,
     infer_reaction_family_detailed,
     normalize_reaction_family,
+)
+from enh3bench.validation_gates import (
+    detect_validation_gate,
+    has_generic_isotope_without_15n,
+    has_negated_no_source,
+    has_negated_nox_balance,
 )
 from enh3bench.source_ledger import (
     OrderedSourceLedger,
@@ -98,6 +111,11 @@ ORDERED_PACKET_FIELDS = (
     "target_source_start_offset", "target_source_end_offset", "target_text", "target_text_class",
     "target_provenance_type", "target_reaction_family", "target_span_boundary",
     "target_admissibility_status", "target_claim_type", "target_mapping",
+    "legacy_reaction_family", "document_reaction_family", "document_reaction_family_confidence",
+    "document_reaction_family_signals", "document_reaction_family_conflict",
+    "effective_reaction_family", "effective_reaction_family_source", "reaction_family_correction",
+    "document_target_reaction_family_conflict", "target_explicit_reaction_family",
+    "target_explicit_reaction_family_signals",
     "semantic_eligibility_schema_version", "document_genre", "document_genre_confidence",
     "document_genre_signals", "document_genre_primary_applicable",
     "span_claim_scope", "span_claim_scope_confidence", "span_claim_scope_signals",
@@ -106,6 +124,8 @@ ORDERED_PACKET_FIELDS = (
     "claim_ownership_confidence", "claim_ownership_signals", "claim_ownership_primary_applicable",
     "semantic_claim_type", "semantic_claim_type_confidence", "semantic_claim_type_conflict",
     "legacy_claim_type", "semantic_claim_type_signals", "ammonia_quantification_signal",
+    "performance_evidence_strength", "performance_evidence_signals", "performance_result_evidence",
+    "quantitative_performance_evidence",
     "gas_purification_trap_signal", "mass_spectrometry_quantification_signal",
     "enzymatic_quantification_signal", "primary_applicability_hard_gate_failures",
     "base_claim_support_applicable", "primary_semantic_eligibility",
@@ -140,7 +160,7 @@ LINK_PACKET_FIELDS = {
 LOW_TRUST_PROVENANCE = {"reference", "bibliography", "figure_caption", "scheme_caption", "review_table"}
 LOW_TRUST_TEXT_CLASSES = {"reference_list", "figure_caption", "scheme_caption", "review_table", "background_context"}
 PRIMARY_SEMANTIC_CLAIM_TYPES = {
-    "performance_claim", "validation_claim", "ammonia_quantification_claim", "reactor_claim", "process_claim",
+    "performance_result_claim", "validation_claim", "ammonia_quantification_claim", "reactor_claim", "process_claim",
 }
 AMMONIA_REACTION_FAMILIES = {"eNRR", "LiNRR", "NO3RR", "NO2RR", "NORR"}
 _OFF_TARGET_REACTION_PATTERNS = (
@@ -255,7 +275,7 @@ def merge_context_sources(
 def _attach_document_genre_assessments(
     records: list[dict[str, Any]], source_ledger: OrderedSourceLedger
 ) -> list[dict[str, Any]]:
-    """Compute one genre assessment per document and attach only its compact result."""
+    """Compute document genre/family once, then attach additive effective families."""
 
     records_by_document: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in records:
@@ -268,11 +288,20 @@ def _attach_document_genre_assessments(
             document_records,
             source_ledger.sections_by_document.get(document_id, []),
         )
-        assessments[document_id] = assess_document_genre(genre_context)
+        family_context = build_document_reaction_family_context(
+            document,
+            document_records,
+            source_ledger.sections_by_document.get(document_id, []),
+        )
+        assessments[document_id] = {
+            **assess_document_genre(genre_context),
+            **assess_document_reaction_family(family_context),
+        }
     attached: list[dict[str, Any]] = []
     for record in records:
         document_id = str(record.get("document_id") or "")
-        attached.append({**record, **assessments[document_id]})
+        document_record = {**record, **assessments[document_id]}
+        attached.append({**document_record, **assess_effective_reaction_family(document_record)})
     return attached
 
 
@@ -454,6 +483,7 @@ def _ordered_packet(
     assessment = _packet_local_assessment(
         target, paragraph, previous_paragraph, next_paragraph, section, evidence_items
     )
+    semantic_target = {**target, **assessment}
     target_primary_admissible = (
         assessment["applicable"]
         and assessment["target_is_primary_admissible"]
@@ -461,7 +491,7 @@ def _ordered_packet(
         and not assessment["target_is_reject_or_low_trust"]
     )
     family_coverage_any, paper_observed_any, paper_missing_any, paper_status_any = _family_gate_coverage(
-        target,
+        semantic_target,
         evidence_items,
         previous_paragraph,
         paragraph,
@@ -469,7 +499,7 @@ def _ordered_packet(
         applicable=assessment["base_applicable"],
     )
     family_coverage_primary, paper_observed_primary, paper_missing_primary, paper_status_primary = _family_gate_coverage(
-        target,
+        semantic_target,
         evidence_items,
         previous_paragraph,
         paragraph,
@@ -537,6 +567,17 @@ def _ordered_packet(
         "target_admissibility_status": str(target.get("admissibility_status") or ""),
         "target_claim_type": str(target.get("claim_type") or ""),
         "target_mapping": target_mapping,
+        "legacy_reaction_family": assessment["legacy_reaction_family"],
+        "document_reaction_family": assessment["document_reaction_family"],
+        "document_reaction_family_confidence": assessment["document_reaction_family_confidence"],
+        "document_reaction_family_signals": assessment["document_reaction_family_signals"],
+        "document_reaction_family_conflict": assessment["document_reaction_family_conflict"],
+        "effective_reaction_family": assessment["effective_reaction_family"],
+        "effective_reaction_family_source": assessment["effective_reaction_family_source"],
+        "reaction_family_correction": assessment["reaction_family_correction"],
+        "document_target_reaction_family_conflict": assessment["document_target_reaction_family_conflict"],
+        "target_explicit_reaction_family": assessment["target_explicit_reaction_family"],
+        "target_explicit_reaction_family_signals": assessment["target_explicit_reaction_family_signals"],
         "semantic_eligibility_schema_version": assessment["semantic_eligibility_schema_version"],
         "document_genre": assessment["document_genre"],
         "document_genre_confidence": assessment["document_genre_confidence"],
@@ -559,6 +600,10 @@ def _ordered_packet(
         "semantic_claim_type_conflict": assessment["semantic_claim_type_conflict"],
         "legacy_claim_type": assessment["legacy_claim_type"],
         "semantic_claim_type_signals": assessment["semantic_claim_type_signals"],
+        "performance_evidence_strength": assessment["performance_evidence_strength"],
+        "performance_evidence_signals": assessment["performance_evidence_signals"],
+        "performance_result_evidence": assessment["performance_result_evidence"],
+        "quantitative_performance_evidence": assessment["quantitative_performance_evidence"],
         "ammonia_quantification_signal": assessment["ammonia_quantification_signal"],
         "gas_purification_trap_signal": assessment["gas_purification_trap_signal"],
         "mass_spectrometry_quantification_signal": assessment["mass_spectrometry_quantification_signal"],
@@ -633,7 +678,13 @@ def _unique_evidence_items(
             document_genre = assess_document_genre(semantic_record)
             document_scope = assess_document_scope(semantic_record)
             claim_ownership = assess_claim_ownership(semantic_record, document_scope)
-            semantic_record.update({**document_genre, **document_scope, **claim_ownership})
+            family_assessment = assess_effective_reaction_family(semantic_record)
+            semantic_record.update({
+                **document_genre,
+                **document_scope,
+                **claim_ownership,
+                **family_assessment,
+            })
             claim_typing = classify_claim_type(semantic_record)
             provenance_flags = _provenance_flags(original or semantic_record)
             provenance_primary = provenance_flags["is_primary_admissible"]
@@ -646,6 +697,7 @@ def _unique_evidence_items(
                 and document_genre["document_genre"] == PRIMARY_RESEARCH_GENRE
                 and document_scope["span_claim_scope"] == TARGET_DOCUMENT_SCOPE
                 and claim_ownership["claim_ownership_primary_applicable"]
+                and not family_assessment["document_target_reaction_family_conflict"]
                 and not linked.get("context_only")
                 and not off_target["local_off_target_reaction_conflict"]
             )
@@ -672,6 +724,13 @@ def _unique_evidence_items(
                 "provenance_type": str(linked.get("provenance_type") or "unknown"),
                 "text_class": str(linked.get("text_class") or "unknown"),
                 "reaction_family": str(linked.get("reaction_family") or "unclear"),
+                "legacy_reaction_family": family_assessment["legacy_reaction_family"],
+                "document_reaction_family": family_assessment["document_reaction_family"],
+                "document_reaction_family_confidence": family_assessment["document_reaction_family_confidence"],
+                "effective_reaction_family": family_assessment["effective_reaction_family"],
+                "effective_reaction_family_source": family_assessment["effective_reaction_family_source"],
+                "reaction_family_correction": family_assessment["reaction_family_correction"],
+                "document_target_reaction_family_conflict": family_assessment["document_target_reaction_family_conflict"],
                 "reaction_family_confidence": str(original.get("reaction_family_confidence") or "unclear"),
                 "reaction_family_scope": str(original.get("reaction_family_scope") or "fallback"),
                 "is_primary_admissible": provenance_primary,
@@ -687,6 +746,10 @@ def _unique_evidence_items(
                 "claim_ownership_primary_applicable": claim_ownership["claim_ownership_primary_applicable"],
                 "semantic_claim_type": claim_typing["semantic_claim_type"],
                 "semantic_claim_type_confidence": claim_typing["semantic_claim_type_confidence"],
+                "performance_evidence_strength": claim_typing["performance_evidence_strength"],
+                "performance_result_evidence": claim_typing["performance_result_evidence"],
+                "quantitative_performance_evidence": claim_typing["quantitative_performance_evidence"],
+                "validation_gates": _copy_value(original.get("validation_gates") or {}),
                 "ammonia_quantification_signal": claim_typing["ammonia_quantification_signal"],
                 "gas_purification_trap_signal": claim_typing["gas_purification_trap_signal"],
                 "local_off_target_reaction_conflict": off_target["local_off_target_reaction_conflict"],
@@ -745,7 +808,7 @@ def _context_sufficiency_v11(
         missing.append("performance_metric")
     positive_text = " ".join(
         [text, *[str(item.get("text") or "") for item in evidence_items if item.get("primary_support")]]
-    ).casefold()
+    )
     profile = get_reaction_profile(family)
     for gate in profile.get("product_admission_gates") or []:
         if not _family_gate_satisfied(str(gate), positive_text, target):
@@ -766,38 +829,7 @@ def _context_sufficiency_v11(
 
 
 def _family_gate_satisfied(gate: str, text: str, target: dict[str, Any]) -> bool:
-    gates = target.get("validation_gates") if isinstance(target.get("validation_gates"), dict) else {}
-    aliases = {"ammonia_quantification": "quantification_method", "isotope_15N": "isotope_15N"}
-    stored = gates.get(gate, gates.get(aliases.get(gate, "")))
-    if str(stored or "").casefold() in {"yes", "explicit", "pass", "present"}:
-        return True
-    if gate == "isotope_15N":
-        return bool(re.search(r"\b15\s*n(?:2)?\b|\bisotope(?:-label(?:l)?ed)?\b", text))
-    if gate == "blank_control":
-        return bool(re.search(r"\b(?:ar|argon|n2[- ]?free|electrolyte)\s+blank\b|\bblank control\b", text))
-    if gate == "NOx_control":
-        return bool(re.search(r"\bnox\s+(?:screening|control|impurit(?:y|ies)|analysis)\b|\bnitrate/nitrite impurity\b", text))
-    if gate == "contamination_control":
-        return bool(re.search(r"\b(?:ammonia )?contamination control\b|\bbackground (?:nh3|ammonia) control\b|\bimpurity screening\b", text))
-    if gate == "ammonia_quantification":
-        return has_ammonia_quantification_signal(text)
-    if gate == "operating_field_disclosure":
-        return bool(re.search(r"\b(?:current density|cell voltage|applied potential|runtime|flow rate)\b", text))
-    if gate == "nitrate_source_defined":
-        return bool(re.search(r"\bnitrate\s+(?:feed|source|reactant|concentration|electrolyte)\b|\b(?:feed|source|reactant)\s+nitrate\b", text))
-    if gate == "nitrite_source_defined":
-        return bool(re.search(r"\bnitrite\s+(?:feed|source|reactant|concentration|electrolyte)\b|\b(?:feed|source|reactant)\s+nitrite\b", text))
-    if gate == "NO_source_defined":
-        return bool(re.search(r"\bno\s+(?:gas|feed|source|reactant|concentration)\b|\b(?:feed|source)\s+no\b", text))
-    if gate == "nitrogen_balance":
-        return bool(re.search(r"\bnitrogen (?:mass )?balance\b|\bn balance\b", text))
-    if gate == "NOx_balance":
-        return bool(re.search(r"\bnox balance\b|\bno mass balance\b", text))
-    if gate == "competing_product_tracking":
-        return bool(re.search(r"\b(?:competing|by[- ]?product|nitrite|nitrate|n2)\b.{0,60}\b(?:tracking|quantif|balance|analysis)\b", text))
-    if gate == "nitrogen_source_disambiguation":
-        return bool(re.search(r"\bnitrogen source\b.{0,40}\b(?:defined|identified|n2|nitrate|nitrite|no)\b", text))
-    return False
+    return bool(detect_validation_gate(gate, text, target)["satisfied"])
 
 
 def _packet_local_assessment(
@@ -818,17 +850,24 @@ def _packet_local_assessment(
     document_genre = assess_document_genre(target)
     document_scope = assess_document_scope(target)
     claim_ownership = assess_claim_ownership(target, document_scope)
-    semantic_target = {**target, **document_genre, **document_scope, **claim_ownership}
+    family_assessment = assess_effective_reaction_family(target)
+    semantic_target = {
+        **target,
+        **document_genre,
+        **document_scope,
+        **claim_ownership,
+        **family_assessment,
+    }
     claim_typing = classify_claim_type(semantic_target)
     provenance_flags = _provenance_flags(target)
-    off_target = _off_target_reaction_assessment(target)
+    off_target = _off_target_reaction_assessment(semantic_target)
     preliminary_primary = bool(
         provenance_flags["is_primary_admissible"]
         and not provenance_flags["is_secondary_or_context"]
         and not provenance_flags["is_reject_or_low_trust"]
     )
     local_family = _local_reaction_family_assessment(
-        target,
+        semantic_target,
         evidence_items or [],
         [previous_paragraph, target_paragraph, next_paragraph],
         target_primary_admissible=preliminary_primary,
@@ -850,6 +889,8 @@ def _packet_local_assessment(
         hard_gate_failures.append("semantic_claim_type_confidence_not_high_or_medium")
     if claim_typing["semantic_claim_type"] not in PRIMARY_SEMANTIC_CLAIM_TYPES:
         hard_gate_failures.append("semantic_claim_type_not_primary_eligible")
+    if family_assessment["document_target_reaction_family_conflict"]:
+        hard_gate_failures.append("document_target_reaction_family_conflict")
     if off_target["local_off_target_reaction_conflict"]:
         hard_gate_failures.append("local_off_target_reaction_conflict")
     hard_gate_failures = _dedupe(hard_gate_failures)
@@ -858,6 +899,7 @@ def _packet_local_assessment(
         **document_genre,
         **document_scope,
         **claim_ownership,
+        **family_assessment,
         **claim_typing,
         **local_family,
         **off_target,
@@ -885,7 +927,7 @@ def _packet_local_assessment(
     if mapping_method == "unresolved" or mapping_confidence != "high" or not bool(target.get("offset_text_match")):
         missing.append("verified_target_mapping")
 
-    raw_family = str(target.get("reaction_family") or "").strip()
+    raw_family = str(family_assessment.get("effective_reaction_family") or "").strip()
     family = normalize_reaction_family(raw_family)
     family_token = re.sub(r"[^a-z0-9]+", "_", raw_family.casefold()).strip("_")
     explicit_unclear = family == "unclear" and family_token in {
@@ -897,7 +939,7 @@ def _packet_local_assessment(
         missing.append("reaction_family_conflict")
 
     paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
-    local_text = " ".join(str(item.get("text") or "") for item in paragraphs if item).casefold()
+    local_text = " ".join(str(item.get("text") or "") for item in paragraphs if item)
     if not target_paragraph or not str(target_paragraph.get("text") or "").strip() or section is None:
         missing.append("readable_local_context")
 
@@ -914,9 +956,9 @@ def _packet_local_assessment(
     elif claim_type == "process_claim":
         if not _process_signal(local_text):
             missing.append("process_signal")
-    else:
-        if not _contains_performance_metric(local_text, target):
-            missing.append("performance_signal")
+    elif claim_type == "performance_result_claim":
+        if not claim_typing["performance_result_evidence"]:
+            missing.append("quantitative_or_comparative_performance_result")
 
     missing = _dedupe(missing)
     sufficient = classification and not missing
@@ -941,7 +983,9 @@ def _local_reaction_family_assessment(
 ) -> dict[str, Any]:
     """Detect family disagreements only within the packet's local evidence window."""
 
-    target_family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
+    target_family = normalize_reaction_family(str(
+        target.get("effective_reaction_family") or target.get("reaction_family") or "unclear"
+    ))
     any_conflict = False
     primary_conflict = False
     conflict_span_ids: list[str] = []
@@ -1001,7 +1045,9 @@ def _local_reaction_family_assessment(
         paragraph_uid = str(item.get("paragraph_uid") or "")
         if paragraph_ids and paragraph_uid not in paragraph_ids:
             continue
-        item_family = normalize_reaction_family(str(item.get("reaction_family") or "unclear"))
+        item_family = normalize_reaction_family(str(
+            item.get("effective_reaction_family") or item.get("reaction_family") or "unclear"
+        ))
         explicit_mismatch = (
             item_family not in {"unclear", "mixed"}
             and item_family != target_family
@@ -1061,7 +1107,9 @@ def _provenance_flags(record: dict[str, Any]) -> dict[str, bool]:
 def _off_target_reaction_assessment(record: dict[str, Any]) -> dict[str, Any]:
     explicit = bool(record.get("local_off_target_reaction_conflict"))
     text = str(record.get("source_text") or record.get("target_text") or "")
-    family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    family = normalize_reaction_family(str(
+        record.get("effective_reaction_family") or record.get("reaction_family") or "unclear"
+    ))
     signals = [str(value) for value in record.get("local_off_target_reaction_conflict_signals") or []]
     hits = [name for name, pattern in _OFF_TARGET_REACTION_PATTERNS if pattern.search(text)]
     inferred = bool(family in AMMONIA_REACTION_FAMILIES and hits and not _AMMONIA_REACTION_SUBJECT.search(text))
@@ -1100,7 +1148,9 @@ def _family_gate_coverage(
 ) -> tuple[dict[str, dict[str, Any]], list[str], list[str], str]:
     """Return any-source or primary-admissible observational gate coverage."""
 
-    family = normalize_reaction_family(str(target.get("reaction_family") or "unclear"))
+    family = normalize_reaction_family(str(
+        target.get("effective_reaction_family") or target.get("reaction_family") or "unclear"
+    ))
     gates = [str(gate) for gate in get_reaction_profile(family).get("product_admission_gates") or []]
     coverage: dict[str, dict[str, Any]] = {}
     source_eligibility = "primary_admissible" if primary_admissible_only else "any_source"
@@ -1109,12 +1159,14 @@ def _family_gate_coverage(
             coverage[gate] = {
                 "status": "not_applicable", "supporting_span_ids": [],
                 "source_eligibility": source_eligibility,
+                "gate_detection_source": "", "gate_conflict": False,
+                "gate_detection_signals": [],
             }
         return coverage, [], [], "not_evaluated"
 
-    target_text = str(target.get("source_text") or "").casefold()
+    target_text = str(target.get("source_text") or target.get("target_text") or "")
     local_paragraphs = [previous_paragraph, target_paragraph, next_paragraph]
-    local_text = " ".join(str(item.get("text") or "") for item in local_paragraphs if item).casefold()
+    local_text = " ".join(str(item.get("text") or "") for item in local_paragraphs if item)
     target_id = _span_id(target)
     paragraph_ids = {str(item.get("paragraph_uid") or "") for item in local_paragraphs if item}
     eligible_items = [
@@ -1126,36 +1178,64 @@ def _family_gate_coverage(
     for gate in gates:
         status = "missing"
         supporting_ids: list[str] = []
-        if (not primary_admissible_only or target_primary_admissible) and _family_gate_satisfied(gate, target_text, target):
+        detection = {"gate_detection_source": "", "gate_conflict": False, "gate_detection_signals": []}
+        target_eligible = not primary_admissible_only or target_primary_admissible
+        target_detection = detect_validation_gate(
+            gate, target_text, target, text_source="target_text"
+        ) if target_eligible else {"satisfied": False, **detection}
+        if target_detection["gate_conflict"]:
+            status = "conflict_in_target"
+            supporting_ids = [target_id] if target_id else []
+            detection = target_detection
+        elif target_detection["satisfied"]:
             status = "observed_in_target"
             supporting_ids = [target_id] if target_id else []
-        elif not primary_admissible_only and _family_gate_satisfied(gate, local_text, {}):
-            status = "observed_in_local_context"
-            supporting_ids = _supporting_local_span_ids(gate, evidence_items, local_paragraphs)
+            detection = target_detection
         else:
-            local_ids = [
-                str(item.get("span_id") or "")
-                for item in eligible_items
-                if str(item.get("paragraph_uid") or "") in paragraph_ids
-                and _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
-            ]
-            if local_ids:
+            local_detection = detect_validation_gate(
+                gate, local_text, {}, text_source="local_text"
+            ) if not primary_admissible_only else {"satisfied": False, **detection}
+            if local_detection["satisfied"]:
                 status = "observed_in_local_context"
-                supporting_ids = _dedupe(local_ids)
-            linked_ids = [
-                str(item.get("span_id") or "")
-                for item in eligible_items
-                if _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
-            ]
-            if status == "missing" and linked_ids:
-                status = "observed_in_linked_evidence"
-                supporting_ids = _dedupe(linked_ids)
+                supporting_ids = _supporting_local_span_ids(gate, evidence_items, local_paragraphs)
+                detection = local_detection
+            else:
+                linked_detections = [
+                    (
+                        item,
+                        detect_validation_gate(
+                            gate,
+                            str(item.get("text") or ""),
+                            item,
+                            text_source="linked_primary_evidence",
+                        ),
+                    )
+                    for item in eligible_items
+                ]
+                linked_conflicts = [(item, result) for item, result in linked_detections if result["gate_conflict"]]
+                linked_matches = [(item, result) for item, result in linked_detections if result["satisfied"]]
+                if linked_conflicts:
+                    status = "conflict_in_linked_evidence"
+                    supporting_ids = _dedupe([str(item.get("span_id") or "") for item, _ in linked_conflicts])
+                    detection = linked_conflicts[0][1]
+                elif linked_matches:
+                    local_matches = [
+                        (item, result) for item, result in linked_matches
+                        if str(item.get("paragraph_uid") or "") in paragraph_ids
+                    ]
+                    selected = local_matches or linked_matches
+                    status = "observed_in_local_context" if local_matches else "observed_in_linked_evidence"
+                    supporting_ids = _dedupe([str(item.get("span_id") or "") for item, _ in selected])
+                    detection = selected[0][1]
         coverage[gate] = {
             "status": status,
             "supporting_span_ids": supporting_ids,
             "source_eligibility": source_eligibility,
+            "gate_detection_source": detection["gate_detection_source"],
+            "gate_conflict": detection["gate_conflict"],
+            "gate_detection_signals": detection["gate_detection_signals"],
         }
-        (observed if status != "missing" else missing).append(gate)
+        (observed if status.startswith("observed_in_") else missing).append(gate)
     status = "apparently_complete_in_packet" if not missing else "partial_observed"
     return coverage, observed, missing, status
 
@@ -1168,7 +1248,9 @@ def _supporting_local_span_ids(
         str(item.get("span_id") or "")
         for item in evidence_items
         if str(item.get("paragraph_uid") or "") in paragraph_ids
-        and _family_gate_satisfied(gate, str(item.get("text") or "").casefold(), {})
+        and detect_validation_gate(
+            gate, str(item.get("text") or ""), item, text_source="local_text"
+        )["satisfied"]
     ])
 
 
@@ -1209,6 +1291,7 @@ def _packet_primary_gate_target_eligible(packet: dict[str, Any]) -> bool:
         and str(packet.get("document_genre") or "") == PRIMARY_RESEARCH_GENRE
         and str(packet.get("span_claim_scope") or packet.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
         and str(packet.get("claim_ownership") or "") == "target_authors"
+        and not packet.get("document_target_reaction_family_conflict")
         and not packet.get("local_off_target_reaction_conflict")
     )
 
@@ -1223,6 +1306,7 @@ def _evidence_primary_gate_source_eligible(item: dict[str, Any]) -> bool:
         and str(item.get("document_genre") or "") == PRIMARY_RESEARCH_GENRE
         and str(item.get("span_claim_scope") or item.get("document_scope") or "") == TARGET_DOCUMENT_SCOPE
         and str(item.get("claim_ownership") or "") == "target_authors"
+        and not item.get("document_target_reaction_family_conflict")
         and not item.get("local_off_target_reaction_conflict")
     )
 
@@ -1270,6 +1354,8 @@ def summarize_context_packets(
     paper_gate_primary_status = Counter()
     document_genre_span_distribution = Counter()
     document_genres_by_id: dict[str, set[str]] = defaultdict(set)
+    document_reaction_families_by_id: dict[str, set[str]] = defaultdict(set)
+    effective_reaction_family_distribution = Counter()
     span_claim_scope_distribution = Counter()
     document_scope_distribution = Counter()
     claim_ownership_distribution = Counter()
@@ -1279,8 +1365,11 @@ def summarize_context_packets(
         paper_ids.add(str(packet.get("paper_id") or ""))
         missing_types = packet.get("context_missing_types") or []
         missing.update(missing_types)
-        family = normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+        family = normalize_reaction_family(str(
+            packet.get("effective_reaction_family") or packet.get("target_reaction_family") or "unclear"
+        ))
         family_missing[family].update(missing_types)
+        effective_reaction_family_distribution[family] += 1
         packet_local_status[str(packet.get("packet_local_context_status") or "not_reported")] += 1
         paper_gate_status[str(packet.get("paper_gate_coverage_status") or "not_reported")] += 1
         paper_gate_primary_status[str(
@@ -1291,6 +1380,9 @@ def summarize_context_packets(
         document_id = str(packet.get("document_id") or packet.get("paper_id") or "")
         if document_id:
             document_genres_by_id[document_id].add(document_genre)
+            document_reaction_families_by_id[document_id].add(normalize_reaction_family(str(
+                packet.get("document_reaction_family") or "unclear"
+            )))
         span_claim_scope_distribution[str(
             packet.get("span_claim_scope") or packet.get("document_scope") or "not_reported"
         )] += 1
@@ -1337,6 +1429,11 @@ def summarize_context_packets(
         for document_id, genres in document_genres_by_id.items()
         if genres
     }
+    document_reaction_family_by_id = {
+        document_id: (sorted(families)[0] if len(families) == 1 else "mixed")
+        for document_id, families in document_reaction_families_by_id.items()
+        if families
+    }
     conflict_packets = [packet for packet in packets if bool(packet.get("semantic_claim_type_conflict"))]
     conflict_matrix: dict[str, Counter[str]] = defaultdict(Counter)
     for packet in conflict_packets:
@@ -1345,7 +1442,9 @@ def summarize_context_packets(
         conflict_matrix[legacy][semantic] += 1
     conflict_by_genre = Counter(str(packet.get("document_genre") or "not_reported") for packet in conflict_packets)
     conflict_by_family = Counter(
-        normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+        normalize_reaction_family(str(
+            packet.get("effective_reaction_family") or packet.get("target_reaction_family") or "unclear"
+        ))
         for packet in conflict_packets
     )
     primary_packets = [packet for packet in packets if bool(packet.get("primary_semantic_eligibility"))]
@@ -1355,12 +1454,18 @@ def summarize_context_packets(
     )
     for claim_type in {
         *PRIMARY_SEMANTIC_CLAIM_TYPES,
-        "mechanism_claim", "protocol_claim", "secondary_context_claim",
+        "performance_context_claim", "mechanism_claim", "protocol_claim", "secondary_context_claim",
         "gas_purification_or_capture_claim", "untyped_claim",
     }:
         primary_by_semantic_type.setdefault(claim_type, 0)
     primary_by_family = Counter(
         normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+        for packet in primary_packets
+    )
+    primary_by_effective_family = Counter(
+        normalize_reaction_family(str(
+            packet.get("effective_reaction_family") or packet.get("target_reaction_family") or "unclear"
+        ))
         for packet in primary_packets
     )
     primary_by_provenance = Counter(
@@ -1403,6 +1508,14 @@ def summarize_context_packets(
         "paper_gate_primary_admissible_not_evaluated_count": paper_gate_primary_status["not_evaluated"],
         "paper_gate_primary_admissible_status_distribution": dict(sorted(paper_gate_primary_status.items())),
         "document_genre_distribution": dict(sorted(Counter(document_genre_by_id.values()).items())),
+        "document_reaction_family_distribution": dict(sorted(
+            Counter(document_reaction_family_by_id.values()).items()
+        )),
+        "effective_reaction_family_distribution": dict(sorted(effective_reaction_family_distribution.items())),
+        "reaction_family_correction_count": sum(bool(packet.get("reaction_family_correction")) for packet in packets),
+        "document_target_family_conflict_count": sum(
+            bool(packet.get("document_target_reaction_family_conflict")) for packet in packets
+        ),
         "document_genre_inconsistent_document_count": document_genre_inconsistent_document_count,
         "document_genre_span_distribution": dict(sorted(document_genre_span_distribution.items())),
         "span_claim_scope_distribution": dict(sorted(span_claim_scope_distribution.items())),
@@ -1427,6 +1540,8 @@ def summarize_context_packets(
         "primary_semantic_eligible_by_document_genre": dict(sorted(primary_by_genre.items())),
         "primary_semantic_eligible_by_semantic_claim_type": dict(sorted(primary_by_semantic_type.items())),
         "primary_semantic_eligible_by_reaction_family": dict(sorted(primary_by_family.items())),
+        "primary_eligible_by_effective_family": dict(sorted(primary_by_effective_family.items())),
+        "primary_eligible_unclear_family_count": primary_by_effective_family["unclear"],
         "primary_semantic_eligible_by_provenance_type": dict(sorted(primary_by_provenance.items())),
         "primary_semantic_eligible_by_ownership_confidence": dict(
             sorted(primary_by_ownership_confidence.items())
@@ -1502,6 +1617,63 @@ def summarize_context_packets(
         ),
         "enzymatic_quantification_count": sum(
             bool(packet.get("enzymatic_quantification_signal")) for packet in packets
+        ),
+        "performance_result_claim_count": semantic_claim_type_distribution["performance_result_claim"],
+        "performance_context_claim_count": semantic_claim_type_distribution["performance_context_claim"],
+        "quantitative_performance_primary_count": sum(
+            bool(packet.get("primary_semantic_eligibility"))
+            and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+            and bool(packet.get("quantitative_performance_evidence"))
+            for packet in packets
+        ),
+        "performance_context_quantitative_primary_count": sum(
+            bool(packet.get("primary_semantic_eligibility"))
+            and str(packet.get("semantic_claim_type") or "") == "performance_context_claim"
+            and bool(packet.get("quantitative_performance_evidence"))
+            for packet in packets
+        ),
+        "primary_performance_without_result_evidence_count": sum(
+            bool(packet.get("primary_semantic_eligibility"))
+            and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+            and not bool(packet.get("performance_result_evidence"))
+            for packet in packets
+        ),
+        "FeS_false_performance_count": sum(
+            is_fe_material_only_false_performance({
+                **packet,
+                "source_text": packet.get("target_text") or "",
+            })
+            and str(packet.get("semantic_claim_type") or "") == "performance_result_claim"
+            for packet in packets
+        ),
+        "generic_isotope_false_15N_count": sum(
+            has_generic_isotope_without_15n(str(packet.get("target_text") or ""))
+            and str(((packet.get("family_gate_coverage_any_source") or {}).get("isotope_15N") or {}).get("status") or "")
+            == "observed_in_target"
+            for packet in packets
+        ),
+        "NO_negation_false_source_count": sum(
+            has_negated_no_source(str(packet.get("target_text") or ""))
+            and str(((packet.get("family_gate_coverage_any_source") or {}).get("NO_source_defined") or {}).get("status") or "")
+            == "observed_in_target"
+            for packet in packets
+        ),
+        "NOx_balance_negation_false_positive_count": sum(
+            has_negated_nox_balance(str(packet.get("target_text") or ""))
+            and str(((packet.get("family_gate_coverage_any_source") or {}).get("NOx_balance") or {}).get("status") or "")
+            == "observed_in_target"
+            for packet in packets
+        ),
+        "conflicted_gate_counted_as_observed_count": sum(
+            bool(gate_result.get("gate_conflict"))
+            and str(gate_result.get("status") or "").startswith("observed_in_")
+            for packet in packets
+            for coverage_name in (
+                "family_gate_coverage_any_source",
+                "family_gate_coverage_primary_admissible",
+            )
+            for gate_result in (packet.get(coverage_name) or {}).values()
+            if isinstance(gate_result, dict)
         ),
         "unique_evidence_total": unique_total, "role_assignment_total": role_total,
         "mean_unique_evidence_per_packet": round(statistics.mean(unique_counts), 4) if unique_counts else 0.0,
@@ -1712,7 +1884,15 @@ def _render_report(summary: dict[str, Any]) -> str:
         "external_attribution_removed_count", "target_primary_gate_complete_count",
         "any_source_gate_complete_count", "quantification_signal_count", "gas_trap_only_count",
         "mass_spec_quantification_count", "enzymatic_quantification_count",
+        "performance_result_claim_count", "performance_context_claim_count",
+        "quantitative_performance_primary_count", "FeS_false_performance_count",
+        "performance_context_quantitative_primary_count",
+        "primary_performance_without_result_evidence_count",
+        "generic_isotope_false_15N_count", "NO_negation_false_source_count",
+        "NOx_balance_negation_false_positive_count", "conflicted_gate_counted_as_observed_count",
         "document_genre_distribution", "document_genre_span_distribution", "span_claim_scope_distribution",
+        "document_reaction_family_distribution", "effective_reaction_family_distribution",
+        "reaction_family_correction_count", "document_target_family_conflict_count",
         "claim_ownership_distribution", "semantic_claim_type_distribution",
         "document_genre_inconsistent_document_count", "semantic_claim_type_conflict_matrix",
         "semantic_claim_type_conflict_by_document_genre",
@@ -1722,6 +1902,7 @@ def _render_report(summary: dict[str, Any]) -> str:
         "primary_semantic_eligible_by_document_genre",
         "primary_semantic_eligible_by_semantic_claim_type",
         "primary_semantic_eligible_by_reaction_family",
+        "primary_eligible_by_effective_family", "primary_eligible_unclear_family_count",
         "primary_semantic_eligible_by_provenance_type",
         "primary_semantic_eligible_by_ownership_confidence",
         "primary_semantic_eligible_by_semantic_type_confidence",
@@ -1741,7 +1922,9 @@ def _render_report(summary: dict[str, Any]) -> str:
 
 
 def _sample_category(packet: dict[str, Any], category: str) -> bool:
-    family = normalize_reaction_family(str(packet.get("target_reaction_family") or "unclear"))
+    family = normalize_reaction_family(str(
+        packet.get("effective_reaction_family") or packet.get("target_reaction_family") or "unclear"
+    ))
     if category in {"eNRR", "LiNRR", "NO3RR"}: return family == category
     if category == "NO2RR_or_NORR": return family in {"NO2RR", "NORR"}
     if category == "mixed_or_unclear": return family in {"mixed", "unclear"}
