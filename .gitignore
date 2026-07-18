@@ -53,6 +53,8 @@ data/context_packets/*
 !data/context_packets/.gitkeep
 data/source_ledgers/*
 !data/source_ledgers/.gitkeep
+data/cleanroom/*
+!data/cleanroom/.gitkeep
 models/*
 !models/.gitkeep
 
