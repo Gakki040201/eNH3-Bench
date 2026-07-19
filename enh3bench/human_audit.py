@@ -9,6 +9,18 @@ import re
 from pathlib import Path
 from typing import Any
 
+from enh3bench.audit_routing import (
+    LEGACY_ROUTING_PROFILE,
+    MAX_REFERENCE_SPANS_PER_PAPER_FOR_AUDIT,
+    REFERENCE_AUDIT_HASH_NAMESPACE,
+    REFERENCE_AUDIT_SAMPLE_RATE,
+    ROUTING_PROFILES,
+    SECONDARY_HARDENING_ROUTING_PROFILE,
+    apply_reference_audit_sampling,
+    apply_secondary_evidence_semantics,
+    is_stable_reference,
+    reference_conflict_reasons,
+)
 from enh3bench.audit_schema import (
     AUDIT_SCHEMA_VERSION,
     HUMAN_FIELDS,
@@ -86,6 +98,15 @@ AUDIT_FIELD_ORDER = [
     *HUMAN_FIELDS,
 ]
 
+ROUTING_FIELD_ORDER = [
+    "routing_profile",
+    "auto_secondary_reference",
+    "reference_sampled_for_audit",
+    "reference_conflict_review",
+    "reference_conflict_reasons",
+]
+ROUTING_ONLY_FIELDS = set(ROUTING_FIELD_ORDER)
+
 CRITICAL_RULE_REVIEW_FLAGS = {
     "text_class_provenance_conflict_primary_vs_low_trust",
     "unsupported_or_missing_source_text",
@@ -99,6 +120,10 @@ HIGH_RULE_REVIEW_FLAGS = {
     "rule_boundary_potentially_overclaims_provenance",
     "high_priority_contamination_or_source_attribution_gap",
     "trusted_boundary_capped_by_provenance",
+    "reference_list_unconfirmed",
+    "reference_rule_llm_disagreement",
+    "reference_llm_verification_error",
+    "manual_human_review_required",
 }
 
 MEDIUM_RULE_REVIEW_FLAGS = {
@@ -164,9 +189,16 @@ def merge_audit_sources(
     rule_records: list[dict[str, Any]],
     hidden_tax_records: list[dict[str, Any]] | None = None,
     llm_records: list[dict[str, Any]] | None = None,
+    *,
+    routing_profile: str = LEGACY_ROUTING_PROFILE,
+    reference_audit_sample_rate: float = REFERENCE_AUDIT_SAMPLE_RATE,
+    max_reference_spans_per_paper_for_audit: int = MAX_REFERENCE_SPANS_PER_PAPER_FOR_AUDIT,
+    reference_audit_seed: str = REFERENCE_AUDIT_HASH_NAMESPACE,
 ) -> list[dict[str, Any]]:
     """Merge rule, hidden-tax, and LLM rows into human-audit rows."""
 
+    routing_profile = _validate_routing_profile(routing_profile)
+    secondary_hardening = routing_profile == SECONDARY_HARDENING_ROUTING_PROFILE
     hidden_by_key = _index_by_evidence_or_span(hidden_tax_records or [])
     llm_by_key = _index_by_evidence_or_span(llm_records or [])
     merged_records: list[dict[str, Any]] = []
@@ -194,19 +226,31 @@ def merge_audit_sources(
 
         _attach_llm_fields(record, llm)
         record["raw_rule_record"] = _compact_json(rule)
+        if secondary_hardening:
+            record = apply_secondary_evidence_semantics(record)
+            record["routing_profile"] = routing_profile
 
         for field, value in empty_human_fields_template().items():
             record.setdefault(field, value)
 
-        score = score_audit_priority(record)
+        score = score_audit_priority(record, routing_profile=routing_profile)
         record.update(score)
-        _apply_review_requirements(record)
+        _apply_review_requirements(record, routing_profile=routing_profile)
         merged_records.append(record)
 
+    if secondary_hardening:
+        return apply_reference_audit_sampling(
+            merged_records,
+            seed=reference_audit_seed,
+            sample_rate=reference_audit_sample_rate,
+            max_per_paper=max_reference_spans_per_paper_for_audit,
+        )
     return merged_records
 
 
-def derive_rule_review_requirement(record: dict[str, Any]) -> dict[str, Any]:
+def derive_rule_review_requirement(
+    record: dict[str, Any], *, routing_profile: str = LEGACY_ROUTING_PROFILE
+) -> dict[str, Any]:
     """Derive rule-only human-review requirements from provenance and claim signals."""
 
     flags: list[str] = []
@@ -221,6 +265,42 @@ def derive_rule_review_requirement(record: dict[str, Any]) -> dict[str, Any]:
     claim_type = str(record.get("claim_type") or "")
     low_trust = _record_has_low_trust_provenance(record, provenance_type)
     primary_claim = _is_primary_claim_context(record, provenance_type)
+
+    secondary_hardening = _validate_routing_profile(routing_profile) == SECONDARY_HARDENING_ROUTING_PROFILE
+
+    if secondary_hardening and is_stable_reference(record):
+        return {
+            "rule_needs_human_review": False,
+            "rule_review_priority_score": 0,
+            "rule_review_trigger_flags": [],
+            "review_priority_band": "none",
+            "review_trigger_flags": [],
+        }
+
+    if secondary_hardening and provenance_type == "reference":
+        conflict_reasons = reference_conflict_reasons(record)
+        if "text_class_provenance_conflict" in conflict_reasons:
+            flags.append("text_class_provenance_conflict_primary_vs_low_trust")
+        if "reaction_family_conflict" in conflict_reasons:
+            flags.append("reaction_family_conflict")
+        if "rule_llm_boundary_disagreement" in conflict_reasons:
+            flags.append("reference_rule_llm_disagreement")
+        if "llm_verification_error" in conflict_reasons:
+            flags.append("reference_llm_verification_error")
+        if "manual_human_review_required" in conflict_reasons:
+            flags.append("manual_human_review_required")
+        if "reference_list_unconfirmed" in conflict_reasons:
+            flags.append("reference_list_unconfirmed")
+        flags = _dedupe(flags)
+        score = _rule_review_score(flags)
+        band = derive_review_priority_band(score, flags)
+        return {
+            "rule_needs_human_review": True,
+            "rule_review_priority_score": score,
+            "rule_review_trigger_flags": flags,
+            "review_priority_band": band,
+            "review_trigger_flags": flags,
+        }
 
     if (
         (_truthy(record.get("text_class_provenance_conflict")) or "text_class_provenance_conflict" in risk_flags)
@@ -310,7 +390,7 @@ def merge_review_requirements(rule_review: dict[str, Any], llm_review: dict[str,
     }
 
 
-def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
+def score_audit_priority(record: dict[str, Any], *, routing_profile: str = LEGACY_ROUTING_PROFILE) -> dict[str, Any]:
     """Score a record for human-review priority."""
 
     score = 0
@@ -326,6 +406,18 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
     provenance_type = normalize_provenance_type(str(record.get("provenance_type") or "unknown"))
     boundary = str(record.get("maximum_supported_boundary") or "")
     status = str(record.get("admissibility_status") or "")
+
+    secondary_hardening = _validate_routing_profile(routing_profile) == SECONDARY_HARDENING_ROUTING_PROFILE
+
+    if secondary_hardening and is_stable_reference(record):
+        return {"audit_priority_score": 0, "audit_priority_reasons": []}
+
+    secondary_validation = secondary_hardening and (status in {"context_only_caption", "secondary_only"} or provenance_type in {
+        "reference",
+        "figure_caption",
+        "scheme_caption",
+        "review_table",
+    })
 
     has_llm_signal = bool(record.get("llm_model") or record.get("llm_parse_error") or _list_values(record.get("llm_audit_flags")))
     if _truthy(record.get("llm_needs_human_review")) or (
@@ -354,11 +446,11 @@ def score_audit_priority(record: dict[str, Any]) -> dict[str, Any]:
         add(2, "context_only_caption")
     if _caption_has_support_hint(record, provenance_type):
         add(4, "caption_has_support_hint_requires_body_pairing")
-    if _n2_to_nh3_claim(record) and not _gate_explicit(record, "isotope_15N"):
+    if not secondary_validation and _n2_to_nh3_claim(record) and not _gate_explicit(record, "isotope_15N"):
         add(4, "missing_15N_for_N2_to_NH3_claim")
-    if not _gate_explicit(record, "blank_control"):
+    if not secondary_validation and not _gate_explicit(record, "blank_control"):
         add(2, "missing_blank_control")
-    if not _gate_explicit(record, "nox_control"):
+    if not secondary_validation and not _gate_explicit(record, "nox_control"):
         add(2, "missing_NOx_control")
     if boundary == "process_partial" or str(record.get("claim_type") or "") == "process_claim":
         add(2, "process_partial_claim")
@@ -380,17 +472,25 @@ def export_human_audit_sheet(
     output_dir: str | Path = "data/human_audit",
     top_n: int | None = None,
     priority_only: bool = False,
+    routing_profile: str = LEGACY_ROUTING_PROFILE,
 ) -> dict[str, Any]:
     """Write human-editable CSV and full JSONL audit sheets."""
 
+    routing_profile = _validate_routing_profile(routing_profile)
+    secondary_hardening = routing_profile == SECONDARY_HARDENING_ROUTING_PROFILE
     run_dir = Path(output_dir) / run_name
     output_records = []
     for record in records:
         row = migrate_audit_record(record)
+        if secondary_hardening:
+            row = apply_secondary_evidence_semantics(row)
+            row["routing_profile"] = routing_profile
+        else:
+            row = _without_routing_fields(row)
         row["run_name"] = str(row.get("run_name") or run_name)
         if "audit_priority_score" not in row:
-            row.update(score_audit_priority(row))
-        _apply_review_requirements(row)
+            row.update(score_audit_priority(row, routing_profile=routing_profile))
+        _apply_review_requirements(row, routing_profile=routing_profile)
         output_records.append(row)
 
     output_records.sort(key=lambda item: (-int(item.get("audit_priority_score") or 0), str(item.get("audit_id") or "")))
@@ -406,10 +506,10 @@ def export_human_audit_sheet(
     jsonl_path = run_dir / "human_audit_sheet.jsonl"
     csv_path = run_dir / "human_audit_sheet.csv"
     _write_jsonl(output_records, jsonl_path)
-    _write_csv(output_records, csv_path, truncate_source_text=True)
+    _write_csv(output_records, csv_path, truncate_source_text=True, routing_profile=routing_profile)
 
     priority_count = sum(1 for record in output_records if int(record.get("audit_priority_score") or 0) > 0)
-    return {
+    result = {
         "run_name": run_name,
         "count": len(output_records),
         "priority_records": priority_count,
@@ -420,6 +520,10 @@ def export_human_audit_sheet(
         "jsonl": str(jsonl_path),
         "csv": str(csv_path),
     }
+    if secondary_hardening:
+        result["routing_profile"] = routing_profile
+        result.update(_secondary_audit_counts(output_records))
+    return result
 
 
 def migrate_audit_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -517,15 +621,20 @@ def export_audit_report(
     records: list[dict[str, Any]],
     run_name: str,
     output_dir: str | Path = "data/reports",
+    routing_profile: str = LEGACY_ROUTING_PROFILE,
 ) -> str:
     """Write a Phase D human-audit Markdown report."""
 
+    routing_profile = _validate_routing_profile(routing_profile)
+    secondary_hardening = routing_profile == SECONDARY_HARDENING_ROUTING_PROFILE
     prepared_records: list[dict[str, Any]] = []
     for original in records:
         record = migrate_audit_record(original)
+        if secondary_hardening:
+            record = apply_secondary_evidence_semantics(record)
         if "audit_priority_score" not in record:
-            record.update(score_audit_priority(record))
-        _apply_review_requirements(record)
+            record.update(score_audit_priority(record, routing_profile=routing_profile))
+        _apply_review_requirements(record, routing_profile=routing_profile)
         prepared_records.append(record)
     records = prepared_records
 
@@ -536,6 +645,24 @@ def export_audit_report(
     reviewed_file = Path("data/human_audit") / run_name / "reviewed_audit_records.jsonl"
     reviewed_file_count = len(load_jsonl(reviewed_file)) if reviewed_file.exists() else 0
     total_reviewed = len(reviewed_records) or reviewed_file_count
+    secondary_counts = _secondary_audit_counts(records)
+    routing_lines = [f"- routing_profile: {routing_profile}"]
+    if secondary_hardening:
+        routing_lines.extend(
+            [
+                f"- stable_reference_auto_secondary_count: {secondary_counts['stable_reference_auto_secondary_count']}",
+                f"- reference_sampled_for_audit_count: {secondary_counts['reference_sampled_for_audit_count']}",
+                f"- reference_conflict_review_count: {secondary_counts['reference_conflict_review_count']}",
+                f"- caption_context_only_count: {secondary_counts['caption_context_only_count']}",
+                f"- review_table_secondary_count: {secondary_counts['review_table_secondary_count']}",
+                f"- secondary_validation_gate_count: {secondary_counts['secondary_validation_gate_count']}",
+                "",
+                (
+                    "Reference, caption, and review-table spans remain in the dataset as secondary/context or negative examples. "
+                    "They are no longer mechanically labeled as missing experimental controls; conflict cases still enter human review."
+                ),
+            ]
+        )
 
     lines = [
         f"# Human Audit Report: {run_name}",
@@ -567,6 +694,7 @@ def export_audit_report(
         f"- Provenance-constrained: {sum(1 for record in records if _truthy(record.get('provenance_constrained')))}",
         f"- Low-trust provenance: {sum(1 for record in records if _truthy(record.get('is_reject_or_low_trust')))}",
         f"- Captions with support hints: {sum(1 for record in records if _caption_has_support_hint(record, str(record.get('provenance_type') or '')))}",
+        *routing_lines,
         "",
         "## 5. Caption support hints",
         "",
@@ -702,9 +830,14 @@ def _write_jsonl(records: list[dict[str, Any]], output_path: Path) -> None:
             handle.write("\n")
 
 
-def _write_csv(records: list[dict[str, Any]], output_path: Path, truncate_source_text: bool) -> None:
+def _write_csv(
+    records: list[dict[str, Any]],
+    output_path: Path,
+    truncate_source_text: bool,
+    routing_profile: str = LEGACY_ROUTING_PROFILE,
+) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = _fieldnames(records)
+    fieldnames = _fieldnames(records, routing_profile=routing_profile)
     with output_path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
@@ -717,11 +850,18 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return [dict(row) for row in csv.DictReader(handle)]
 
 
-def _fieldnames(records: list[dict[str, Any]]) -> list[str]:
+def _fieldnames(records: list[dict[str, Any]], *, routing_profile: str = LEGACY_ROUTING_PROFILE) -> list[str]:
+    routing_profile = _validate_routing_profile(routing_profile)
     names: set[str] = set(AUDIT_FIELD_ORDER)
     for record in records:
         names.update(record)
-    ordered = [field for field in AUDIT_FIELD_ORDER if field in names]
+    if routing_profile == LEGACY_ROUTING_PROFILE:
+        names.difference_update(ROUTING_ONLY_FIELDS)
+        preferred_order = AUDIT_FIELD_ORDER
+    else:
+        names.update(ROUTING_FIELD_ORDER)
+        preferred_order = [*AUDIT_FIELD_ORDER, *ROUTING_FIELD_ORDER]
+    ordered = [field for field in preferred_order if field in names]
     ordered.extend(sorted(name for name in names if name not in set(ordered)))
     return ordered
 
@@ -807,10 +947,21 @@ def _caption_has_support_hint(record: dict[str, Any], provenance_type: str) -> b
     return normalized in {"figure_caption", "scheme_caption"} and hint not in {"", "unsupported_or_secondary"}
 
 
-def _apply_review_requirements(record: dict[str, Any]) -> None:
-    rule_review = derive_rule_review_requirement(record)
+def _apply_review_requirements(record: dict[str, Any], *, routing_profile: str = LEGACY_ROUTING_PROFILE) -> None:
+    routing_profile = _validate_routing_profile(routing_profile)
+    rule_review = derive_rule_review_requirement(record, routing_profile=routing_profile)
     rule_review["audit_priority_score"] = int(record.get("audit_priority_score") or 0)
     record.update(merge_review_requirements(rule_review, _derive_llm_review_requirement(record)))
+    if (
+        routing_profile == SECONDARY_HARDENING_ROUTING_PROFILE
+        and _truthy(record.get("reference_sampled_for_audit"))
+        and is_stable_reference(record)
+    ):
+        record["rule_needs_human_review"] = False
+        record["overall_needs_human_review"] = True
+        record["needs_human_review"] = True
+        record["review_priority_band"] = "medium"
+        record["review_trigger_flags"] = _dedupe([*_list_values(record.get("review_trigger_flags")), "reference_audit_sample"])
 
 
 def _derive_llm_review_requirement(record: dict[str, Any]) -> dict[str, Any]:
@@ -922,6 +1073,49 @@ def _caption_hint_counter(records: list[dict[str, Any]]) -> Counter[str]:
             continue
         counter[str(record.get("support_hint_boundary") or "unsupported_or_secondary")] += 1
     return counter
+
+
+def _secondary_audit_counts(records: list[dict[str, Any]]) -> dict[str, int]:
+    return {
+        "stable_reference_auto_secondary_count": sum(
+            1 for record in records if _truthy(record.get("auto_secondary_reference"))
+        ),
+        "reference_sampled_for_audit_count": sum(
+            1 for record in records if _truthy(record.get("reference_sampled_for_audit"))
+        ),
+        "reference_conflict_review_count": sum(
+            1 for record in records if _truthy(record.get("reference_conflict_review"))
+        ),
+        "caption_context_only_count": sum(
+            1 for record in records if str(record.get("admissibility_status") or "") == "context_only_caption"
+        ),
+        "review_table_secondary_count": sum(
+            1
+            for record in records
+            if (
+                normalize_provenance_type(str(record.get("provenance_type") or "unknown")) == "review_table"
+                or str(record.get("text_class") or "") == "review_table"
+            )
+            and str(record.get("admissibility_status") or "") == "secondary_only"
+        ),
+        "secondary_validation_gate_count": sum(
+            1
+            for record in records
+            for value in (record.get("validation_gates") or {}).values()
+            if str(value) == "secondary_only"
+        ),
+    }
+
+
+def _validate_routing_profile(routing_profile: str) -> str:
+    profile = str(routing_profile or LEGACY_ROUTING_PROFILE).strip()
+    if profile not in ROUTING_PROFILES:
+        raise ValueError(f"unsupported routing_profile: {routing_profile}")
+    return profile
+
+
+def _without_routing_fields(record: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in record.items() if key not in ROUTING_ONLY_FIELDS}
 
 
 def _list_counter(records: list[dict[str, Any]], key: str) -> Counter[str]:

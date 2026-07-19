@@ -21,6 +21,8 @@ SECTION_LABELS = {
     "unknown",
 }
 
+INHERITABLE_SECTION_LABELS = SECTION_LABELS - {"title", "abstract", "unknown"}
+
 
 def normalize_heading(text: str) -> str:
     """Normalize a section heading while preserving human-readable words."""
@@ -97,7 +99,7 @@ def extract_markdown_section_blocks(markdown_text: str) -> list[dict[str, Any]]:
     source = str(markdown_text or "")
     headings = _markdown_headings(source)
     if not headings:
-        return [
+        return apply_section_type_inheritance([
             {
                 "section_heading": "",
                 "section_path": [],
@@ -108,7 +110,7 @@ def extract_markdown_section_blocks(markdown_text: str) -> list[dict[str, Any]]:
                 "section_confidence": "low",
                 "section_signals": ["no_markdown_heading"],
             }
-        ]
+        ])
 
     blocks: list[dict[str, Any]] = []
     if headings[0]["start"] > 0:
@@ -151,7 +153,84 @@ def extract_markdown_section_blocks(markdown_text: str) -> list[dict[str, Any]]:
                 "section_signals": signals,
             }
         )
-    return blocks
+    return apply_section_type_inheritance(blocks)
+
+
+def apply_section_type_inheritance(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Layer direct and effective section types using only the heading hierarchy.
+
+    Unknown child headings may inherit from the nearest recognized semantic
+    ancestor.  Same-level headings, unheaded preambles, and broken Markdown
+    level jumps never inherit.  Title and abstract are deliberately excluded
+    from inheritance so that front matter cannot leak into the main body.
+    """
+
+    layered: list[dict[str, Any]] = []
+    heading_stack: list[int] = []
+    semantic_origin: dict[int, tuple[int, int]] = {}
+    for source_index, original in enumerate(blocks):
+        block = dict(original)
+        heading = str(block.get("section_heading") or block.get("raw_heading") or "")
+        level = int(block.get("section_level") or 0)
+        direct = str(block.get("direct_section_type") or block.get("section_type") or "unknown")
+        if direct not in SECTION_LABELS:
+            direct = classify_section_heading(heading)
+        direct_confidence = str(
+            block.get("direct_section_type_confidence")
+            or block.get("section_confidence")
+            or _section_block_confidence(direct, _list_values(block.get("section_signals")))
+        )
+        warnings = _list_values(block.get("section_inheritance_warnings"))
+
+        while heading_stack and int(layered[heading_stack[-1]].get("section_level") or 0) >= level:
+            heading_stack.pop()
+        parent_index = heading_stack[-1] if heading and level > 0 and heading_stack else None
+
+        inherited = None
+        inherited_from_index = None
+        distance = None
+        effective = direct
+        effective_confidence = direct_confidence
+        if direct == "unknown" and heading and level > 0 and parent_index is not None:
+            parent = layered[parent_index]
+            parent_level = int(parent.get("section_level") or 0)
+            if level != parent_level + 1:
+                warnings.append("section_inheritance_unresolved")
+            else:
+                parent_effective = str(parent.get("effective_section_type") or "unknown")
+                if parent_effective in INHERITABLE_SECTION_LABELS:
+                    origin_index, parent_distance = semantic_origin.get(parent_index, (parent_index, 0))
+                    inherited = parent_effective
+                    inherited_from_index = origin_index
+                    distance = parent_distance + 1
+                    effective = inherited
+                    effective_confidence = "medium" if distance == 1 else "low"
+
+        block.update(
+            {
+                "raw_heading": heading,
+                "normalized_heading": normalize_heading(heading),
+                "direct_section_type": direct,
+                "direct_section_type_confidence": direct_confidence,
+                "inherited_section_type": inherited,
+                "inherited_from_source_section_index": inherited_from_index,
+                "inheritance_distance": distance,
+                "effective_section_type": effective,
+                "effective_section_type_confidence": effective_confidence,
+                "section_type": effective,
+                "section_inheritance_warnings": _dedupe(warnings),
+            }
+        )
+        layered.append(block)
+
+        current_index = len(layered) - 1
+        if direct in INHERITABLE_SECTION_LABELS:
+            semantic_origin[current_index] = (current_index, 0)
+        elif effective in INHERITABLE_SECTION_LABELS and inherited_from_index is not None:
+            semantic_origin[current_index] = (inherited_from_index, int(distance or 0))
+        if heading and level > 0:
+            heading_stack.append(current_index)
+    return layered
 
 
 def attach_section_context_to_records(
@@ -306,7 +385,7 @@ def _explicit_record_section_context(record: dict[str, Any]) -> dict[str, Any] |
     }
     context["section_confidence"], rationale = infer_section_confidence(context)
     context["section_confidence_rationale"] = rationale
-    return context
+    return apply_section_type_inheritance([context])[0]
 
 
 def _markdown_record_section_context(
@@ -393,9 +472,19 @@ def _section_level(record: dict[str, Any], path: list[str]) -> int:
 def _copy_section_context(target: dict[str, Any], context: dict[str, Any]) -> None:
     for key in (
         "section_heading",
+        "raw_heading",
+        "normalized_heading",
         "section_path",
         "section_level",
+        "direct_section_type",
+        "direct_section_type_confidence",
+        "inherited_section_type",
+        "inherited_from_source_section_index",
+        "inheritance_distance",
+        "effective_section_type",
+        "effective_section_type_confidence",
         "section_type",
+        "section_inheritance_warnings",
         "section_start_offset",
         "section_end_offset",
         "section_confidence",

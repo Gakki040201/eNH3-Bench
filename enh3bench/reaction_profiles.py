@@ -380,6 +380,148 @@ def infer_reaction_family_detailed(
     return _reaction_result("unclear", "unclear", scores, signals or ["no_reaction_family_signal"], "fallback", False)
 
 
+def build_document_reaction_family_context(
+    document: dict[str, Any],
+    records: list[dict[str, Any]],
+    sections: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Aggregate document-level family inputs without copying full document text."""
+
+    document_id = str(document.get("document_id") or document.get("paper_id") or "")
+    title = next((_first_text(record, "paper_title", "title") for record in records
+                  if _first_text(record, "paper_title", "title")), "")
+    if not title:
+        title = document_id.replace("_", " ")
+    abstract = next((_first_text(record, "paper_abstract", "abstract") for record in records
+                     if _first_text(record, "paper_abstract", "abstract")), "")
+    explicit_span_signals: list[dict[str, str]] = []
+    for record in records:
+        family = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+        if (
+            family not in {"unclear", "mixed"}
+            and str(record.get("reaction_family_confidence") or "") == "high"
+            and str(record.get("reaction_family_scope") or "") == "explicit_span"
+        ):
+            explicit_span_signals.append({
+                "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
+                "reaction_family": family,
+            })
+    return {
+        "document_id": document_id,
+        "paper_title": title,
+        "paper_abstract": abstract,
+        "document_headings": [str(section.get("heading_text") or "") for section in sections],
+        "article_type": next((_first_text(record, "article_type", "paper_article_type") for record in records
+                              if _first_text(record, "article_type", "paper_article_type")), ""),
+        "explicit_high_confidence_span_family_signals": explicit_span_signals,
+    }
+
+
+def assess_document_reaction_family(record: dict[str, Any]) -> dict[str, Any]:
+    """Infer one document family, prioritizing title/abstract over span voting."""
+
+    explicit = normalize_reaction_family(str(record.get("document_reaction_family") or "unclear"))
+    if explicit != "unclear":
+        return _document_family_result(
+            explicit,
+            str(record.get("document_reaction_family_confidence") or "high"),
+            _list_values(record.get("document_reaction_family_signals")) or ["explicit_document_reaction_family"],
+            bool(record.get("document_reaction_family_conflict")),
+        )
+
+    title = _first_text(record, "paper_title", "title", "document_title")
+    abstract = _first_text(record, "paper_abstract", "abstract", "document_abstract")
+    headings_value = record.get("document_headings") or record.get("headings") or []
+    headings = " ".join(str(value) for value in headings_value) if isinstance(headings_value, list) else str(headings_value)
+    title_family = _strong_document_family(title)
+    abstract_family = _strong_document_family(abstract)
+    heading_family = _strong_document_family(headings)
+    span_families = {
+        normalize_reaction_family(str(item.get("reaction_family") or "unclear"))
+        for item in record.get("explicit_high_confidence_span_family_signals") or []
+        if isinstance(item, dict)
+    } - {"unclear"}
+
+    if title_family != "unclear":
+        conflicts = {
+            family for family in {abstract_family, heading_family, *span_families}
+            if family not in {"unclear", title_family}
+        }
+        return _document_family_result(
+            title_family,
+            "high",
+            [f"strong_title_family:{title_family}", *[f"document_family_disagreement:{title_family}_vs_{value}" for value in sorted(conflicts)]],
+            bool(conflicts),
+        )
+    if abstract_family != "unclear":
+        conflicts = {family for family in {heading_family, *span_families} if family not in {"unclear", abstract_family}}
+        return _document_family_result(
+            abstract_family,
+            "high",
+            [f"strong_abstract_family:{abstract_family}", *[f"document_family_disagreement:{abstract_family}_vs_{value}" for value in sorted(conflicts)]],
+            bool(conflicts),
+        )
+    if heading_family != "unclear":
+        return _document_family_result(heading_family, "medium", [f"document_heading_family:{heading_family}"], False)
+    if len(span_families) == 1:
+        family = next(iter(span_families))
+        return _document_family_result(family, "medium", [f"unique_explicit_span_family:{family}"], False)
+    if len(span_families) > 1:
+        return _document_family_result(
+            "mixed", "medium", [f"conflicting_explicit_span_families:{','.join(sorted(span_families))}"], True
+        )
+    return _document_family_result("unclear", "unclear", ["no_document_reaction_family_signal"], False)
+
+
+def assess_effective_reaction_family(record: dict[str, Any]) -> dict[str, Any]:
+    """Choose an additive effective family without overwriting the legacy family."""
+
+    legacy = normalize_reaction_family(str(record.get("reaction_family") or "unclear"))
+    document = assess_document_reaction_family(record)
+    document_family = normalize_reaction_family(str(document["document_reaction_family"]))
+    target_inferred = infer_reaction_family_detailed(text=_record_text(record))
+    target_family = normalize_reaction_family(str(target_inferred.get("reaction_family") or "unclear"))
+    target_explicit = bool(
+        target_family not in {"unclear", "mixed"}
+        and target_inferred.get("reaction_family_confidence") == "high"
+        and target_inferred.get("reaction_family_scope") == "explicit_span"
+    )
+    document_high = bool(
+        document_family not in {"unclear", "mixed"}
+        and document.get("document_reaction_family_confidence") == "high"
+    )
+
+    if target_explicit:
+        effective = target_family
+        source = "explicit_high_confidence_target_span"
+    elif document_high:
+        effective = document_family
+        source = "high_confidence_document"
+    elif legacy != "unclear":
+        effective = legacy
+        source = "existing_reaction_family"
+    else:
+        effective = "unclear"
+        source = "unclear"
+
+    target_document_conflict = bool(
+        document_high
+        and legacy not in {"unclear", "mixed", document_family}
+        and not target_explicit
+    )
+    correction = bool(legacy not in {"unclear", effective} and effective != "unclear")
+    return {
+        **document,
+        "legacy_reaction_family": legacy,
+        "effective_reaction_family": effective,
+        "effective_reaction_family_source": source,
+        "reaction_family_correction": correction,
+        "document_target_reaction_family_conflict": target_document_conflict,
+        "target_explicit_reaction_family": target_family if target_explicit else "unclear",
+        "target_explicit_reaction_family_signals": target_inferred.get("reaction_family_signals") or [],
+    }
+
+
 def aggregate_paper_reaction_family(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Aggregate a conservative paper-level reaction-family consensus."""
 
@@ -544,6 +686,7 @@ def _score_text_fragment(
 
     nitrate_context = _negative_nitrate_context(source)
     nitrite_context = _negative_nitrite_context(source)
+    n2_external_comparison = _n2_external_comparison_inside_nitrate_target(source)
     if nitrate_context:
         signals.append(f"{label}:nitrate_context_not_feed")
     if nitrite_context:
@@ -577,20 +720,22 @@ def _score_text_fragment(
     if _nonaqueous_or_interphase_signal(source):
         add("LiNRR", 1, "nonaqueous_or_interphase_context", explicit=False)
 
-    if _contains_any(source, ["enrr", "e-nrr", "electrochemical nrr"]):
+    if not n2_external_comparison and _contains_any(source, ["enrr", "e-nrr", "electrochemical nrr"]):
         add("eNRR", 8, "explicit_enrr")
-    if _contains_any(source, ["n2-to-nh3", "n2 to nh3", "dinitrogen to ammonia", "dinitrogen-to-ammonia"]):
+    if not n2_external_comparison and _contains_any(source, ["n2-to-nh3", "n2 to nh3", "dinitrogen to ammonia", "dinitrogen-to-ammonia"]):
         add("eNRR", 8, "n2_to_ammonia")
-    if _contains_any(source, ["n2 feed", "n2 gas feed", "nitrogen gas feed", "n2 as nitrogen source", "n2 as the nitrogen source"]):
+    if not n2_external_comparison and _contains_any(source, ["n2 feed", "n2 gas feed", "nitrogen gas feed", "n2 as nitrogen source", "n2 as the nitrogen source"]):
         add("eNRR", 7, "n2_feed_or_source")
-    if _contains_any(source, ["electrochemical nitrogen reduction under n2", "nitrogen reduction under n2"]):
+    if not n2_external_comparison and _contains_any(source, ["electrochemical nitrogen reduction under n2", "nitrogen reduction under n2"]):
         add("eNRR", 7, "nitrogen_reduction_under_n2")
-    if _contains_any(source, ["15n2", "15 n2"]):
+    if not n2_external_comparison and _contains_any(source, ["15n2", "15 n2"]):
         add("eNRR", 7, "15n2_nitrogen_source")
-    if _n2_reaction_signal(source):
+    if not n2_external_comparison and _n2_reaction_signal(source):
         add("eNRR", 6, "n2_reduction_reaction")
-    if re.search(r"\bnrr\b", source) and scores["LiNRR"] < 6:
+    if not n2_external_comparison and re.search(r"\bnrr\b", source) and scores["LiNRR"] < 6:
         add("eNRR", 6, "nrr_without_lithium_mediation")
+    if n2_external_comparison:
+        signals.append(f"{label}:external_n2_comparison_not_target_family")
 
     if not nitrate_context:
         if re.search(r"\bno3rr\b|\bno3\s*rr\b", source):
@@ -599,6 +744,10 @@ def _score_text_fragment(
             add("NO3RR", 8, "nitrate_to_ammonia")
         if _contains_any(source, ["nitrate reduction reaction", "nitrate electroreduction", "nitrate reduction to ammonia"]):
             add("NO3RR", 8, "nitrate_reduction_reaction")
+        if re.search(r"\b(?:electrochemical|electrocatalytic) nitrate reduction\b", source):
+            add("NO3RR", 8, "explicit_electrochemical_nitrate_reduction")
+        if re.search(r"\bno3\s*-+\s*to\s*-?\s*nh3\b", source):
+            add("NO3RR", 8, "no3_to_nh3")
         if _feed_source_signal(source, "nitrate", "no3"):
             add("NO3RR", 7, "nitrate_feed_or_source")
 
@@ -836,7 +985,7 @@ def _no_feed_source_signal(text: str) -> bool:
 
 
 def _record_text(record: dict[str, Any]) -> str:
-    for key in ("source_text", "source_span", "text"):
+    for key in ("source_text", "target_text", "source_span", "text"):
         value = record.get(key)
         if value is not None and str(value).strip():
             return str(value).strip()
@@ -881,3 +1030,58 @@ def _dedupe(values: list[str]) -> list[str]:
 
 def _contains_any(text: str, needles: list[str]) -> bool:
     return any(needle in text for needle in needles)
+
+
+def _strong_document_family(text: str) -> str:
+    source = " ".join(str(text or "").replace("_", " ").split())
+    if not source:
+        return "unclear"
+    families: set[str] = set()
+    patterns = (
+        ("NO3RR", r"\b(?:NO3RR|nitrate (?:electro)?reduction|nitrate[- ]to[- ]ammonia)\b"),
+        ("NO2RR", r"\b(?:NO2RR|nitrite (?:electro)?reduction|nitrite[- ]to[- ]ammonia)\b"),
+        ("NORR", r"\b(?:NORR|nitric[- ]oxide (?:electro)?reduction|NO[- ]to[- ]ammonia)\b"),
+        (
+            "LiNRR",
+            r"\b(?:LiNRR|(?:Li|lithium)[- ]mediated (?:"
+            r"nitrogen reduction(?: reaction)?|N2 reduction|NRR|"
+            r"ammonia (?:synthesis|electrosynthesis)))\b",
+        ),
+        ("eNRR", r"\b(?:eNRR|dinitrogen (?:electro)?reduction|N2 (?:electro)?reduction|nitrogen reduction reaction|NRR)\b"),
+    )
+    for family, pattern in patterns:
+        if re.search(pattern, source, re.IGNORECASE):
+            families.add(family)
+    if "LiNRR" in families and "eNRR" in families:
+        families.remove("eNRR")
+    if len(families) == 1:
+        return next(iter(families))
+    if len(families) > 1:
+        return "mixed"
+    return "unclear"
+
+
+def _n2_external_comparison_inside_nitrate_target(text: str) -> bool:
+    """Treat cited/comparative N2 benchmarks as local context in a nitrate target span."""
+
+    nitrate_target = bool(
+        re.search(r"\bnitrate (?:electro)?reduction\b", text)
+        or re.search(r"\bno3\s*-{0,2}\s*(?:to|reduction)\b", text)
+        or "kno3" in text
+    )
+    if not nitrate_target:
+        return False
+    return bool(
+        re.search(r"\breported\s+n2[- ]to[- ]nh3\s+conversions?\b", text)
+        or re.search(r"\bdifferent from n2 reduction studies\b", text)
+        or re.search(r"\b(?:compared|comparison|benchmark(?:ed)?)\b.{0,120}\bn2[- ](?:to[- ]nh3|reduction)\b", text)
+    )
+
+
+def _document_family_result(family: str, confidence: str, signals: list[str], conflict: bool) -> dict[str, Any]:
+    return {
+        "document_reaction_family": normalize_reaction_family(family),
+        "document_reaction_family_confidence": confidence if confidence in {"high", "medium", "low", "unclear"} else "unclear",
+        "document_reaction_family_signals": _dedupe(signals),
+        "document_reaction_family_conflict": bool(conflict),
+    }

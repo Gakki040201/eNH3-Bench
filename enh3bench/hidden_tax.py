@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from enh3bench.audit_routing import is_stable_reference
 from enh3bench.boundary_schema import HIDDEN_TAX_TYPES, coerce_float, has_any_value
 from enh3bench.document_provenance import infer_provenance_for_record
 from enh3bench.provenance_rules import (
@@ -62,6 +63,9 @@ def detect_hidden_taxes(record: dict[str, Any]) -> dict[str, Any]:
 
     if provenance_type in {"review_table", "table", "secondary_review"}:
         return _secondary_context_hidden_tax_result(merged, text, provenance_type)
+
+    if is_stable_reference(merged):
+        return _stable_reference_hidden_tax_result(merged, provenance_type)
 
     low_trust = _truthy(merged.get("is_reject_or_low_trust")) or is_low_trust_provenance(provenance_type)
     if low_trust and not _domain_tax_allowed_under_low_trust(merged):
@@ -410,6 +414,27 @@ def _low_trust_hidden_tax_result(record: dict[str, Any], text: str, provenance_t
         "required_controls": _dedupe(required_controls),
         "severity": _low_trust_severity(detected),
         "reasoning": _dedupe(reasoning),
+        "source_text": _source_text(record),
+    }
+
+
+def _stable_reference_hidden_tax_result(record: dict[str, Any], provenance_type: str) -> dict[str, Any]:
+    return {
+        "tax_record_id": _tax_record_id(record),
+        "paper_id": str(record.get("paper_id") or ""),
+        "source_span_id": str(record.get("source_span_id") or record.get("span_id") or ""),
+        "evidence_id": str(record.get("evidence_id") or ""),
+        "text_class": str(record.get("text_class") or "unknown"),
+        "provenance_type": provenance_type,
+        "provenance_confidence": str(record.get("provenance_confidence") or "low"),
+        **_reaction_family_export_fields(record),
+        "detected_taxes": [],
+        "main_gain": "secondary reference retained as a negative example",
+        "hidden_assumptions": ["secondary_or_low_trust_text_cannot_establish_primary_boundary"],
+        "missing_measurements": ["primary_body_text_required"],
+        "required_controls": [],
+        "severity": "none",
+        "reasoning": ["Stable reference-list provenance bypassed the primary-evidence hidden-tax cascade."],
         "source_text": _source_text(record),
     }
 

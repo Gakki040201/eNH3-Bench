@@ -1,5 +1,26 @@
 # eNH3-Bench
 
+## v0.15 Clean-Room Document-First Pipeline
+
+The `document_first_cleanroom_v1` profile is an independent, deterministic pipeline that starts from complete Markdown documents and creates new document, source-node, candidate, semantic, evidence-link, paper, review, validation, and database outputs. It uses schema `0.15-cleanroom.1`; it does not replace audit schema 0.13, legacy exports, historical `source_span_id` values, or authoritative Gold.
+
+Clean-room spans are newly generated exact evidence anchors with stable `cleanroom_span_id` values. Normal execution does not require legacy candidates, evidence bundles, claim-rights ledgers, provenance ledgers, context packets, or semantic labels. Paper records are conservative, source-grounded aggregations: they do not turn a Stage B anchor into a whole-document conclusion and do not establish scientific comparability. `unclear`, `unsupported`, and `needs_review` are valid results.
+
+Run the full Markdown-first workflow with:
+
+```powershell
+C:\Python314\python.exe scripts\run_cleanroom_pipeline.py `
+  --markdown-dir input_markdown `
+  --run-name enrr_cleanroom_v015_20260718 `
+  --profile document_first_cleanroom_v1 `
+  --skip-conversion `
+  --clean
+```
+
+Runtime outputs live under `data/cleanroom/{run_name}/` and are ignored by Git. See [docs/V015_CLEANROOM_PIPELINE.md](docs/V015_CLEANROOM_PIPELINE.md) for contracts, recovery, validation, and reproducibility details.
+
+Fresh cleanup and resume are intentionally separate operations: `--clean` and `--resume` cannot be combined. Clean and run operations use an exclusive per-run lock, and review sample size must be non-negative.
+
 eNH3-Bench is a reproducible benchmark for AI-assisted extraction and validation of electrochemical ammonia synthesis literature.
 
 The benchmark is designed around evidence-grounded claims from electrochemical nitrogen-to-ammonia studies, including eNRR, LiNRR, NO3RR, NO2RR, NORR, and mixed or unclear nitrogen-source systems. Its primary focus is not materials prediction, autonomous agents, or web applications. The core task is to extract structured evidence and assess whether reported ammonia synthesis claims are reliably supported by the source literature.
@@ -86,6 +107,14 @@ C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name final_p
 ```
 
 See `docs/reaction_family_profiles.md`.
+
+### v0.14 Stage B Hierarchical Context
+
+The Stage B hierarchical profile uses the complete Docling Markdown file as document context while treating each source span as a precise evidence anchor. Section and paragraph windows provide bounded reasoning context, and each linked span is serialized once in `evidence_items` even when it has multiple roles. Packets reference the full document by repository-relative path instead of copying full body text into every sample.
+
+This stage does not produce a paper-level aggregate claim, call a real LLM, perform a second human audit, or train a model. The context packet has its own schema and profile; audit schema `0.13` and legacy exports remain unchanged. The project version in `pyproject.toml` remains `0.0.1` and will be updated together at the v0.14 release-candidate stage.
+
+See `docs/HIERARCHICAL_CONTEXT_ARCHITECTURE.md` for the data flow and storage rules.
 
 ### Phase B: Docling provenance hardening
 
