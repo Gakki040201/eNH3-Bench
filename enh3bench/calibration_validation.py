@@ -15,6 +15,7 @@ from enh3bench.calibration_package import (
     output_hashes,
     tree_hash,
 )
+from enh3bench.calibration_metrics import CALIBRATION_METRIC_SCHEMA_VERSION
 from enh3bench.calibration_sampling import sample_links, sample_papers, sample_spans, sampling_hash
 from enh3bench.calibration_schema import (
     ADJUDICATION_HUMAN_FIELDS,
@@ -111,6 +112,8 @@ def validate_calibration_package(
         reviews = {item_type: read_csv(run_dir / relative) for item_type, relative in REVIEW_PATHS.items()}
         adjudication = read_csv(run_dir / "review/adjudication_template.csv")
         validation_summary = read_json(run_dir / "reports/validation_summary.json")
+        metrics_summary_path = run_dir / OPTIONAL_PACKAGE_FILES[0]
+        metrics_summary = read_json(metrics_summary_path) if metrics_summary_path.is_file() else None
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(f"invalid_package_or_source_data:{exc}")
         return _result(errors, warnings, counts, manifest)
@@ -120,6 +123,8 @@ def validate_calibration_package(
         validation_summary, manifest, run_dir / "reports/validation_summary.json",
         allow_building_manifest, errors,
     )
+    if metrics_summary is not None:
+        _validate_metrics_summary(metrics_summary, manifest, errors)
     all_item_ids: list[str] = []
     for item_type, rows in frames.items():
         for index, row in enumerate(rows, 1):
@@ -252,6 +257,11 @@ def _validate_review_rows(
     seen_item_ids: set[str] = set()
     seen_observations: set[tuple[str, str]] = set()
     allowed_fields = set(HUMAN_FIELDS_BY_TYPE[item_type])
+    authoritative_columns = set().union(*(set(row) for row in frame_rows)) if frame_rows else set()
+    allowed_columns = authoritative_columns | allowed_fields
+    review_columns = set().union(*(set(row) for row in review_rows)) if review_rows else set()
+    for column in sorted(review_columns - allowed_columns, key=str):
+        errors.append(f"unexpected_review_column:{item_type}:{column}")
     for index, row in enumerate(review_rows, 2):
         item_id = str(row.get("calibration_item_id") or "")
         reviewer_id = str(row.get("reviewer_id") or "").strip()
@@ -346,6 +356,35 @@ def _validate_validation_summary(
         expected_hash = str(manifest.get("validation_summary_sha256") or "")
         if not expected_hash or expected_hash != sha256_file(summary_path):
             errors.append("validation_summary_sha256_mismatch")
+
+
+def _validate_metrics_summary(
+    summary: dict[str, Any], manifest: dict[str, Any], errors: list[str],
+) -> None:
+    for field in (
+        "schema_version", "calibration_profile", "calibration_run_name",
+        "source_cleanroom_run_name", "source_cleanroom_manifest_sha256",
+    ):
+        if summary.get(field) != manifest.get(field):
+            errors.append(f"metrics_summary_field_mismatch:{field}")
+    if summary.get("record_created_by_stage") != "metrics":
+        errors.append("metrics_summary_field_mismatch:record_created_by_stage")
+    if summary.get("metric_schema_version") != CALIBRATION_METRIC_SCHEMA_VERSION:
+        errors.append("metrics_summary_field_mismatch:metric_schema_version")
+    status = summary.get("status")
+    if status not in {"available", "not_available", "invalid"}:
+        errors.append(f"metrics_summary_invalid_status:{status}")
+    validation_errors = summary.get("validation_errors")
+    if not isinstance(validation_errors, list):
+        errors.append("metrics_summary_validation_errors_not_list")
+    elif status != "invalid" and validation_errors:
+        errors.append("metrics_summary_validation_errors_nonempty")
+    for field in (
+        "row_completeness", "item_coverage", "reviewer_coverage",
+        "correctness_metrics", "class_label_metrics", "reviewer_agreement",
+    ):
+        if not isinstance(summary.get(field), dict):
+            errors.append(f"metrics_summary_invalid_object:{field}")
 
 
 def _validate_manifest_identity(

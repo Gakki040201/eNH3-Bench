@@ -18,6 +18,7 @@ from enh3bench.calibration_package import (
 )
 from enh3bench.calibration_schema import (
     HUMAN_FIELDS_BY_TYPE,
+    LABEL_FIELDS_BY_TYPE,
     read_csv,
     read_json,
     read_jsonl,
@@ -73,6 +74,68 @@ class CalibrationPackageV016Tests(unittest.TestCase):
         rows = read_jsonl(path)
         mutate(rows)
         write_jsonl(path, rows)
+
+    def add_review_column(self, item_type: str, column: str, value: str = "") -> None:
+        path = self.calibration_root / f"calibration_fixture/review/{item_type}_review.csv"
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            fieldnames = [*(reader.fieldnames or []), column]
+            rows = list(reader)
+        for row in rows:
+            row[column] = value
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    def run_metrics_cli(self) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([
+            sys.executable, "scripts/summarize_calibration_reviews.py",
+            "--calibration-run-name", "calibration_fixture",
+            "--cleanroom-root", str(self.cleanroom_root),
+            "--calibration-root", str(self.calibration_root),
+        ], cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True)
+
+    def complete_reviews_for_two_reviewers(self) -> None:
+        for item_type in ("span", "paper", "document", "link"):
+            path = self.calibration_root / f"calibration_fixture/review/{item_type}_review.csv"
+            with path.open("r", encoding="utf-8-sig", newline="") as handle:
+                reader = csv.DictReader(handle)
+                fieldnames = list(reader.fieldnames or [])
+                source_rows = list(reader)
+            completed: list[dict[str, str]] = []
+            for source in source_rows:
+                for reviewer in ("reviewer-1", "reviewer-2"):
+                    row = dict(source)
+                    row["reviewer_id"] = reviewer
+                    row["review_status"] = "completed"
+                    for field in LABEL_FIELDS_BY_TYPE[item_type]:
+                        row[field] = "yes"
+                    completed.append(row)
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(completed)
+
+    def valid_metrics_summary(self, run: Path) -> dict[str, object]:
+        manifest = read_json(run / "manifests/calibration_manifest.json")
+        return {
+            "schema_version": manifest["schema_version"],
+            "calibration_profile": manifest["calibration_profile"],
+            "calibration_run_name": manifest["calibration_run_name"],
+            "source_cleanroom_run_name": manifest["source_cleanroom_run_name"],
+            "source_cleanroom_manifest_sha256": manifest["source_cleanroom_manifest_sha256"],
+            "record_created_by_stage": "metrics",
+            "metric_schema_version": "0.16-calibration-metrics.1",
+            "status": "not_available",
+            "validation_errors": [],
+            "row_completeness": {},
+            "item_coverage": {},
+            "reviewer_coverage": {},
+            "correctness_metrics": {},
+            "class_label_metrics": {},
+            "reviewer_agreement": {},
+        }
 
     def test_package_has_exact_counts_and_passes_validation(self) -> None:
         manifest = self.builder().build(clean=True, emit=lambda _: None)
@@ -155,6 +218,25 @@ class CalibrationPackageV016Tests(unittest.TestCase):
         result = self.validate_fixture()
         self.assertEqual(result["result"], "PASS", result["errors"])
 
+    def test_unknown_empty_review_column_fails(self) -> None:
+        self.build_fixture()
+        self.add_review_column("span", "arbitrary_empty_column")
+        result = self.validate_fixture()
+        self.assertIn("unexpected_review_column:span:arbitrary_empty_column", result["errors"])
+
+    def test_legitimate_optional_union_header_is_allowed(self) -> None:
+        run = self.build_fixture()
+        frames = read_jsonl(run / "sampling/span_sampling_frame.jsonl")
+        reviews = read_csv(run / "review/span_review.csv")
+        human_fields = set(HUMAN_FIELDS_BY_TYPE["span"])
+        self.assertTrue(any(
+            column not in frame and not review.get(column)
+            for frame, review in zip(frames, reviews)
+            for column in set(review) - human_fields
+        ))
+        result = self.validate_fixture()
+        self.assertEqual(result["result"], "PASS", result["errors"])
+
     def test_duplicate_item_reviewer_observation_fails(self) -> None:
         self.build_fixture()
         self.rewrite_review("span", lambda rows: rows.append(dict(rows[0])))
@@ -204,9 +286,82 @@ class CalibrationPackageV016Tests(unittest.TestCase):
 
     def test_declared_metrics_summary_is_allowed(self) -> None:
         run = self.build_fixture()
-        write_json(run / "reports/calibration_metrics_summary.json", {"status": "not_available"})
+        write_json(run / "reports/calibration_metrics_summary.json", self.valid_metrics_summary(run))
         result = self.validate_fixture()
         self.assertEqual(result["result"], "PASS", result["errors"])
+
+    def test_metrics_summary_run_name_modification_fails(self) -> None:
+        run = self.build_fixture()
+        summary = self.valid_metrics_summary(run)
+        summary["calibration_run_name"] = "wrong_run"
+        write_json(run / "reports/calibration_metrics_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("metrics_summary_field_mismatch:calibration_run_name", result["errors"])
+
+    def test_metrics_summary_source_sha_modification_fails(self) -> None:
+        run = self.build_fixture()
+        summary = self.valid_metrics_summary(run)
+        summary["source_cleanroom_manifest_sha256"] = "0" * 64
+        write_json(run / "reports/calibration_metrics_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("metrics_summary_field_mismatch:source_cleanroom_manifest_sha256", result["errors"])
+
+    def test_metrics_summary_missing_metric_schema_version_fails(self) -> None:
+        run = self.build_fixture()
+        summary = self.valid_metrics_summary(run)
+        del summary["metric_schema_version"]
+        write_json(run / "reports/calibration_metrics_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("metrics_summary_field_mismatch:metric_schema_version", result["errors"])
+
+    def test_available_metrics_summary_with_validation_errors_fails(self) -> None:
+        run = self.build_fixture()
+        summary = self.valid_metrics_summary(run)
+        summary["status"] = "available"
+        summary["validation_errors"] = ["fixture_error"]
+        write_json(run / "reports/calibration_metrics_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("metrics_summary_validation_errors_nonempty", result["errors"])
+
+    def test_metrics_cli_refuses_missing_review_row_without_output(self) -> None:
+        run = self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows.pop(0))
+        result = self.run_metrics_cli()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("calibration_metrics: FAIL", result.stdout + result.stderr)
+        self.assertIn("missing_review_row:span:", result.stdout + result.stderr)
+        self.assertFalse((run / "reports/calibration_metrics_summary.json").exists())
+
+    def test_metrics_cli_refuses_modified_automatic_field(self) -> None:
+        run = self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows[0].__setitem__("semantic_claim_type", "tampered"))
+        result = self.run_metrics_cli()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("review_automatic_field_mismatch:span:", result.stdout + result.stderr)
+        self.assertFalse((run / "reports/calibration_metrics_summary.json").exists())
+
+    def test_metrics_cli_refuses_duplicate_observation(self) -> None:
+        run = self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows.append(dict(rows[0])))
+        result = self.run_metrics_cli()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("duplicate_review_observation:span:", result.stdout + result.stderr)
+        self.assertFalse((run / "reports/calibration_metrics_summary.json").exists())
+
+    def test_metrics_cli_accepts_two_completed_reviewers(self) -> None:
+        run = self.build_fixture()
+        self.complete_reviews_for_two_reviewers()
+        before = self.validate_fixture(require_blank=False)
+        self.assertEqual(before["result"], "PASS", before["errors"])
+        cli = self.run_metrics_cli()
+        self.assertEqual(cli.returncode, 0, cli.stdout + cli.stderr)
+        summary = read_json(run / "reports/calibration_metrics_summary.json")
+        self.assertEqual(summary["row_completeness"]["completion_rate"], 1.0)
+        self.assertEqual(summary["item_coverage"]["coverage_rate"], 1.0)
+        self.assertEqual(summary["row_completeness"]["total_review_rows"], 140)
+        self.assertEqual(summary["item_coverage"]["total_unique_items"], 70)
+        after = self.validate_fixture(require_blank=False)
+        self.assertEqual(after["result"], "PASS", after["errors"])
 
     def test_missing_required_preview_fails(self) -> None:
         run = self.build_fixture()

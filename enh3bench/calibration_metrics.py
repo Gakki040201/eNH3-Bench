@@ -27,6 +27,8 @@ CORRECTNESS_FIELD_MAPPINGS = {
     "human_link_role_correct": ["link_role", "link_roles"],
 }
 
+CALIBRATION_METRIC_SCHEMA_VERSION = "0.16-calibration-metrics.1"
+
 
 def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     """Summarize blank or completed review sheets without inventing unavailable metrics."""
@@ -78,6 +80,7 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
             stratum_totals[stratum] += sum(value in {"yes", "no"} for value in labels)
             stratum_errors[stratum] += sum(value == "no" for value in labels)
     agreement = reviewer_agreement(all_rows)
+    validation_errors.extend(agreement.get("validation_errors", []))
     binary = _correctness_metrics(distributions)
     denominator = nonempty_labels
     row_completeness = {
@@ -98,7 +101,7 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
         "completed_rows_per_reviewer": dict(sorted(completed_rows_per_reviewer.items())),
     }
     return {
-        "metric_schema_version": "0.16-calibration-metrics.1",
+        "metric_schema_version": CALIBRATION_METRIC_SCHEMA_VERSION,
         "metric_semantics": {
             "correctness_metrics": "human yes/no evaluates whether an automatic assertion is correct",
             "class_label_metrics": "requires adjudicated corrected class labels and is not inferred from yes/no correctness",
@@ -139,7 +142,7 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
 
 
 def reviewer_agreement(rows: Iterable[tuple[str, dict[str, Any]]]) -> dict[str, Any]:
-    """Compute exact observed agreement and Cohen's kappa for reviewer pairs."""
+    """Compute agreement for the Phase A maximum of two reviewers per item and field."""
 
     grouped: dict[tuple[str, str, str], list[tuple[str, str]]] = defaultdict(list)
     for item_type, row in rows:
@@ -152,16 +155,29 @@ def reviewer_agreement(rows: Iterable[tuple[str, dict[str, Any]]]) -> dict[str, 
             if label:
                 grouped[(item_type, item_id, field)].append((reviewer, label))
     pairs: list[tuple[str, str]] = []
-    for values in grouped.values():
+    reviewer_limit_errors: list[str] = []
+    for (item_type, item_id, field), values in grouped.items():
         unique_by_reviewer = dict(values)
         reviewers = sorted(unique_by_reviewer)
-        if len(reviewers) >= 2:
+        if len(reviewers) > 2:
+            reviewer_limit_errors.append(
+                f"reviewer_count_exceeds_phase_a_limit:{item_type}:{item_id}:{field}:{len(reviewers)}"
+            )
+        elif len(reviewers) == 2:
             pairs.append((unique_by_reviewer[reviewers[0]], unique_by_reviewer[reviewers[1]]))
+    if reviewer_limit_errors:
+        return {
+            "status": "invalid", "paired_label_count": 0,
+            "observed_agreement": None, "cohen_kappa": None,
+            "reason": "Phase A supports at most two reviewers per item and review field",
+            "validation_errors": sorted(reviewer_limit_errors),
+        }
     if not pairs:
         return {
             "status": "not_available", "paired_label_count": 0,
             "observed_agreement": None, "cohen_kappa": None,
             "reason": "at least two reviewers on the same item and field are required",
+            "validation_errors": [],
         }
     observed = sum(left == right for left, right in pairs) / len(pairs)
     left_counts = Counter(left for left, _ in pairs)
@@ -175,6 +191,7 @@ def reviewer_agreement(rows: Iterable[tuple[str, dict[str, Any]]]) -> dict[str, 
         "observed_agreement": round(observed, 6),
         "cohen_kappa": None if kappa is None else round(kappa, 6),
         "reason": None if kappa is not None else "kappa is undefined when expected agreement is one",
+        "validation_errors": [],
     }
 
 

@@ -12,12 +12,14 @@ if str(ROOT) not in sys.path:
 
 from enh3bench.calibration_metrics import classification_metrics, summarize_reviews  # noqa: E402
 from enh3bench.calibration_schema import read_csv, write_json  # noqa: E402
+from enh3bench.calibration_validation import validate_calibration_package  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize future v0.16 human calibration reviews.")
     parser.add_argument("--calibration-run-name", required=True)
     parser.add_argument("--calibration-root", type=Path, default=Path("data/calibration"))
+    parser.add_argument("--cleanroom-root", type=Path, default=Path("data/cleanroom"))
     parser.add_argument("--output", type=Path)
     parser.add_argument(
         "--class-label-pairs-jsonl", type=Path,
@@ -30,6 +32,17 @@ def main() -> int:
     args = parse_args()
     run_dir = args.calibration_root / args.calibration_run_name
     try:
+        package_validation = validate_calibration_package(
+            calibration_run_name=args.calibration_run_name,
+            calibration_root=args.calibration_root,
+            cleanroom_root=args.cleanroom_root,
+            require_blank_human_fields=False,
+        )
+        if package_validation["result"] != "PASS":
+            print("calibration_metrics: FAIL", file=sys.stderr)
+            for error in package_validation["errors"]:
+                print(f"- ERROR: {error}", file=sys.stderr)
+            return 1
         rows = {
             item_type: read_csv(run_dir / f"review/{item_type}_review.csv")
             for item_type in ("span", "paper", "document", "link")

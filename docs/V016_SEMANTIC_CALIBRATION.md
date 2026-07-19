@@ -81,7 +81,7 @@ reports/calibration_metrics_template.json
 previews/calibration_preview.md
 ```
 
-A completed base package must contain exactly those fifteen files. The only declared post-review addition is `reports/calibration_metrics_summary.json`. Any other attachment is rejected; binary files and extra Markdown are never silently skipped.
+A completed base package must contain exactly those fifteen files. The only declared post-review addition is `reports/calibration_metrics_summary.json`. When present, that derived summary is validated for schema/profile and source/run identity, metrics schema version, allowed status, validation-error consistency, and required metric objects. It is not part of the generation-time immutable hash set because it is created after human review. Any other attachment is rejected; binary files and extra Markdown are never silently skipped.
 
 The preview contains only five span, three paper, three document, and three link examples. It explicitly states that labels are blank, the preview is not a completed audit, and the sample does not establish corpus-wide precision.
 
@@ -97,7 +97,7 @@ Reproducibility comparison removes only `calibration_run_name` and timestamps, t
 
 ## Metrics and adjudication
 
-Phase A reports completeness, label distributions, uncertain/not-applicable rates, reviewer agreement, Cohen's kappa, correctness counts, and per-stratum error rates. Row completeness is completed review rows divided by total review rows. Item coverage is the number of unique items with at least one completed reviewer divided by total unique items. Reviewer coverage separately reports reviewer count and row/completed-row counts per reviewer. With blank labels the inferential metrics are `null`/`not_available`, with missing rows and items reported. It never fabricates or mixes denominators.
+Phase A reports completeness, label distributions, uncertain/not-applicable rates, reviewer agreement, Cohen's kappa, correctness counts, and per-stratum error rates. The metrics CLI first runs the independent package validator with nonblank human fields permitted; a package failure stops execution before review CSV reads, metric calculation, or summary output. Row completeness is completed review rows divided by total review rows. Item coverage is the number of unique items with at least one completed reviewer divided by total unique items. Reviewer coverage separately reports reviewer count and row/completed-row counts per reviewer. Phase A supports at most two reviewers per item and review field; a third reviewer is a metrics validation error rather than being silently omitted from agreement. With blank labels the inferential metrics are `null`/`not_available`, with missing rows and items reported. It never fabricates or mixes denominators.
 
 The audit mapping covers document genre, reaction family, claim ownership, claim type, primary eligibility, quantification, validation, paper status, and link relevance/role. A human `yes` means that an automatic assertion is correct; it does not mean that the underlying automatic class is the class `yes`. Therefore correctness precision is reported separately, while class-label recall and macro-F1 remain unavailable until corrected class labels exist. The metrics CLI optionally accepts explicit predicted/corrected class pairs for multiclass precision, recall, confusion counts, and macro-F1.
 

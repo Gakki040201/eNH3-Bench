@@ -52,6 +52,16 @@ class CalibrationMetricsV016Tests(unittest.TestCase):
         self.assertEqual(result["reviewer_agreement"]["status"], "available")
         self.assertIsNotNone(result["reviewer_agreement"]["cohen_kappa"])
 
+    def test_more_than_two_reviewers_is_invalid(self) -> None:
+        rows = [completed_span("A", reviewer, "yes") for reviewer in ("r1", "r2", "r3")]
+        result = summarize_reviews({"span": rows, "paper": [], "document": [], "link": []})
+        self.assertEqual(result["status"], "invalid")
+        self.assertEqual(result["reviewer_agreement"]["status"], "invalid")
+        self.assertTrue(any(
+            error.startswith("reviewer_count_exceeds_phase_a_limit:span:A:")
+            for error in result["validation_errors"]
+        ))
+
     def test_two_completed_reviewers_have_full_row_and_item_coverage(self) -> None:
         rows = [
             completed_span(item, reviewer, "yes")
