@@ -19,6 +19,17 @@ class ReactionFamilyScoringTests(unittest.TestCase):
         self.assertEqual(result["reaction_family"], "NO3RR")
         self.assertEqual(result["reaction_family_confidence"], "high")
 
+    def test_n2_literature_comparison_does_not_override_nitrate_target(self) -> None:
+        result = infer_reaction_family_detailed(text=(
+            "Electrochemical nitrate reduction used KNO3 and converted NO3 to NH3. "
+            "The yield exceeded reported N2-to-NH3 conversions and was different from N2 reduction studies."
+        ))
+        self.assertEqual(result["reaction_family"], "NO3RR")
+        self.assertIn(
+            "span:external_n2_comparison_not_target_family",
+            result["reaction_family_signals"],
+        )
+
     def test_nitrite_feed_to_ammonia_is_no2rr(self) -> None:
         result = infer_reaction_family_detailed(text="Nitrite feed was converted to ammonia in the NO2RR cell.")
         self.assertEqual(result["reaction_family"], "NO2RR")

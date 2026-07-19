@@ -87,6 +87,14 @@ C:\Python314\python.exe scripts\generate_experiment_routes.py --run-name final_p
 
 See `docs/reaction_family_profiles.md`.
 
+### v0.14 Stage B Hierarchical Context
+
+The Stage B hierarchical profile uses the complete Docling Markdown file as document context while treating each source span as a precise evidence anchor. Section and paragraph windows provide bounded reasoning context, and each linked span is serialized once in `evidence_items` even when it has multiple roles. Packets reference the full document by repository-relative path instead of copying full body text into every sample.
+
+This stage does not produce a paper-level aggregate claim, call a real LLM, perform a second human audit, or train a model. The context packet has its own schema and profile; audit schema `0.13` and legacy exports remain unchanged. The project version in `pyproject.toml` remains `0.0.1` and will be updated together at the v0.14 release-candidate stage.
+
+See `docs/HIERARCHICAL_CONTEXT_ARCHITECTURE.md` for the data flow and storage rules.
+
 ### Phase B: Docling provenance hardening
 
 Phase B marks source spans as primary body text, tables, review tables, captions, references, metadata/front matter, or supplementary context before claim-rights adjudication. Docling JSON is used when available, and older runs fall back to deterministic provenance inference.

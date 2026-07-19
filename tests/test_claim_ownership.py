@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+import unittest
+
+from enh3bench.claim_ownership import assess_claim_ownership
+from enh3bench.document_scope import assess_document_scope
+
+
+class ClaimOwnershipTests(unittest.TestCase):
+    def test_expanded_external_action_verbs_override_target_document_defaults(self) -> None:
+        verbs = (
+            "synthesized", "prepared", "designed", "fabricated", "constructed", "investigated",
+            "evaluated", "studied", "tested", "introduced", "reported", "demonstrated", "showed",
+            "found", "developed", "achieved", "observed", "proposed",
+        )
+        examples = [f"Yang et al. {verb} the catalyst." for verb in verbs]
+        examples.extend((
+            "Li and co-workers prepared the membrane.",
+            "Previous work designed the flow cell.",
+        ))
+        for text in examples:
+            with self.subTest(text=text):
+                record = _record(text, "results")
+                scope = assess_document_scope(record)
+                result = assess_claim_ownership(record, scope)
+                self.assertEqual(scope["span_claim_scope"], "external_or_cited_work")
+                self.assertEqual(result["claim_ownership"], "external_or_cited_authors")
+
+    def test_external_attribution_blocks_target_author_ownership(self) -> None:
+        record = _record("Jones and co-workers demonstrated an ammonia yield of 10 mmol h-1.", "introduction")
+        scope = assess_document_scope(record)
+        result = assess_claim_ownership(record, scope)
+        self.assertEqual(result["claim_ownership"], "external_or_cited_authors")
+        self.assertFalse(result["claim_ownership_primary_applicable"])
+
+    def test_citation_grammar_variants_remain_external(self) -> None:
+        examples = (
+            "Yang et al. [12] synthesized the catalyst.",
+            "Yang et al. have synthesized the catalyst.",
+            "Yang et al., in 2020, developed the catalyst.",
+            "Yang and colleagues reported a high ammonia yield.",
+            "A previous report achieved a Faradaic efficiency of 20%.",
+            "A high yield was reported in Ref. 12.",
+            "The catalyst described in Ref. 12 reached a Faradaic efficiency of 20%.",
+        )
+        for text in examples:
+            with self.subTest(text=text):
+                record = _record(text, "results")
+                scope = assess_document_scope(record)
+                ownership = assess_claim_ownership(record, scope)
+                self.assertEqual(scope["span_claim_scope"], "external_or_cited_work")
+                self.assertEqual(ownership["claim_ownership"], "external_or_cited_authors")
+
+    def test_current_work_cue_assigns_target_authors(self) -> None:
+        record = _record("Here we demonstrate an ammonia yield of 10 mmol h-1.", "introduction")
+        result = assess_claim_ownership(record, assess_document_scope(record))
+        self.assertEqual(result["claim_ownership"], "target_authors")
+        self.assertTrue(result["claim_ownership_primary_applicable"])
+
+    def test_first_person_reported_claim_remains_target_owned(self) -> None:
+        record = _record("We reported an ammonia yield of 10 mmol h-1.", "introduction")
+        result = assess_claim_ownership(record, assess_document_scope(record))
+        self.assertEqual(result["claim_ownership"], "target_authors")
+
+    def test_results_scope_supports_passive_target_author_statement(self) -> None:
+        record = _record("The Faradaic efficiency was 20%.", "results")
+        result = assess_claim_ownership(record, assess_document_scope(record))
+        self.assertEqual(result["claim_ownership"], "target_authors")
+
+    def test_secondary_document_scope_dominates_first_person_words(self) -> None:
+        record = _record("Our study of ammonia electrosynthesis. Journal citation.", "references")
+        record.update({"provenance_type": "reference", "text_class": "reference_list"})
+        result = assess_claim_ownership(record, assess_document_scope(record))
+        self.assertEqual(result["claim_ownership"], "secondary_context")
+        self.assertFalse(result["claim_ownership_primary_applicable"])
+
+
+def _record(text: str, section: str) -> dict[str, object]:
+    return {
+        "source_text": text,
+        "effective_section_type": section,
+        "provenance_type": "body",
+        "text_class": "primary_performance",
+    }
+
+
+if __name__ == "__main__":
+    unittest.main()
