@@ -27,6 +27,7 @@ from enh3bench.calibration_schema import (
     resolve_calibration_target,
     sha256_file,
     validate_item,
+    validate_review_row,
 )
 
 
@@ -41,10 +42,17 @@ REQUIRED_PACKAGE_FILES = tuple(FRAME_PATHS.values()) + tuple(REVIEW_PATHS.values
     "review/adjudication_template.csv",
     "reports/calibration_summary.json",
     "reports/stratum_coverage.csv",
+    "reports/validation_summary.json",
     "reports/calibration_metrics_template.json",
     "previews/calibration_preview.md",
     "manifests/calibration_manifest.json",
 )
+OPTIONAL_PACKAGE_FILES = ("reports/calibration_metrics_summary.json",)
+ALLOWED_PACKAGE_FILES = frozenset((*REQUIRED_PACKAGE_FILES, *OPTIONAL_PACKAGE_FILES))
+UNSUPPORTED_BINARY_SUFFIXES = frozenset({
+    ".7z", ".bin", ".bmp", ".doc", ".docx", ".exe", ".gif", ".gz", ".jpeg", ".jpg",
+    ".pdf", ".png", ".ppt", ".pptx", ".tar", ".tif", ".tiff", ".xls", ".xlsx", ".zip",
+})
 ABSOLUTE_PATH_PATTERN = re.compile(
     r"(?i)(?:(?<![A-Za-z0-9])[A-Z]:[\\/]|\\\\[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_.$ -]+|(?<![A-Za-z0-9])/(?:home|users|var|tmp)/|file://)"
 )
@@ -79,9 +87,8 @@ def validate_calibration_package(
         "duplicate_calibration_item_ids": 0,
         "unresolved_source_ids": 0,
     }
-    missing = [relative for relative in REQUIRED_PACKAGE_FILES if not (run_dir / relative).is_file()]
+    missing = _validate_package_inventory(run_dir, errors)
     if missing:
-        errors.extend(f"missing_package_file:{relative}" for relative in missing)
         return _result(errors, warnings, counts, {})
     try:
         manifest = read_json(run_dir / "manifests/calibration_manifest.json")
@@ -103,11 +110,16 @@ def validate_calibration_package(
         frames = {item_type: read_jsonl(run_dir / relative) for item_type, relative in FRAME_PATHS.items()}
         reviews = {item_type: read_csv(run_dir / relative) for item_type, relative in REVIEW_PATHS.items()}
         adjudication = read_csv(run_dir / "review/adjudication_template.csv")
+        validation_summary = read_json(run_dir / "reports/validation_summary.json")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(f"invalid_package_or_source_data:{exc}")
         return _result(errors, warnings, counts, manifest)
 
     _validate_manifest_identity(manifest, calibration_run_name, source_paths, allow_building_manifest, errors)
+    _validate_validation_summary(
+        validation_summary, manifest, run_dir / "reports/validation_summary.json",
+        allow_building_manifest, errors,
+    )
     all_item_ids: list[str] = []
     for item_type, rows in frames.items():
         for index, row in enumerate(rows, 1):
@@ -133,15 +145,9 @@ def validate_calibration_package(
         errors.append(f"duplicate_calibration_item_ids:{duplicate_ids}")
 
     for item_type, rows in reviews.items():
-        frame_ids = [str(item.get("calibration_item_id") or "") for item in frames[item_type]]
-        review_ids = [str(item.get("calibration_item_id") or "") for item in rows]
-        if frame_ids != review_ids:
-            errors.append(f"{item_type}_review_does_not_match_sampling_frame")
-        for index, row in enumerate(rows, 2):
-            from enh3bench.calibration_schema import validate_review_row
-            review_errors = validate_review_row(item_type, row, require_blank=require_blank_human_fields)
-            errors.extend(f"{item_type}_review:row_{index}:{error}" for error in review_errors)
-            counts["human_label_nonempty_count"] += _human_nonempty(item_type, row)
+        _validate_review_rows(
+            item_type, frames[item_type], rows, require_blank_human_fields, counts, errors
+        )
     for index, row in enumerate(adjudication, 2):
         for field in ("schema_version", "calibration_profile", "calibration_run_name", "source_cleanroom_run_name", "source_cleanroom_manifest_sha256", "record_created_by_stage"):
             if not str(row.get(field) or "").strip():
@@ -194,11 +200,152 @@ def validate_calibration_package(
         ("duplicate_calibration_item_ids", "duplicate_calibration_item_ids"),
         ("unresolved_source_ids", "unresolved_source_ids"),
     ):
+        if manifest_field == "human_label_nonempty_count" and not require_blank_human_fields:
+            continue
         if int(manifest.get(manifest_field) or 0) != counts[count_field]:
             errors.append(f"manifest_safety_count_mismatch:{manifest_field}")
     errors = sorted(set(errors))
     warnings = sorted(set(warnings))
     return _result(errors, warnings, counts, manifest)
+
+
+def _validate_package_inventory(run_dir: Path, errors: list[str]) -> list[str]:
+    actual = {
+        path.relative_to(run_dir).as_posix()
+        for path in run_dir.rglob("*")
+        if path.is_file()
+    }
+    missing = sorted(set(REQUIRED_PACKAGE_FILES) - actual)
+    unexpected = sorted(actual - ALLOWED_PACKAGE_FILES)
+    errors.extend(f"missing_package_file:{relative}" for relative in missing)
+    errors.extend(f"unexpected_package_file:{relative}" for relative in unexpected)
+    for relative in sorted(actual):
+        path = run_dir / relative
+        if path.suffix.casefold() in UNSUPPORTED_BINARY_SUFFIXES or _looks_binary(path):
+            errors.append(f"unsupported_binary_file:{relative}")
+    return missing
+
+
+def _looks_binary(path: Path) -> bool:
+    try:
+        payload = path.read_bytes()[:8192]
+    except OSError:
+        return True
+    if b"\x00" in payload:
+        return True
+    try:
+        payload.decode("utf-8")
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
+def _validate_review_rows(
+    item_type: str,
+    frame_rows: list[dict[str, Any]],
+    review_rows: list[dict[str, Any]],
+    require_blank: bool,
+    counts: dict[str, int],
+    errors: list[str],
+) -> None:
+    frame_by_id = {str(row.get("calibration_item_id") or ""): row for row in frame_rows}
+    seen_item_ids: set[str] = set()
+    seen_observations: set[tuple[str, str]] = set()
+    allowed_fields = set(HUMAN_FIELDS_BY_TYPE[item_type])
+    for index, row in enumerate(review_rows, 2):
+        item_id = str(row.get("calibration_item_id") or "")
+        reviewer_id = str(row.get("reviewer_id") or "").strip()
+        observation = (item_id, reviewer_id)
+        if observation in seen_observations:
+            errors.append(f"duplicate_review_observation:{item_type}:{item_id}:{reviewer_id or '<blank>'}")
+        seen_observations.add(observation)
+        source = frame_by_id.get(item_id)
+        if source is None:
+            errors.append(f"extra_review_row:{item_type}:{item_id}")
+        else:
+            seen_item_ids.add(item_id)
+            actual_type = str(row.get("item_type") or "")
+            if actual_type != item_type:
+                errors.append(f"review_item_type_mismatch:{item_type}:{item_id}:{actual_type}")
+            fields = (set(source) | set(row)) - allowed_fields
+            for field in sorted(fields):
+                if field not in source:
+                    # CSV headers are the union of frame keys; an empty cell represents an
+                    # optional key absent from this particular JSONL record.
+                    if field in row and str(row.get(field) or "") == "":
+                        continue
+                    errors.append(f"review_automatic_field_mismatch:{item_type}:{item_id}:{field}")
+                    continue
+                if field not in row:
+                    errors.append(f"review_automatic_field_mismatch:{item_type}:{item_id}:{field}")
+                    continue
+                decoded, decode_error = _decode_review_automatic_value(row.get(field), source[field])
+                if decode_error or decoded != source[field]:
+                    errors.append(f"review_automatic_field_mismatch:{item_type}:{item_id}:{field}")
+        review_errors = validate_review_row(item_type, row, require_blank=require_blank)
+        errors.extend(f"{item_type}_review:row_{index}:{error}" for error in review_errors)
+        counts["human_label_nonempty_count"] += _human_nonempty(item_type, row)
+    for item_id in sorted(set(frame_by_id) - seen_item_ids):
+        errors.append(f"missing_review_row:{item_type}:{item_id}")
+
+
+def _decode_review_automatic_value(raw_value: Any, expected: Any) -> tuple[Any, bool]:
+    raw = "" if raw_value is None else str(raw_value)
+    try:
+        if expected is None:
+            return (None, False) if raw == "" else (raw, True)
+        if isinstance(expected, bool):
+            normalized = raw.strip().casefold()
+            if normalized not in {"true", "false"}:
+                return raw, True
+            return normalized == "true", False
+        if isinstance(expected, int):
+            return int(raw.strip()), False
+        if isinstance(expected, float):
+            return float(raw.strip()), False
+        if isinstance(expected, list):
+            decoded = json.loads(raw)
+            return decoded, not isinstance(decoded, list)
+        if isinstance(expected, dict):
+            decoded = json.loads(raw)
+            return decoded, not isinstance(decoded, dict)
+        if isinstance(expected, str):
+            return raw, False
+        return raw, raw != str(expected)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return raw, True
+
+
+def _validate_validation_summary(
+    summary: dict[str, Any], manifest: dict[str, Any], summary_path: Path,
+    allow_building: bool, errors: list[str],
+) -> None:
+    for field in (
+        "schema_version", "calibration_profile", "calibration_run_name",
+        "source_cleanroom_run_name", "source_cleanroom_manifest_sha256",
+    ):
+        if summary.get(field) != manifest.get(field):
+            errors.append(f"validation_summary_field_mismatch:{field}")
+    if summary.get("record_created_by_stage") != "validation":
+        errors.append("validation_summary_field_mismatch:record_created_by_stage")
+    building = manifest.get("status") == "building" and allow_building
+    if building:
+        if summary.get("result") != "PENDING":
+            errors.append(f"building_validation_summary_not_pending:{summary.get('result')}")
+    else:
+        if summary.get("result") != "PASS":
+            errors.append(f"completed_validation_summary_not_pass:{summary.get('result')}")
+        try:
+            error_count = int(summary.get("error_count") or 0)
+        except (TypeError, ValueError):
+            error_count = -1
+        if error_count != 0:
+            errors.append("completed_validation_summary_error_count_nonzero")
+        if summary.get("errors") != []:
+            errors.append("completed_validation_summary_errors_nonempty")
+        expected_hash = str(manifest.get("validation_summary_sha256") or "")
+        if not expected_hash or expected_hash != sha256_file(summary_path):
+            errors.append("validation_summary_sha256_mismatch")
 
 
 def _validate_manifest_identity(
@@ -230,6 +377,10 @@ def _validate_spans(
     links: dict[str, dict[str, Any]], all_semantics: dict[str, dict[str, Any]],
     counts: dict[str, int], errors: list[str],
 ) -> None:
+    nodes_by_paragraph = {
+        (str(item.get("document_id") or ""), str(item.get("paragraph_uid") or "")): item
+        for item in nodes.values()
+    }
     for index, row in enumerate(rows, 1):
         span_id = str(row.get("cleanroom_span_id") or "")
         source = semantics.get(span_id)
@@ -255,36 +406,65 @@ def _validate_spans(
         if str(source.get("source_text") or "") != node_slice:
             errors.append(f"span:{index}:target_text_source_node_slice_mismatch")
         _check_excerpt(row, "target_excerpt", str(source.get("source_text") or ""), 700, f"span:{index}", errors)
-        for context_field, id_field in (
-            ("previous_context_excerpt", "previous_context_source_node_id"),
-            ("next_context_excerpt", "next_context_source_node_id"),
+        for context_field, id_field, adjacency_field in (
+            ("previous_context_excerpt", "previous_context_source_node_id", "previous_paragraph_uid"),
+            ("next_context_excerpt", "next_context_source_node_id", "next_paragraph_uid"),
         ):
             context_id = str(row.get(id_field) or "")
-            context = nodes.get(context_id) if context_id else None
-            if context is not None:
-                if context.get("paper_id") != source.get("paper_id") or context.get("document_id") != source.get("document_id"):
+            adjacent_uid = str(node.get(adjacency_field) or "")
+            expected_context = nodes_by_paragraph.get((str(node.get("document_id") or ""), adjacent_uid)) if adjacent_uid else None
+            expected_id = str((expected_context or {}).get("source_node_id") or "")
+            if adjacent_uid and expected_context is None:
+                errors.append(f"span:{index}:unresolved_authoritative_context:{adjacency_field}:{adjacent_uid}")
+            if context_id != expected_id:
+                errors.append(f"span:{index}:context_source_node_id_mismatch:{id_field}")
+            if expected_context is None:
+                if str(row.get(context_field) or ""):
+                    errors.append(f"span:{index}:context_excerpt_without_authoritative_neighbor:{context_field}")
+            else:
+                if expected_context.get("paper_id") != source.get("paper_id") or expected_context.get("document_id") != source.get("document_id"):
                     errors.append(f"span:{index}:cross_document_context:{context_field}")
-                _check_excerpt(row, context_field, str(context.get("source_text") or ""), 500, f"span:{index}", errors)
-            elif str(row.get(context_field) or ""):
-                errors.append(f"span:{index}:unresolved_context_node:{context_field}")
+                _check_excerpt(
+                    row, context_field, str(expected_context.get("source_text") or ""), 500,
+                    f"span:{index}", errors,
+                )
         linked_ids = row.get("linked_evidence_ids") or []
         linked_span_ids = row.get("linked_evidence_span_ids") or []
         if not isinstance(linked_ids, list) or not isinstance(linked_span_ids, list):
             errors.append(f"span:{index}:invalid_linked_evidence_lists")
             continue
-        for link_id in linked_ids:
+        if len(linked_ids) != len(linked_span_ids):
+            errors.append(f"span:{index}:linked_evidence_list_length_mismatch")
+        first_evidence: dict[str, Any] | None = None
+        for evidence_index, link_id in enumerate(linked_ids):
             link = links.get(str(link_id))
-            if link is None or str(link.get("target_cleanroom_span_id") or "") != span_id:
+            if link is None:
                 counts["unresolved_source_ids"] += 1
-                errors.append(f"span:{index}:unresolved_or_wrong_link:{link_id}")
-            elif str(link.get("paper_id") or "") != str(source.get("paper_id") or ""):
+                errors.append(f"span:{index}:unresolved_link:{link_id}")
+                continue
+            if str(link.get("target_cleanroom_span_id") or "") != span_id:
+                errors.append(f"span:{index}:linked_evidence_target_mismatch:{link_id}")
+            if str(link.get("paper_id") or "") != str(source.get("paper_id") or ""):
                 errors.append(f"span:{index}:cross_paper_link")
-        if linked_span_ids:
-            evidence = all_semantics.get(str(linked_span_ids[0]))
-            if evidence is None or evidence.get("paper_id") != source.get("paper_id"):
-                errors.append(f"span:{index}:invalid_linked_evidence_endpoint")
-            else:
-                _check_excerpt(row, "linked_evidence_excerpt", str(evidence.get("source_text") or ""), 700, f"span:{index}", errors)
+            if evidence_index >= len(linked_span_ids):
+                continue
+            evidence_span_id = str(linked_span_ids[evidence_index])
+            if str(link.get("evidence_cleanroom_span_id") or "") != evidence_span_id:
+                errors.append(f"span:{index}:linked_evidence_endpoint_mismatch:{evidence_index}")
+            evidence = all_semantics.get(evidence_span_id)
+            if evidence is None:
+                counts["unresolved_source_ids"] += 1
+                errors.append(f"span:{index}:unresolved_linked_evidence_span:{evidence_span_id}")
+                continue
+            if evidence.get("paper_id") != source.get("paper_id"):
+                errors.append(f"span:{index}:cross_paper_linked_evidence:{evidence_span_id}")
+            if evidence_index == 0:
+                first_evidence = evidence
+        if first_evidence is not None:
+            _check_excerpt(
+                row, "linked_evidence_excerpt", str(first_evidence.get("source_text") or ""), 700,
+                f"span:{index}", errors,
+            )
         elif str(row.get("linked_evidence_excerpt") or ""):
             errors.append(f"span:{index}:orphan_linked_evidence_excerpt")
 
@@ -448,6 +628,10 @@ def _validate_hashes(
             errors.append(f"input_file_hash_mismatch:{relative}")
     current_output = output_hashes(run_dir)
     for relative, expected in (manifest.get("output_file_hashes") or {}).items():
+        if relative in REVIEW_PATHS.values():
+            # Review sheets are intentionally mutable only in human fields; their automatic
+            # content is protected by schema-aware comparison against the sampling frames.
+            continue
         if current_output.get(relative) != expected:
             errors.append(f"output_file_hash_mismatch:{relative}")
     cleanroom_hash = tree_hash(cleanroom_run_dir)
@@ -471,8 +655,6 @@ def _check_excerpt(
 def _scan_package_text(run_dir: Path) -> dict[str, int]:
     values = {"absolute_path_count": 0, "username_path_count": 0, "secret_count": 0}
     for path in sorted(item for item in run_dir.rglob("*") if item.is_file()):
-        if path.suffix.lower() in {".pdf", ".docx", ".png", ".jpg", ".jpeg"}:
-            continue
         strings: list[str] = []
         try:
             if path.suffix.lower() == ".jsonl":

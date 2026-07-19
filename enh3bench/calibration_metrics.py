@@ -36,23 +36,35 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
     field_distributions: dict[str, Counter[str]] = defaultdict(Counter)
     stratum_totals: Counter[str] = Counter()
     stratum_errors: Counter[str] = Counter()
-    total_rows = completed_rows = reviewed_items = 0
+    total_rows = completed_rows = 0
     nonempty_labels = 0
     all_rows: list[tuple[str, dict[str, Any]]] = []
+    unique_items: set[tuple[str, str]] = set()
+    reviewed_items: set[tuple[str, str]] = set()
+    rows_per_reviewer: Counter[str] = Counter()
+    completed_rows_per_reviewer: Counter[str] = Counter()
     for item_type, rows in rows_by_type.items():
         if item_type not in HUMAN_FIELDS_BY_TYPE:
             validation_errors.append(f"unknown_item_type:{item_type}")
             continue
-        item_reviewed: set[str] = set()
         for index, row in enumerate(rows, 2):
             all_rows.append((item_type, row))
             total_rows += 1
             errors = validate_review_row(item_type, row)
             validation_errors.extend(f"{item_type}:row_{index}:{error}" for error in errors)
             status = str(row.get("review_status") or "").strip()
+            item_id = str(row.get("calibration_item_id") or "").strip()
+            reviewer_id = str(row.get("reviewer_id") or "").strip()
+            if item_id:
+                unique_items.add((item_type, item_id))
+            if reviewer_id:
+                rows_per_reviewer[reviewer_id] += 1
             if status == "completed":
                 completed_rows += 1
-                item_reviewed.add(str(row.get("calibration_item_id") or ""))
+                if item_id:
+                    reviewed_items.add((item_type, item_id))
+                if reviewer_id:
+                    completed_rows_per_reviewer[reviewer_id] += 1
             labels = [str(row.get(field) or "").strip() for field in LABEL_FIELDS_BY_TYPE[item_type]]
             for value in labels:
                 if value:
@@ -65,11 +77,26 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
             stratum = str(row.get("assigned_primary_stratum") or row.get("assigned_sampling_stratum") or "<missing>")
             stratum_totals[stratum] += sum(value in {"yes", "no"} for value in labels)
             stratum_errors[stratum] += sum(value == "no" for value in labels)
-        reviewed_items += len(item_reviewed)
-
     agreement = reviewer_agreement(all_rows)
     binary = _correctness_metrics(distributions)
     denominator = nonempty_labels
+    row_completeness = {
+        "total_review_rows": total_rows,
+        "completed_review_rows": completed_rows,
+        "incomplete_review_rows": max(0, total_rows - completed_rows),
+        "completion_rate": _rate(completed_rows, total_rows),
+    }
+    item_coverage = {
+        "total_unique_items": len(unique_items),
+        "reviewed_unique_items": len(reviewed_items),
+        "missing_unique_items": max(0, len(unique_items) - len(reviewed_items)),
+        "coverage_rate": _rate(len(reviewed_items), len(unique_items)),
+    }
+    reviewer_coverage = {
+        "reviewer_count": len(rows_per_reviewer),
+        "rows_per_reviewer": dict(sorted(rows_per_reviewer.items())),
+        "completed_rows_per_reviewer": dict(sorted(completed_rows_per_reviewer.items())),
+    }
     return {
         "metric_schema_version": "0.16-calibration-metrics.1",
         "metric_semantics": {
@@ -77,14 +104,10 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
             "class_label_metrics": "requires adjudicated corrected class labels and is not inferred from yes/no correctness",
         },
         "correctness_field_mappings": CORRECTNESS_FIELD_MAPPINGS,
-        "completeness": {
-            "total_review_rows": total_rows,
-            "completed_review_rows": completed_rows,
-            "reviewed_unique_items": reviewed_items,
-            "missing_completed_records": max(0, total_rows - reviewed_items),
-            "completion_rate": _rate(reviewed_items, total_rows),
-            "nonempty_label_count": nonempty_labels,
-        },
+        "row_completeness": row_completeness,
+        "item_coverage": item_coverage,
+        "reviewer_coverage": reviewer_coverage,
+        "completeness": {**row_completeness, "nonempty_label_count": nonempty_labels},
         "label_distribution": dict(sorted(distributions.items())),
         "label_distribution_by_field": {
             field: dict(sorted(values.items())) for field, values in sorted(field_distributions.items())
@@ -111,7 +134,7 @@ def summarize_reviews(rows_by_type: dict[str, list[dict[str, Any]]]) -> dict[str
         },
         "validation_errors": validation_errors,
         "status": "not_available" if nonempty_labels == 0 else ("invalid" if validation_errors else "available"),
-        "missing_reviewed_records": max(0, total_rows - reviewed_items),
+        "missing_reviewed_records": item_coverage["missing_unique_items"],
     }
 
 

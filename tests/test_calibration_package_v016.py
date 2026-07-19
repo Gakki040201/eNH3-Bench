@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from typing import Callable
 from unittest import mock
 
 from tests.calibration_test_helpers import create_cleanroom_fixture
@@ -20,6 +22,8 @@ from enh3bench.calibration_schema import (
     read_json,
     read_jsonl,
     resolve_calibration_target,
+    write_json,
+    write_jsonl,
 )
 from enh3bench.calibration_validation import validate_calibration_package
 
@@ -41,6 +45,34 @@ class CalibrationPackageV016Tests(unittest.TestCase):
             cleanroom_root=self.cleanroom_root, calibration_root=self.calibration_root,
             span_sample_size=30, paper_sample_size=10, link_sample_size=20, seed=16,
         )
+
+    def build_fixture(self) -> Path:
+        self.builder().build(clean=True, emit=lambda _: None)
+        return self.calibration_root / "calibration_fixture"
+
+    def validate_fixture(self, *, require_blank: bool = True) -> dict[str, object]:
+        return validate_calibration_package(
+            calibration_run_name="calibration_fixture", calibration_root=self.calibration_root,
+            cleanroom_root=self.cleanroom_root, require_blank_human_fields=require_blank,
+        )
+
+    def rewrite_review(self, item_type: str, mutate: Callable[[list[dict[str, str]]], None]) -> None:
+        path = self.calibration_root / f"calibration_fixture/review/{item_type}_review.csv"
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            fieldnames = list(reader.fieldnames or [])
+            rows = list(reader)
+        mutate(rows)
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    def rewrite_span_frame(self, mutate: Callable[[list[dict[str, object]]], None]) -> None:
+        path = self.calibration_root / "calibration_fixture/sampling/span_sampling_frame.jsonl"
+        rows = read_jsonl(path)
+        mutate(rows)
+        write_jsonl(path, rows)
 
     def test_package_has_exact_counts_and_passes_validation(self) -> None:
         manifest = self.builder().build(clean=True, emit=lambda _: None)
@@ -76,6 +108,186 @@ class CalibrationPackageV016Tests(unittest.TestCase):
         for item_type, fields in HUMAN_FIELDS_BY_TYPE.items():
             rows = read_csv(run / f"review/{item_type}_review.csv")
             self.assertTrue(all(not row[field] for row in rows for field in fields))
+
+    def test_review_semantic_claim_type_modification_fails(self) -> None:
+        self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows[0].__setitem__("semantic_claim_type", "tampered_claim"))
+        result = self.validate_fixture()
+        item_id = read_csv(self.calibration_root / "calibration_fixture/review/span_review.csv")[0]["calibration_item_id"]
+        self.assertIn(f"review_automatic_field_mismatch:span:{item_id}:semantic_claim_type", result["errors"])
+
+    def test_review_target_excerpt_modification_fails(self) -> None:
+        self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows[0].__setitem__("target_excerpt", "tampered excerpt"))
+        result = self.validate_fixture()
+        item_id = read_csv(self.calibration_root / "calibration_fixture/review/span_review.csv")[0]["calibration_item_id"]
+        self.assertIn(f"review_automatic_field_mismatch:span:{item_id}:target_excerpt", result["errors"])
+
+    def test_review_source_offset_modification_fails(self) -> None:
+        self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows[0].__setitem__(
+            "source_start_offset", str(int(rows[0]["source_start_offset"]) + 1)
+        ))
+        result = self.validate_fixture()
+        item_id = read_csv(self.calibration_root / "calibration_fixture/review/span_review.csv")[0]["calibration_item_id"]
+        self.assertIn(f"review_automatic_field_mismatch:span:{item_id}:source_start_offset", result["errors"])
+
+    def test_only_legal_human_review_fields_may_change(self) -> None:
+        self.build_fixture()
+        def fill_human_fields(rows: list[dict[str, str]]) -> None:
+            rows[0]["reviewer_id"] = "reviewer-1"
+            rows[0]["review_status"] = "completed"
+            for field in HUMAN_FIELDS_BY_TYPE["span"]:
+                if field.startswith("human_") and not field.endswith("notes"):
+                    rows[0][field] = "yes"
+        self.rewrite_review("span", fill_human_fields)
+        result = self.validate_fixture(require_blank=False)
+        self.assertEqual(result["result"], "PASS", result["errors"])
+
+    def test_review_json_list_and_dict_round_trip_has_no_false_positive(self) -> None:
+        self.build_fixture()
+        def reformat_json_fields(rows: list[dict[str, str]]) -> None:
+            rows[0]["hard_gate_failures"] = json.dumps(json.loads(rows[0]["hard_gate_failures"]), indent=2)
+            rows[0]["validation_gate_decisions"] = json.dumps(
+                json.loads(rows[0]["validation_gate_decisions"]), indent=2, sort_keys=False
+            )
+        self.rewrite_review("span", reformat_json_fields)
+        result = self.validate_fixture()
+        self.assertEqual(result["result"], "PASS", result["errors"])
+
+    def test_duplicate_item_reviewer_observation_fails(self) -> None:
+        self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows.append(dict(rows[0])))
+        result = self.validate_fixture()
+        item_id = read_csv(self.calibration_root / "calibration_fixture/review/span_review.csv")[0]["calibration_item_id"]
+        self.assertIn(f"duplicate_review_observation:span:{item_id}:<blank>", result["errors"])
+
+    def test_missing_and_extra_review_rows_fail(self) -> None:
+        self.build_fixture()
+        removed: list[str] = []
+        def replace_row(rows: list[dict[str, str]]) -> None:
+            removed.append(rows[0]["calibration_item_id"])
+            rows.pop(0)
+            extra = dict(rows[0])
+            extra["calibration_item_id"] = "CC16S_EXTRA"
+            rows.append(extra)
+        self.rewrite_review("span", replace_row)
+        result = self.validate_fixture()
+        self.assertIn(f"missing_review_row:span:{removed[0]}", result["errors"])
+        self.assertIn("extra_review_row:span:CC16S_EXTRA", result["errors"])
+
+    def test_review_item_type_mismatch_fails(self) -> None:
+        self.build_fixture()
+        self.rewrite_review("span", lambda rows: rows[0].__setitem__("item_type", "paper"))
+        result = self.validate_fixture()
+        item_id = read_csv(self.calibration_root / "calibration_fixture/review/span_review.csv")[0]["calibration_item_id"]
+        self.assertIn(f"review_item_type_mismatch:span:{item_id}:paper", result["errors"])
+
+    def test_unexpected_pdf_is_rejected_as_binary(self) -> None:
+        run = self.build_fixture()
+        (run / "paper.pdf").write_bytes(b"%PDF-1.7\nfixture")
+        result = self.validate_fixture()
+        self.assertIn("unexpected_package_file:paper.pdf", result["errors"])
+        self.assertIn("unsupported_binary_file:paper.pdf", result["errors"])
+
+    def test_unexpected_markdown_attachment_fails(self) -> None:
+        run = self.build_fixture()
+        (run / "full_document.md").write_text("full attachment", encoding="utf-8")
+        result = self.validate_fixture()
+        self.assertIn("unexpected_package_file:full_document.md", result["errors"])
+
+    def test_unexpected_json_fails(self) -> None:
+        run = self.build_fixture()
+        write_json(run / "arbitrary.json", {"unexpected": True})
+        result = self.validate_fixture()
+        self.assertIn("unexpected_package_file:arbitrary.json", result["errors"])
+
+    def test_declared_metrics_summary_is_allowed(self) -> None:
+        run = self.build_fixture()
+        write_json(run / "reports/calibration_metrics_summary.json", {"status": "not_available"})
+        result = self.validate_fixture()
+        self.assertEqual(result["result"], "PASS", result["errors"])
+
+    def test_missing_required_preview_fails(self) -> None:
+        run = self.build_fixture()
+        (run / "previews/calibration_preview.md").unlink()
+        result = self.validate_fixture()
+        self.assertIn("missing_package_file:previews/calibration_preview.md", result["errors"])
+
+    def test_missing_validation_summary_fails(self) -> None:
+        run = self.build_fixture()
+        (run / "reports/validation_summary.json").unlink()
+        result = self.validate_fixture()
+        self.assertIn("missing_package_file:reports/validation_summary.json", result["errors"])
+
+    def test_validation_summary_fail_result_is_rejected(self) -> None:
+        run = self.build_fixture()
+        summary = read_json(run / "reports/validation_summary.json")
+        summary["result"] = "FAIL"
+        write_json(run / "reports/validation_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("completed_validation_summary_not_pass:FAIL", result["errors"])
+
+    def test_validation_summary_source_sha_modification_is_rejected(self) -> None:
+        run = self.build_fixture()
+        summary = read_json(run / "reports/validation_summary.json")
+        summary["source_cleanroom_manifest_sha256"] = "0" * 64
+        write_json(run / "reports/validation_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("validation_summary_field_mismatch:source_cleanroom_manifest_sha256", result["errors"])
+
+    def test_completed_manifest_with_pending_summary_is_rejected(self) -> None:
+        run = self.build_fixture()
+        summary = read_json(run / "reports/validation_summary.json")
+        summary["result"] = "PENDING"
+        write_json(run / "reports/validation_summary.json", summary)
+        result = self.validate_fixture()
+        self.assertIn("completed_validation_summary_not_pass:PENDING", result["errors"])
+
+    def test_nonadjacent_previous_context_fails(self) -> None:
+        self.build_fixture()
+        source_nodes = read_jsonl(self.cleanroom_root / "cleanroom_fixture/source_nodes/source_nodes.jsonl")
+        def tamper(rows: list[dict[str, object]]) -> None:
+            row = next(item for item in rows if item["previous_context_source_node_id"])
+            candidates = [
+                node for node in source_nodes
+                if node["document_id"] == row["document_id"]
+                and node["source_node_id"] not in {
+                    row["source_node_id"], row["previous_context_source_node_id"], row["next_context_source_node_id"]
+                }
+            ]
+            row["previous_context_source_node_id"] = candidates[0]["source_node_id"]
+        self.rewrite_span_frame(tamper)
+        result = self.validate_fixture()
+        self.assertTrue(any("context_source_node_id_mismatch:previous_context_source_node_id" in error for error in result["errors"]))
+
+    def test_linked_evidence_list_length_mismatch_fails(self) -> None:
+        self.build_fixture()
+        def tamper(rows: list[dict[str, object]]) -> None:
+            row = next(item for item in rows if len(item["linked_evidence_ids"]) >= 2)
+            row["linked_evidence_span_ids"] = row["linked_evidence_span_ids"][:-1]
+        self.rewrite_span_frame(tamper)
+        result = self.validate_fixture()
+        self.assertTrue(any("linked_evidence_list_length_mismatch" in error for error in result["errors"]))
+
+    def test_second_linked_evidence_endpoint_modification_fails(self) -> None:
+        self.build_fixture()
+        def tamper(rows: list[dict[str, object]]) -> None:
+            row = next(item for item in rows if len(item["linked_evidence_ids"]) >= 2)
+            row["linked_evidence_span_ids"][1] = row["linked_evidence_span_ids"][0]
+        self.rewrite_span_frame(tamper)
+        result = self.validate_fixture()
+        self.assertTrue(any("linked_evidence_endpoint_mismatch:1" in error for error in result["errors"]))
+
+    def test_cross_paper_linked_evidence_endpoint_fails(self) -> None:
+        self.build_fixture()
+        def tamper(rows: list[dict[str, object]]) -> None:
+            row = next(item for item in rows if item["linked_evidence_ids"])
+            cross_paper = next(item for item in rows if item["paper_id"] != row["paper_id"])
+            row["linked_evidence_span_ids"][0] = cross_paper["cleanroom_span_id"]
+        self.rewrite_span_frame(tamper)
+        result = self.validate_fixture()
+        self.assertTrue(any("cross_paper_linked_evidence" in error for error in result["errors"]))
 
     def test_source_and_gold_are_not_mutated(self) -> None:
         cleanroom_before = tree_hash(self.cleanroom_root / "cleanroom_fixture")

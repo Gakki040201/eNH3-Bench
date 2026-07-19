@@ -81,11 +81,15 @@ reports/calibration_metrics_template.json
 previews/calibration_preview.md
 ```
 
+A completed base package must contain exactly those fifteen files. The only declared post-review addition is `reports/calibration_metrics_summary.json`. Any other attachment is rejected; binary files and extra Markdown are never silently skipped.
+
 The preview contains only five span, three paper, three document, and three link examples. It explicitly states that labels are blank, the preview is not a completed audit, and the sample does not establish corpus-wide precision.
 
 ## Validation and reproducibility
 
-`scripts/check_calibration_package.py` recomputes calibration IDs and sampling hashes; validates required fields, schema/profile, labels, source IDs, offsets and source-node slices, same-paper link endpoints, context provenance, excerpt limits, counts, shortages, input/output hashes, and paper/document alignment; and scans for absolute/user paths, secrets, full-document fields, duplicates, and nonblank human/adjudication fields. A completed manifest is permitted only after source manifest completion, source validation PASS, required sample counts, zero unresolved/duplicate IDs, zero unsafe embeddings/paths/labels, and zero validation errors.
+`scripts/check_calibration_package.py` recomputes calibration IDs and sampling hashes; validates required fields, schema/profile, labels, source IDs, offsets and source-node slices, exact authoritative adjacency, every same-paper linked-evidence endpoint, excerpt limits, counts, shortages, input/output hashes, and paper/document alignment; and scans for absolute/user paths, secrets, full-document fields, duplicates, and nonblank human/adjudication fields. Review rows are aligned to sampling frames by calibration item ID. Only the declared human fields may change; every automatic value is schema-aware decoded from CSV and compared to its typed JSONL value. A completed manifest is permitted only after source manifest completion, source validation PASS, required sample counts, zero unresolved/duplicate IDs, zero unsafe embeddings/paths/labels, and zero validation errors.
+
+Output integrity avoids a recursive manifest/summary dependency. During construction, a `building` manifest is paired with an explicit `PENDING` validation summary. Successful validation produces a final `PASS` summary; its SHA-256 is stored in the completed manifest and the summary is also included in `output_file_hashes`. The manifest excludes only its own bytes. Review CSV byte hashes remain provenance records but are not enforced after generation because human fields are intentionally mutable; deletion, extra rows, duplicate observations, schema changes, and automatic-field tampering are instead detected structurally against immutable sampling frames. Missing or unexpected files are independently rejected by the strict package inventory.
 
 The builder refuses to overwrite any existing package unless `--clean` is explicit. Cleaning accepts only an exact child of the calibration root, rejects reserved/traversal/current-directory and symlink/junction targets, protects siblings and clean-room data, and uses an exclusive run lock. `--dry-run` performs no deletion or build.
 
@@ -93,7 +97,7 @@ Reproducibility comparison removes only `calibration_run_name` and timestamps, t
 
 ## Metrics and adjudication
 
-Phase A reports completeness, label distributions, uncertain/not-applicable rates, reviewer agreement, Cohen's kappa, correctness counts, and per-stratum error rates. With blank labels these are `null`/`not_available`, with the number of missing reviewed records reported. It never fabricates a denominator.
+Phase A reports completeness, label distributions, uncertain/not-applicable rates, reviewer agreement, Cohen's kappa, correctness counts, and per-stratum error rates. Row completeness is completed review rows divided by total review rows. Item coverage is the number of unique items with at least one completed reviewer divided by total unique items. Reviewer coverage separately reports reviewer count and row/completed-row counts per reviewer. With blank labels the inferential metrics are `null`/`not_available`, with missing rows and items reported. It never fabricates or mixes denominators.
 
 The audit mapping covers document genre, reaction family, claim ownership, claim type, primary eligibility, quantification, validation, paper status, and link relevance/role. A human `yes` means that an automatic assertion is correct; it does not mean that the underlying automatic class is the class `yes`. Therefore correctness precision is reported separately, while class-label recall and macro-F1 remain unavailable until corrected class labels exist. The metrics CLI optionally accepts explicit predicted/corrected class pairs for multiclass precision, recall, confusion counts, and macro-F1.
 

@@ -58,7 +58,9 @@ def main() -> int:
         print(f"calibration_metrics: FAIL\n- {exc}", file=sys.stderr)
         return 1
     print(f"calibration_metrics: {result['status']}")
-    print("completeness: " + json.dumps(result["completeness"], sort_keys=True))
+    print("row_completeness: " + json.dumps(result["row_completeness"], sort_keys=True))
+    print("item_coverage: " + json.dumps(result["item_coverage"], sort_keys=True))
+    print("reviewer_coverage: " + json.dumps(result["reviewer_coverage"], sort_keys=True))
     print("reviewer_agreement: " + json.dumps(result["reviewer_agreement"], sort_keys=True))
     print("correctness_metrics: " + json.dumps(result["correctness_metrics"], sort_keys=True))
     print("class_label_metrics: " + json.dumps(result["class_label_metrics"], sort_keys=True))

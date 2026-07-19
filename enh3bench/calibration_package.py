@@ -264,7 +264,13 @@ class CalibrationPackageBuilder:
             and selected_counts["document"] == self.paper_sample_size
             and (selected_counts["link"] == self.link_sample_size or link_coverage["shortage"] > 0)
         )
+        # The building manifest is validated against an explicit PENDING summary. The resulting
+        # PASS payload is then frozen, hashed, and referenced by the completed manifest.
+        write_json(self.run_dir / "reports/validation_summary.json", validation)
         manifest["status"] = "completed" if completed else "failed"
+        manifest["validation_summary_sha256"] = sha256_file(
+            self.run_dir / "reports/validation_summary.json"
+        )
         manifest["output_file_hashes"] = output_hashes(self.run_dir)
         write_json(self.run_dir / "manifests/calibration_manifest.json", manifest)
         final_validation = validate_calibration_package(
@@ -273,7 +279,6 @@ class CalibrationPackageBuilder:
             cleanroom_root=self.cleanroom_root,
             require_blank_human_fields=True,
         )
-        write_json(self.run_dir / "reports/validation_summary.json", final_validation)
         if final_validation["result"] != "PASS" or not completed:
             if final_validation["errors"]:
                 manifest["errors"] = sorted(set(manifest["errors"] + final_validation["errors"]))
@@ -503,7 +508,11 @@ class CalibrationPackageBuilder:
             "status": "building", "warnings": [], "errors": [], "created_at_utc": _utc_now(),
         })
         write_json(self.run_dir / "reports/validation_summary.json", {
-            "result": "PENDING", "errors": [], "warnings": [], "counts": {}
+            **common_fields(
+                self.calibration_run_name, self.cleanroom_run_name, manifest_sha, "validation"
+            ),
+            "result": "PENDING", "error_count": 0, "warning_count": 0,
+            "errors": [], "warnings": [], "counts": {},
         })
         (self.run_dir / "previews").mkdir(parents=True, exist_ok=True)
         preview = _preview_markdown(spans[:5], papers[:3], documents[:3], links[:3])
@@ -556,7 +565,7 @@ def tree_hash(root: str | Path) -> str:
 
 def output_hashes(run_dir: str | Path) -> dict[str, str]:
     root = Path(run_dir)
-    excluded = {"manifests/calibration_manifest.json", "reports/validation_summary.json"}
+    excluded = {"manifests/calibration_manifest.json"}
     return {
         path.relative_to(root).as_posix(): sha256_file(path)
         for path in sorted(item for item in root.rglob("*") if item.is_file())
