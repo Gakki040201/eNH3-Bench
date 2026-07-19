@@ -17,12 +17,16 @@ It freezes the v0.15 implementation boundary. The package does not change clean-
 
 - Branch: `feature/v015-cleanroom-pipeline`
 - HEAD before audit-package commit: `ab8235b1f825a63c3175fd4b9f4d46f6dae48986`
-- Base branch: `review/v014-stage-b-context`
+- Base branch at audit-package creation: `review/v014-stage-b-context`
 - Pull request: `#2`
-- Pull request state: Draft
+- Pull request state at audit-package creation: Draft
 - Schema: `0.15-cleanroom.1`
 - Profile: `document_first_cleanroom_v1`
 - Runtime evidence: `data/cleanroom/enrr_cleanroom_v015_20260718/`
+
+## Post-retarget status
+
+PR #1 was merged with merge commit `78ab0dc51af2521afa151c845498b4f5f9cc5eef`. PR #2 is now retargeted to `feature/v014-context-aware-evidence`. This documentation update intentionally triggers a fresh pull-request CI run against the retargeted base. The engineering and scientific boundaries in the audit package are unchanged.
 
 ## Files
 
