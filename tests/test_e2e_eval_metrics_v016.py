@@ -26,7 +26,7 @@ class E2EEvalMetricsV016Tests(unittest.TestCase):
             "answer_text": "A bounded answer.", "answer_status": "answered",
             "confidence_statement": "Moderate confidence.", "generation_model": "fixture-model",
             "generation_prompt_version": "fixture-prompt", "generation_status": "completed",
-            "api_call_performed": True,
+            "generation_parameters": {"temperature": 0}, "api_call_performed": True,
             "claims": [{
                 "claim_id": "c1", "claim_text": "A bounded claim.", "claim_type": "result",
                 "supporting_source_span_ids": [case["allowed_source_span_ids"][0]],
@@ -38,6 +38,33 @@ class E2EEvalMetricsV016Tests(unittest.TestCase):
     def test_valid_future_api_output_contract(self) -> None:
         case, output = self.valid_output()
         self.assertEqual(validate_api_output(output, case), [])
+
+    def test_successful_output_requires_complete_generation_provenance(self) -> None:
+        case, output = self.valid_output()
+        mutations = (
+            ("api_call_performed", False, "successful_output_requires_api_call"),
+            ("generation_model", "", "successful_output_missing_generation_model"),
+            ("generation_prompt_version", "", "successful_output_missing_generation_prompt_version"),
+            ("generation_parameters", {}, "successful_output_missing_generation_parameters"),
+        )
+        for field, value, expected in mutations:
+            with self.subTest(field=field):
+                changed = deepcopy(output)
+                changed[field] = value
+                self.assertIn(expected, validate_api_output(changed, case))
+
+    def test_failed_output_requires_reason_and_contains_no_substantive_answer(self) -> None:
+        case = self.cases[0]
+        output = make_api_output_templates([case])[0]
+        output.update({
+            "answer_status": "failed", "generation_status": "failed",
+            "limitations": ["provider failure"],
+        })
+        self.assertEqual(validate_api_output(output, case), [])
+        output["limitations"] = []
+        self.assertIn("failed_output_missing_failure_reason", validate_api_output(output, case))
+        output["answer_text"] = "fabricated result"
+        self.assertIn("failed_output_contains_substantive_answer", validate_api_output(output, case))
 
     def test_citation_outside_allowlist_rejected(self) -> None:
         case, output = self.valid_output()

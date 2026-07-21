@@ -9,12 +9,14 @@ import re
 from typing import Any
 
 from enh3bench.e2e_case_generation import EVALUATOR_ONLY_CASE_FIELDS, GENERATION_BATCH_FIELDS
+from enh3bench.e2e_eval_metrics import validate_api_output
 from enh3bench.e2e_eval_schema import (
     ANSWER_CONTRACT_VERSION,
     QUESTION_TEMPLATE_VERSION,
     RISK_MODEL_VERSION,
     SELECTIVE_EVAL_SCHEMA_VERSION,
     canonical_json,
+    read_csv,
     read_json,
     read_jsonl,
     sha256_bytes,
@@ -30,6 +32,8 @@ FREEZE_MANIFEST_FIELDS = frozenset({
     "source_calibration_manifest_sha256", "package_manifest_sha256",
     "case_frame_sha256", "generation_batch_sha256", "development_api_outputs_sha256",
     "development_api_output_count", "prompt_sha256",
+    "development_generation_model_family", "development_prompt_version",
+    "development_generation_parameters_sha256", "development_generation_provenance_consistent",
     "prompt_version", "generation_model_family", "generation_parameters_sha256",
     "risk_model_version", "question_template_version", "answer_contract_version",
     "development_case_count", "holdout_case_count", "development_results_frozen",
@@ -40,6 +44,12 @@ RELEASE_MANIFEST_FIELDS = frozenset({
     "freeze_manifest_sha256", "exported_holdout_batch_sha256", "holdout_case_count",
     "selective_eval_run_name", "created_at_utc", "network_calls_performed",
 })
+
+
+def path_is_within(path: str | Path, root: str | Path) -> bool:
+    candidate = Path(path).resolve()
+    boundary = Path(root).resolve()
+    return candidate == boundary or boundary in candidate.parents
 
 
 def canonical_json_sha256(value: Any) -> str:
@@ -102,6 +112,110 @@ def read_generation_parameters(path: str | Path) -> Any:
     return value
 
 
+def validate_development_freeze_outputs(
+    outputs: list[dict[str, Any]], cases: list[dict[str, Any]], *,
+    generation_model_family: str, prompt_version: str, generation_parameters: Any,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    errors: list[str] = []
+    case_by_id = {str(case.get("case_id") or ""): case for case in cases}
+    development_ids = {
+        case_id for case_id, case in case_by_id.items() if case.get("split") == "development"
+    }
+    holdout_ids = {
+        case_id for case_id, case in case_by_id.items() if case.get("split") == "holdout"
+    }
+    source_ids = [str(row.get("source_case_id") or "") for row in outputs]
+    output_ids = [str(row.get("api_output_id") or "") for row in outputs]
+    source_id_set = set(source_ids)
+    holdout_count = sum(case_id in holdout_ids for case_id in source_ids)
+    unknown_count = sum(case_id not in case_by_id for case_id in source_ids)
+    duplicate_count = len(source_ids) - len(source_id_set) + len(output_ids) - len(set(output_ids))
+    if holdout_count:
+        errors.append(f"freeze_holdout_output_already_exists:{holdout_count}")
+    if (
+        len(outputs) != len(development_ids)
+        or source_id_set != development_ids
+        or unknown_count
+        or duplicate_count
+    ):
+        errors.append(
+            "freeze_requires_development_only_outputs:"
+            f"rows={len(outputs)}:unknown={unknown_count}:duplicates={duplicate_count}"
+        )
+    selected = [row for row in outputs if str(row.get("source_case_id") or "") in development_ids]
+    selected.sort(key=lambda row: str(row.get("source_case_id") or ""))
+    failed_count = sum(row.get("answer_status") == "failed" for row in selected)
+    if failed_count:
+        errors.append(f"freeze_failed_development_output:{failed_count}")
+    declared_parameters = canonical_json(generation_parameters)
+    provenance_incomplete = False
+    observed_models: set[str] = set()
+    observed_prompts: set[str] = set()
+    observed_parameters: set[str] = set()
+    for row in selected:
+        case_id = str(row.get("source_case_id") or "")
+        case = case_by_id[case_id]
+        model = str(row.get("generation_model") or "")
+        prompt = str(row.get("generation_prompt_version") or "")
+        parameters = row.get("generation_parameters")
+        observed_models.add(model)
+        observed_prompts.add(prompt)
+        if isinstance(parameters, dict):
+            observed_parameters.add(canonical_json(parameters))
+        if (
+            row.get("answer_status") not in {"answered", "partially_answered", "abstained"}
+            or row.get("generation_status") != "completed"
+            or row.get("api_call_performed") is not True
+            or not model or not prompt
+            or not isinstance(parameters, dict) or not parameters
+            or validate_api_output(row, case)
+        ):
+            provenance_incomplete = True
+        if model != generation_model_family:
+            errors.append(f"freeze_development_model_mismatch:{case_id}")
+        if prompt != prompt_version:
+            errors.append(f"freeze_development_prompt_mismatch:{case_id}")
+        if not isinstance(parameters, dict) or canonical_json(parameters) != declared_parameters:
+            errors.append(f"freeze_development_parameters_mismatch:{case_id}")
+    if len(observed_models) > 1 or len(observed_prompts) > 1 or len(observed_parameters) > 1:
+        errors.append("freeze_heterogeneous_development_provenance")
+    if provenance_incomplete:
+        errors.append("freeze_incomplete_generation_provenance")
+    return errors, selected
+
+
+def validate_no_holdout_pre_exposure(
+    run_dir: str | Path, cases: list[dict[str, Any]], outputs: list[dict[str, Any]],
+) -> list[str]:
+    root = Path(run_dir)
+    errors: list[str] = []
+    holdout_ids = {
+        str(case.get("case_id") or "") for case in cases if case.get("split") == "holdout"
+    }
+    holdout_outputs = sum(
+        str(row.get("source_case_id") or "") in holdout_ids for row in outputs
+    )
+    if holdout_outputs:
+        errors.append(f"freeze_holdout_output_already_exists:{holdout_outputs}")
+    judgment_path = root / "cases/machine_judgments.jsonl"
+    if judgment_path.is_file():
+        judgments = read_jsonl(judgment_path)
+        holdout_judgments = sum(
+            str(row.get("source_case_id") or "") in holdout_ids for row in judgments
+        )
+        if holdout_judgments:
+            errors.append(f"holdout_machine_judgment_already_exists:{holdout_judgments}")
+    reviews = read_csv(root / "review/e2e_human_review.csv")
+    holdout_completed_reviews = sum(
+        str(row.get("case_id") or "") in holdout_ids
+        and row.get("review_status") == "completed"
+        for row in reviews
+    )
+    if holdout_completed_reviews:
+        errors.append(f"holdout_completed_review_already_exists:{holdout_completed_reviews}")
+    return errors
+
+
 def development_outputs(
     outputs: list[dict[str, Any]], cases: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -141,6 +255,13 @@ def build_freeze_manifest(
 ) -> dict[str, Any]:
     if not prompt_version.strip() or not generation_model_family.strip():
         raise ValueError("prompt version and generation model family must be nonblank")
+    outputs = read_jsonl(Path(run_dir) / "cases/api_outputs.jsonl")
+    gate_errors, _ = validate_development_freeze_outputs(
+        outputs, cases, generation_model_family=generation_model_family,
+        prompt_version=prompt_version, generation_parameters=generation_parameters,
+    )
+    if gate_errors:
+        raise ValueError("; ".join(gate_errors))
     snapshot = compute_freeze_snapshot(
         run_dir, cases, prompt_file=prompt_file, generation_parameters=generation_parameters,
     )
@@ -155,6 +276,10 @@ def build_freeze_manifest(
         "selective_eval_run_name": package_manifest.get("selective_eval_run_name"),
         "source_calibration_manifest_sha256": package_manifest.get("source_calibration_manifest_sha256"),
         **snapshot,
+        "development_generation_model_family": generation_model_family,
+        "development_prompt_version": prompt_version,
+        "development_generation_parameters_sha256": canonical_json_sha256(generation_parameters),
+        "development_generation_provenance_consistent": True,
         "prompt_version": prompt_version,
         "generation_model_family": generation_model_family,
         "risk_model_version": RISK_MODEL_VERSION,
@@ -230,7 +355,23 @@ def validate_freeze_manifest(
         "development_results_frozen": True,
         "routing_rules_frozen": True,
         "prompt_frozen": True,
+        "development_generation_model_family": freeze.get("generation_model_family"),
+        "development_prompt_version": freeze.get("prompt_version"),
+        "development_generation_parameters_sha256": canonical_json_sha256(generation_parameters),
+        "development_generation_provenance_consistent": True,
     }
+    try:
+        outputs = read_jsonl(Path(run_dir) / "cases/api_outputs.jsonl")
+        gate_errors, _ = validate_development_freeze_outputs(
+            outputs, cases,
+            generation_model_family=str(freeze.get("generation_model_family") or ""),
+            prompt_version=str(freeze.get("prompt_version") or ""),
+            generation_parameters=generation_parameters,
+        )
+        errors.extend(gate_errors)
+        errors.extend(validate_no_holdout_pre_exposure(run_dir, cases, outputs))
+    except (OSError, ValueError) as exc:
+        errors.append(f"freeze_manifest_output_validation_unavailable:{exc}")
     try:
         expected.update(compute_freeze_snapshot(
             run_dir, cases, prompt_file=prompt_file,
@@ -249,6 +390,7 @@ def validate_freeze_manifest(
     for field in (
         "package_manifest_sha256", "case_frame_sha256", "generation_batch_sha256",
         "development_api_outputs_sha256", "prompt_sha256", "generation_parameters_sha256",
+        "development_generation_parameters_sha256",
     ):
         if not SHA256_PATTERN.fullmatch(str(freeze.get(field) or "")):
             errors.append(f"freeze_manifest_invalid_sha256:{field}")

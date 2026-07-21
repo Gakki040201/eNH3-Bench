@@ -169,6 +169,23 @@ class E2EReviewCompletenessV016Tests(unittest.TestCase):
         self.assertEqual(summary["status"], "not_available")
         self.assertIsNone(summary["pass_rate"])
 
+    def test_failed_outputs_do_not_count_as_generation_complete(self) -> None:
+        rows = valid_api_outputs(self.package_dir)
+        for row in rows:
+            row.update({
+                "answer_status": "failed", "generation_status": "failed",
+                "answer_text": "", "claims": [], "citations": [],
+                "limitations": ["fixture generation failure"],
+            })
+        write_jsonl(self.package_dir / "cases/api_outputs.jsonl", rows)
+        summary = summarize_e2e(self.package_dir)
+        self.assertFalse(summary["generation_complete"])
+        self.assertEqual(summary["successful_api_output_count"], 0)
+        self.assertEqual(summary["failed_api_output_count"], 48)
+        result = self.validate()
+        self.assertEqual(result["result"], "PASS", result["errors"])
+        self.assertEqual(result["counts"]["failed_api_output_count"], 48)
+
     def test_full_judge_and_human_coverage_have_separate_readiness(self) -> None:
         self.write_outputs()
         self.write_reviews(valid_human_reviews(self.package_dir))

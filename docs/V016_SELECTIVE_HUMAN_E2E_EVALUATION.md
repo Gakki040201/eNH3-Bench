@@ -106,13 +106,24 @@ generator permission to decline an unsupported answer; it does not reveal an eva
 
 Batch export defaults to the 36 development cases. Holdout export is a separate 12-case operation and
 requires a freeze manifest produced by `create_holdout_freeze_manifest.py`. The command first validates
-the package and requires valid API outputs for all 36 development cases. It computes hashes from the
+the complete source calibration package and selective-evaluation package. It requires exactly 36 API
+outputs whose case IDs are exactly the development IDs; any holdout, unknown, duplicate, failed, or
+provenance-incomplete output prevents freezing. Each accepted output must be a completed generation with
+`api_call_performed=true`, a nonblank model family and prompt version, and nonempty generation parameters.
+It computes hashes from the
 actual package manifest, case frame, generator batch, prompt bytes, canonical generation-parameter JSON,
 and the stable-case-sorted development outputs; callers do not supply those hashes as declarations.
 The record also binds source identity, prompt and model-family versions, risk/question/answer-contract
 versions, and case counts. Development results, routing rules, and the prompt must all be frozen. There
 is no uncontrolled `all` export mode, and the freeze manifest contains no labels, answers, credentials,
 reference answers, holdout outputs, or generation secrets.
+
+The declared model family, prompt version, and canonical parameter object must match every development
+output, and all 36 outputs must use the same values. The freeze records both the declared configuration
+and the configuration observed in development outputs. A terminal `failed` output may be retained as an
+auditable generation failure only when it contains no answer, claims, or citations and records a failure
+reason or limitation; it does not count toward development completion or generation completeness and
+cannot unlock holdout.
 
 Holdout export recomputes every bound hash. A change to the prompt, parameters, development outputs,
 case frame, generator batch, package manifest, run identity, or source identity invalidates the freeze.
@@ -121,6 +132,12 @@ A successful export atomically writes the 12-row generator-visible batch and an 
 release is reported as already released; a nonidentical release is rejected. This is tool-level,
 auditable sealing, not cryptographic access control: a person with direct filesystem write permission
 can bypass the CLI and must be governed by the review protocol and storage controls.
+Immediately before release, the CLI again requires exactly the same 36 development-only successful
+outputs and verifies that there are no holdout outputs, holdout machine judgments, or completed holdout
+human-review rows. Freeze manifests, exported holdout batches, and release records must be written
+outside the runtime directory so an export cannot invalidate package inventory. Both production CLIs
+perform full source-package validation; test fixtures exercise lower-level helpers or use the real
+read-only calibration package rather than disabling that validation in user-facing commands.
 
 ## Single-paper E2E cases and bounded context
 

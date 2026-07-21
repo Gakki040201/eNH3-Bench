@@ -293,6 +293,8 @@ def validate_selective_eval_package(
         "answerable_cases": 0, "partially_answerable_cases": 0,
         "insufficient_evidence_cases": 0, "out_of_scope_cases": 0,
         "imported_api_output_count": 0, "missing_api_output_count": 48,
+        "successful_api_output_count": 0, "failed_api_output_count": 0,
+        "development_successful_output_count": 0, "holdout_output_count": 0,
         "api_output_completion_rate": 0.0, "imported_machine_judgment_count": 0,
         "missing_machine_judgment_count": 96, "completed_human_review_count": 0,
         "valid_completed_human_review_count": 0,
@@ -595,6 +597,22 @@ def validate_selective_eval_package(
         str(row.get("source_case_id") or ""): row
         for row in imported_output_by_id.values()
     }
+    successful_output_by_case = {
+        case_id: row for case_id, row in valid_output_by_case.items()
+        if row.get("answer_status") in {"answered", "partially_answered", "abstained"}
+    }
+    counts["successful_api_output_count"] = len(successful_output_by_case)
+    counts["failed_api_output_count"] = sum(
+        row.get("answer_status") == "failed" for row in valid_output_by_case.values()
+    )
+    counts["development_successful_output_count"] = sum(
+        case_by_id.get(case_id, {}).get("split") == "development"
+        for case_id in successful_output_by_case
+    )
+    counts["holdout_output_count"] = sum(
+        case_by_id.get(str(row.get("source_case_id") or ""), {}).get("split") == "holdout"
+        for row in imported_outputs
+    )
     counts["imported_api_output_count"] = len(imported_outputs)
     counts["missing_api_output_count"] = max(0, len(cases) - len(imported_outputs))
     counts["api_output_completion_rate"] = (

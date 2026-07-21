@@ -139,7 +139,13 @@ def valid_api_outputs(package_dir: Path, count: int = 48) -> list[dict[str, Any]
     cases = read_jsonl(package_dir / "cases/e2e_case_frame.jsonl")[:count]
     rows = make_api_output_templates(cases)
     for row in rows:
-        row.update({"answer_status": "failed", "generation_status": "failed"})
+        row.update({
+            "answer_status": "abstained", "generation_status": "completed",
+            "api_call_performed": True, "generation_model": "fixture-model-family",
+            "generation_prompt_version": "fixture-prompt-v1",
+            "generation_parameters": {"temperature": 0, "max_tokens": 512},
+            "abstention_reason": "fixture bounded evidence insufficient",
+        })
     return rows
 
 

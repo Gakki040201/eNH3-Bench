@@ -11,9 +11,11 @@ if str(ROOT) not in sys.path:
 
 from enh3bench.e2e_holdout import (  # noqa: E402
     read_generation_parameters,
+    path_is_within,
     select_generation_rows,
     validate_freeze_manifest,
     validate_generation_batch_rows,
+    validate_no_holdout_pre_exposure,
     write_holdout_release,
 )
 from enh3bench.e2e_eval_schema import (  # noqa: E402
@@ -38,20 +40,8 @@ def main() -> int:
     args = parser.parse_args()
     try:
         run_dir = resolve_run_target(args.selective_eval_root, args.selective_eval_run_name)
-        validation = validate_selective_eval_package(
-            selective_eval_run_name=args.selective_eval_run_name,
-            selective_eval_root=args.selective_eval_root,
-            source_calibration_root=args.source_calibration_root,
-            check_source_package=False,
-        )
-        if validation["result"] != "PASS":
-            raise ValueError("package validation failed: " + "; ".join(validation["errors"][:12]))
-        batch = read_jsonl(run_dir / "cases/api_generation_batch.jsonl")
-        cases = read_jsonl(run_dir / "cases/e2e_case_frame.jsonl")
-        package_manifest = read_json(run_dir / "manifests/selective_eval_manifest.json")
-        errors = validate_generation_batch_rows(batch, cases)
-        if errors:
-            raise ValueError("; ".join(errors[:12]))
+        if args.output is not None and path_is_within(args.output, run_dir):
+            raise ValueError("release_output_inside_runtime")
         if args.split == "holdout":
             if args.freeze_manifest is None:
                 raise ValueError("holdout export requires --freeze-manifest")
@@ -61,6 +51,26 @@ def main() -> int:
                 )
             if args.output is None:
                 raise ValueError("holdout export requires --output")
+        validation = validate_selective_eval_package(
+            selective_eval_run_name=args.selective_eval_run_name,
+            selective_eval_root=args.selective_eval_root,
+            source_calibration_root=args.source_calibration_root,
+            check_source_package=True,
+        )
+        batch = read_jsonl(run_dir / "cases/api_generation_batch.jsonl")
+        cases = read_jsonl(run_dir / "cases/e2e_case_frame.jsonl")
+        package_manifest = read_json(run_dir / "manifests/selective_eval_manifest.json")
+        if args.split == "holdout":
+            output_rows = read_jsonl(run_dir / "cases/api_outputs.jsonl")
+            exposure_errors = validate_no_holdout_pre_exposure(run_dir, cases, output_rows)
+            if exposure_errors:
+                raise ValueError("; ".join(exposure_errors[:12]))
+        if validation["result"] != "PASS":
+            raise ValueError("package validation failed: " + "; ".join(validation["errors"][:12]))
+        errors = validate_generation_batch_rows(batch, cases)
+        if errors:
+            raise ValueError("; ".join(errors[:12]))
+        if args.split == "holdout":
             freeze = read_json(args.freeze_manifest)
             if not isinstance(freeze, dict):
                 raise ValueError("freeze manifest must be a JSON object")

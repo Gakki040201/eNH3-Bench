@@ -13,7 +13,9 @@ from enh3bench.e2e_eval_schema import read_json, read_jsonl, resolve_run_target,
 from enh3bench.e2e_eval_validation import validate_selective_eval_package  # noqa: E402
 from enh3bench.e2e_holdout import (  # noqa: E402
     build_freeze_manifest,
+    path_is_within,
     read_generation_parameters,
+    validate_development_freeze_outputs,
     validate_freeze_manifest,
 )
 
@@ -34,22 +36,31 @@ def main() -> int:
     try:
         run_dir = resolve_run_target(args.selective_eval_root, args.selective_eval_run_name)
         output = args.output.resolve()
+        if path_is_within(output, run_dir):
+            raise ValueError("freeze_manifest_output_inside_runtime")
         if output.exists():
             raise FileExistsError(f"refusing to overwrite: {output}")
         validation = validate_selective_eval_package(
             selective_eval_run_name=args.selective_eval_run_name,
             selective_eval_root=args.selective_eval_root,
             source_calibration_root=args.source_calibration_root,
-            check_source_package=False,
+            check_source_package=True,
         )
-        if validation["result"] != "PASS":
-            raise ValueError("package validation failed: " + "; ".join(validation["errors"][:12]))
         api_outputs_path = run_dir / "cases/api_outputs.jsonl"
         if not api_outputs_path.is_file():
             raise ValueError("holdout freeze requires cases/api_outputs.jsonl")
         cases = read_jsonl(run_dir / "cases/e2e_case_frame.jsonl")
         package_manifest = read_json(run_dir / "manifests/selective_eval_manifest.json")
         parameters = read_generation_parameters(args.generation_parameters_json)
+        outputs = read_jsonl(api_outputs_path)
+        gate_errors, _ = validate_development_freeze_outputs(
+            outputs, cases, generation_model_family=args.generation_model_family,
+            prompt_version=args.prompt_version, generation_parameters=parameters,
+        )
+        if gate_errors:
+            raise ValueError("; ".join(gate_errors[:12]))
+        if validation["result"] != "PASS":
+            raise ValueError("package validation failed: " + "; ".join(validation["errors"][:12]))
         freeze = build_freeze_manifest(
             package_manifest, cases, run_dir=run_dir, prompt_file=args.prompt_file,
             generation_parameters=parameters, prompt_version=args.prompt_version,

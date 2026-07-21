@@ -13,7 +13,7 @@ from enh3bench.e2e_case_generation import make_api_output_templates
 from enh3bench.e2e_eval_schema import JUDGE_DIMENSIONS
 from enh3bench.e2e_eval_package import build_selective_eval_package
 from enh3bench.e2e_eval_schema import read_jsonl, write_json, write_jsonl
-from tests.selective_eval_test_helpers import create_source_calibration_fixture, valid_freeze_manifest
+from tests.selective_eval_test_helpers import valid_freeze_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,18 +24,27 @@ class E2EEvalCliV016Tests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.temp = tempfile.TemporaryDirectory()
         cls.base = Path(cls.temp.name)
-        cls.source_root = cls.base / "data/calibration"
+        cls.source_root = ROOT / "data/calibration"
+        cls.source_run_name = "enrr_calibration_v016_round1_20260719"
         cls.eval_root = cls.base / "data/selective_eval"
-        create_source_calibration_fixture(cls.source_root)
         build_selective_eval_package(
-            source_calibration_run_name="calibration_fixture", source_calibration_root=cls.source_root,
+            source_calibration_run_name=cls.source_run_name, source_calibration_root=cls.source_root,
             selective_eval_run_name="eval", selective_eval_root=cls.eval_root,
             clean=True, validate_source_package=False,
         )
         cls.package_dir = cls.eval_root / "eval"
-        imported = make_api_output_templates(read_jsonl(cls.package_dir / "cases/e2e_case_frame.jsonl"))
+        imported = make_api_output_templates([
+            case for case in read_jsonl(cls.package_dir / "cases/e2e_case_frame.jsonl")
+            if case["split"] == "development"
+        ])
         for row in imported:
-            row.update({"answer_status": "failed", "generation_status": "failed"})
+            row.update({
+                "answer_status": "abstained", "generation_status": "completed",
+                "api_call_performed": True, "generation_model": "fixture-model-family",
+                "generation_prompt_version": "fixture-prompt-v1",
+                "generation_parameters": {"temperature": 0, "max_tokens": 512},
+                "abstention_reason": "fixture bounded evidence insufficient",
+            })
         write_jsonl(cls.package_dir / "cases/api_outputs.jsonl", imported)
         cls.prompt_file = cls.base / "prompt.txt"
         cls.prompt_file.write_text("fixture generation prompt\n", encoding="utf-8")
@@ -55,7 +64,7 @@ class E2EEvalCliV016Tests(unittest.TestCase):
     def test_build_dry_run_writes_nothing(self) -> None:
         target = "dry_run_target"
         result = self.run_cli(
-            "build_selective_eval_package.py", "--source-calibration-run-name", "calibration_fixture",
+            "build_selective_eval_package.py", "--source-calibration-run-name", self.source_run_name,
             "--source-calibration-root", str(self.source_root), "--selective-eval-run-name", target,
             "--selective-eval-root", str(self.eval_root), "--dry-run",
         )
@@ -175,7 +184,10 @@ class E2EEvalCliV016Tests(unittest.TestCase):
     def test_duplicate_api_output_rejected(self) -> None:
         case = read_jsonl(self.package_dir / "cases/e2e_case_frame.jsonl")[0]
         output = make_api_output_templates([case])[0]
-        output.update({"answer_status": "failed", "generation_status": "failed"})
+        output.update({
+            "answer_status": "failed", "generation_status": "failed",
+            "limitations": ["fixture generation failure"],
+        })
         source = self.base / "duplicate.jsonl"; write_jsonl(source, [output, output])
         result = self.run_cli(
             "import_api_outputs.py", "--selective-eval-run-name", "eval",
@@ -204,6 +216,7 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         result = self.run_cli(
             "import_machine_judgments.py", "--selective-eval-run-name", "eval",
             "--selective-eval-root", str(self.eval_root), "--input-jsonl", str(source),
+            "--source-calibration-root", str(self.source_root),
             "--output-jsonl", str(output),
         )
         self.assertNotEqual(result.returncode, 0)
@@ -221,7 +234,7 @@ class E2EEvalCliV016Tests(unittest.TestCase):
     def test_build_contains_no_real_network_call(self) -> None:
         with mock.patch("socket.create_connection", side_effect=AssertionError("network forbidden")):
             result = build_selective_eval_package(
-                source_calibration_run_name="calibration_fixture", source_calibration_root=self.source_root,
+                source_calibration_run_name=self.source_run_name, source_calibration_root=self.source_root,
                 selective_eval_run_name="no_network", selective_eval_root=self.eval_root,
                 clean=True, validate_source_package=False,
             )

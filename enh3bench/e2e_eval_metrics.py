@@ -44,6 +44,8 @@ METRICS_SUMMARY_FIELDS = {
     "schema_version", "profile", "metric_schema_version", "selective_eval_run_name",
     "source_calibration_run_name", "source_calibration_manifest_sha256", "status",
     "validation_errors", "package_stage", "case_count", "api_output_count",
+    "successful_api_output_count", "failed_api_output_count",
+    "development_successful_output_count", "holdout_output_count",
     "machine_judgment_count", "completed_human_review_count", "precision", "pass_rate",
     "cohen_kappa", "judge_human_agreement", "unsupported_claim_rate",
     "generation_completion", "answerability", "human_final_output_assessment",
@@ -88,6 +90,15 @@ def validate_api_output(row: dict[str, Any], case: dict[str, Any]) -> list[str]:
         errors.append("api_call_performed_not_boolean")
     if not isinstance(row.get("generation_parameters"), dict):
         errors.append("generation_parameters_not_object")
+    if status in {"answered", "partially_answered", "abstained"}:
+        if row.get("api_call_performed") is not True:
+            errors.append("successful_output_requires_api_call")
+        if not str(row.get("generation_model") or "").strip():
+            errors.append("successful_output_missing_generation_model")
+        if not str(row.get("generation_prompt_version") or "").strip():
+            errors.append("successful_output_missing_generation_prompt_version")
+        if not isinstance(row.get("generation_parameters"), dict) or not row.get("generation_parameters"):
+            errors.append("successful_output_missing_generation_parameters")
     for field in ("claims", "citations", "limitations"):
         if not isinstance(row.get(field), list):
             errors.append(f"api_output_{field}_not_list")
@@ -103,6 +114,12 @@ def validate_api_output(row: dict[str, Any], case: dict[str, Any]) -> list[str]:
         str(row.get("answer_text") or "").strip() or row.get("claims") or row.get("citations")
     ):
         errors.append("abstained_output_contains_substantive_answer")
+    if status == "failed":
+        if str(row.get("answer_text") or "").strip() or row.get("claims") or row.get("citations"):
+            errors.append("failed_output_contains_substantive_answer")
+        failure_reason = str(row.get("abstention_reason") or "").strip()
+        if not failure_reason and not row.get("limitations"):
+            errors.append("failed_output_missing_failure_reason")
     allowed_spans = set(case.get("allowed_source_span_ids") or [])
     allowed_links = set(case.get("allowed_evidence_link_ids") or [])
     claim_ids: set[str] = set()
@@ -376,6 +393,15 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
     judgments = read_jsonl(judgment_path) if judgment_path.is_file() else []
     completed_reviews = [row for row in reviews if row.get("review_status") == "completed"]
     outputs_by_case = _valid_outputs_by_case(cases, outputs)
+    successful_outputs_by_case = {
+        case_id: row for case_id, row in outputs_by_case.items()
+        if row.get("answer_status") in {"answered", "partially_answered", "abstained"}
+    }
+    failed_outputs_by_case = {
+        case_id: row for case_id, row in outputs_by_case.items()
+        if row.get("answer_status") == "failed"
+    }
+    case_by_id = {str(case.get("case_id") or ""): case for case in cases}
     valid_completed_reviews = _valid_completed_reviews(reviews, cases, outputs_by_case)
     valid_judgments = _valid_judgments(
         judgments, judgment_templates, cases, outputs_by_case,
@@ -384,7 +410,7 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
     completed_by_case = Counter(row.get("case_id") for row in valid_completed_reviews)
     cases_with_two = sum(value == 2 for value in completed_by_case.values())
     cases_with_one = sum(value == 1 for value in completed_by_case.values())
-    generation_complete = len(outputs_by_case) == len(cases) == 48
+    generation_complete = len(successful_outputs_by_case) == len(cases) == 48
     human_review_complete = (
         len(valid_completed_reviews) == 96
         and cases_with_two == 48
@@ -412,6 +438,16 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
         "status": "not_available",
         "validation_errors": [], "package_stage": stage,
         "case_count": len(cases), "api_output_count": len(outputs),
+        "successful_api_output_count": len(successful_outputs_by_case),
+        "failed_api_output_count": len(failed_outputs_by_case),
+        "development_successful_output_count": sum(
+            case_by_id[case_id].get("split") == "development"
+            for case_id in successful_outputs_by_case if case_id in case_by_id
+        ),
+        "holdout_output_count": sum(
+            case_by_id.get(str(row.get("source_case_id") or ""), {}).get("split") == "holdout"
+            for row in outputs
+        ),
         "machine_judgment_count": len(judgments), "completed_human_review_count": len(completed_reviews),
         "precision": None, "pass_rate": None, "cohen_kappa": None,
         "judge_human_agreement": None, "unsupported_claim_rate": None,
