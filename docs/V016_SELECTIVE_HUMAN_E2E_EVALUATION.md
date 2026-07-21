@@ -105,10 +105,22 @@ that abstention is allowed. It never exposes split, risk tier or reasons, answer
 generator permission to decline an unsupported answer; it does not reveal an evaluator expectation.
 
 Batch export defaults to the 36 development cases. Holdout export is a separate 12-case operation and
-requires a strict freeze manifest binding package and source identities, prompt version, model family,
-generation-parameter hash, risk/question/answer-contract versions, and case counts. Development results,
-routing rules, and the prompt must all be frozen. There is no uncontrolled `all` export mode, and the
-freeze manifest contains no labels, answers, credentials, or generation secrets.
+requires a freeze manifest produced by `create_holdout_freeze_manifest.py`. The command first validates
+the package and requires valid API outputs for all 36 development cases. It computes hashes from the
+actual package manifest, case frame, generator batch, prompt bytes, canonical generation-parameter JSON,
+and the stable-case-sorted development outputs; callers do not supply those hashes as declarations.
+The record also binds source identity, prompt and model-family versions, risk/question/answer-contract
+versions, and case counts. Development results, routing rules, and the prompt must all be frozen. There
+is no uncontrolled `all` export mode, and the freeze manifest contains no labels, answers, credentials,
+reference answers, holdout outputs, or generation secrets.
+
+Holdout export recomputes every bound hash. A change to the prompt, parameters, development outputs,
+case frame, generator batch, package manifest, run identity, or source identity invalidates the freeze.
+A successful export atomically writes the 12-row generator-visible batch and an adjacent
+`holdout_release_manifest.json` binding the freeze hash and exported-batch hash. An identical second
+release is reported as already released; a nonidentical release is rejected. This is tool-level,
+auditable sealing, not cryptographic access control: a person with direct filesystem write permission
+can bypass the CLI and must be governed by the review protocol and storage controls.
 
 ## Single-paper E2E cases and bounded context
 
@@ -172,6 +184,11 @@ Every future E2E output receives independent R1 and R2 rows. Reviewers assess an
 citation entailment and completeness, reaction family, ownership, quantification, validation,
 uncertainty, abstention, unsupported claims, and scientific usefulness. `no` or `uncertain` requires a
 note. The overall verdict is one of `pass`, `minor_revision`, `major_revision`, `reject`, or `uncertain`.
+`review_status=completed` is accepted only when every required label and the overall verdict are filled,
+the stable output ID matches the same case, and that case has a valid imported API output. Reviewer slots
+are fixed to `reviewer_1/R1` and `reviewer_2/R2`; duplicate case/reviewer observations are invalid. A
+`no` or `uncertain` label without notes is invalid. Partial rows remain available for work in progress but
+do not count toward completed-review coverage.
 
 `human_corrected_answer` is blank by default and is used only when a reviewer must supply a corrected
 answer. It is not an automatically generated reference answer. Citation-level review checks whether each
@@ -184,8 +201,12 @@ human disagreement by itself.
 
 ## Metrics, drift, and future operation
 
-With blank outputs and reviews, evaluation status is `not_available`. Precision, pass rate, kappa,
-judge-human agreement, and unsupported-claim rate remain `null`; the summarizer never fabricates them.
+With blank outputs and reviews, evaluation status is `not_available`. In metrics schema
+`0.16-e2e-metrics.1`, the approved metric algorithms are not implemented: precision, pass rate, kappa,
+judge-human agreement, unsupported-claim rate, abstention correctness, citation entailment, citation
+completeness, and every other metric value must remain `null`, even when artifact coverage is complete.
+The reason is `metric computation requires a separately approved metrics implementation`. Implementing
+those calculations requires a separately approved change and a metric-schema version bump.
 Future summaries keep generation completion, case answerability, human final-output assessment, machine
 judge assessment, judge-human agreement, abstention correctness, citation entailment, citation
 completeness, and unsupported-claim rate separate. Risk tier and expected answer action are never used
@@ -193,9 +214,13 @@ as human truth. Metrics become meaningful only after an authorized generation ru
 independent human review.
 
 The package validator derives, rather than accepts, the current stage: `blank`, `generated`, `judged`,
-or `human_reviewed`. Optional metrics summaries are checked against current artifact counts, package and
-calibration identities, reviewer coverage, and inferential-metric prerequisites. A stale summary or a
-metric that claims unavailable human or judge evidence is rejected.
+or `human_reviewed`. Generation completeness means 48 valid outputs covering 48 distinct cases. Human
+review completeness means 96 valid, output-aligned rows with exactly R1 and R2 for every case. Machine
+judgment completeness means 96 valid observations with two distinct judge observations per case.
+`human_metrics_ready`, `judge_metrics_ready`, and `judge_human_metrics_ready` combine those exact coverage
+conditions independently; a merely nonempty artifact is never sufficient. Optional metrics summaries
+are compared field by field with the authoritative summarizer output. A stale summary or any non-null
+unimplemented metric is rejected.
 
 Drift monitoring should retain the random sentinel and track prompt version, model version, new reaction
 families, new genres, risk-tier shifts, citation failures, and disagreement rates. A model or prompt

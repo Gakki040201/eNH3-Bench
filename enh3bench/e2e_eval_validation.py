@@ -166,27 +166,32 @@ def _validate_imported_api_outputs(
     rows: list[dict[str, Any]], case_by_id: dict[str, dict[str, Any]],
 ) -> tuple[list[str], dict[str, dict[str, Any]]]:
     errors: list[str] = []
-    by_id: dict[str, dict[str, Any]] = {}
-    seen_cases: set[str] = set()
+    candidates: dict[str, dict[str, Any]] = {}
+    output_ids = Counter(str(row.get("api_output_id") or "") for row in rows)
+    case_ids = Counter(str(row.get("source_case_id") or "") for row in rows)
     for index, row in enumerate(rows, 1):
         output_id = str(row.get("api_output_id") or "")
         case_id = str(row.get("source_case_id") or "")
-        if output_id in by_id:
+        row_errors: list[str] = []
+        if output_ids[output_id] != 1:
             errors.append(f"duplicate_imported_api_output_id:{output_id}")
-        else:
-            by_id[output_id] = row
-        if case_id in seen_cases:
+            row_errors.append("duplicate_output_id")
+        if case_ids[case_id] != 1:
             errors.append(f"duplicate_imported_api_output_case:{case_id}")
-        seen_cases.add(case_id)
+            row_errors.append("duplicate_case")
         case = case_by_id.get(case_id)
         if case is None:
             errors.append(f"unknown_imported_api_output_case:{index}:{case_id}")
             continue
-        errors.extend(
+        validation_errors = [
             f"imported_api_output:{index}:{error}"
             for error in validate_api_output(row, case)
-        )
-    return errors, by_id
+        ]
+        errors.extend(validation_errors)
+        row_errors.extend(validation_errors)
+        if not row_errors:
+            candidates[output_id] = row
+    return errors, candidates
 
 
 def _validate_imported_machine_judgments(
@@ -246,40 +251,22 @@ def _validate_metrics_summary(
     for field, value in identity.items():
         if summary.get(field) != value:
             errors.append(f"metrics_summary_identity_mismatch:{field}")
-    if summary.get("status") not in {"not_available", "available", "invalid"}:
+    if summary.get("status") not in {"not_available", "invalid"}:
         errors.append("metrics_summary_invalid_status")
-    if summary.get("status") == "available" and not expected["inferential_metrics_ready"]:
-        errors.append("metrics_summary_available_without_prerequisites")
     validation_errors = summary.get("validation_errors")
     if not isinstance(validation_errors, list):
         errors.append("metrics_summary_validation_errors_not_list")
-    elif summary.get("status") != "invalid" and validation_errors:
+    elif summary.get("status") == "not_available" and validation_errors:
         errors.append("metrics_summary_noninvalid_has_validation_errors")
-    for field in (
-        "package_stage", "case_count", "api_output_count", "machine_judgment_count",
-        "completed_human_review_count", "reviewer_coverage", "inferential_metrics_ready",
-    ):
+    elif summary.get("status") == "invalid" and not validation_errors:
+        errors.append("metrics_summary_invalid_without_validation_errors")
+    authoritative_exceptions = {"status", "validation_errors"}
+    for field in sorted(METRICS_SUMMARY_FIELDS - authoritative_exceptions):
         if summary.get(field) != expected.get(field):
             errors.append(f"metrics_summary_stale_or_inconsistent:{field}")
     for field in METRIC_VALUE_FIELDS:
-        value = summary.get(field)
-        if value is not None:
-            if not isinstance(value, dict) or set(value) != {"value", "status", "provenance"}:
-                errors.append(f"metrics_summary_invalid_metric_object:{field}")
-                continue
-            if value.get("status") not in {"available", "not_available"}:
-                errors.append(f"metrics_summary_invalid_metric_status:{field}")
-            metric_value = value.get("value")
-            if metric_value is not None and (
-                not isinstance(metric_value, (int, float)) or isinstance(metric_value, bool)
-            ):
-                errors.append(f"metrics_summary_invalid_metric_value:{field}")
-            if not str(value.get("provenance") or "").strip():
-                errors.append(f"metrics_summary_blank_metric_provenance:{field}")
-            if not expected["inferential_metrics_ready"]:
-                errors.append(f"metrics_summary_fabricated_without_prerequisites:{field}")
-            if summary.get("status") == "not_available":
-                errors.append(f"metrics_summary_not_available_contains_metric:{field}")
+        if summary.get(field) is not None:
+            errors.append(f"metrics_summary_unimplemented_metric_must_be_null:{field}")
     if summary.get("fabricated_metric_count") != 0:
         errors.append("metrics_summary_fabricated_metric_count_nonzero")
     return errors
@@ -308,6 +295,13 @@ def validate_selective_eval_package(
         "imported_api_output_count": 0, "missing_api_output_count": 48,
         "api_output_completion_rate": 0.0, "imported_machine_judgment_count": 0,
         "missing_machine_judgment_count": 96, "completed_human_review_count": 0,
+        "valid_completed_human_review_count": 0,
+        "invalid_completed_human_review_count": 0,
+        "completed_reviewed_case_count": 0,
+        "cases_with_two_completed_reviewers": 0,
+        "cases_with_one_completed_reviewer": 0,
+        "cases_without_completed_review": 48,
+        "completed_rows_per_reviewer": {},
         "package_stage": "blank",
     }
     actual_files = {
@@ -593,22 +587,51 @@ def validate_selective_eval_package(
         if row.get("judgment_status") != "pending" or row.get("judge_call_performed") is not False or row.get("human_truth_claimed") is not False:
             errors.append(f"machine_judgment_not_blank:{case_id}:{slot}")
 
+    imported_output_errors, imported_output_by_id = _validate_imported_api_outputs(
+        imported_outputs, case_by_id,
+    )
+    errors.extend(imported_output_errors)
+    valid_output_by_case = {
+        str(row.get("source_case_id") or ""): row
+        for row in imported_output_by_id.values()
+    }
+    counts["imported_api_output_count"] = len(imported_outputs)
+    counts["missing_api_output_count"] = max(0, len(cases) - len(imported_outputs))
+    counts["api_output_completion_rate"] = (
+        round(len(imported_outputs) / len(cases), 6) if cases else 0.0
+    )
+
     counts["e2e_human_review_rows"] = len(human_reviews)
     if len(human_reviews) != 96:
         errors.append(f"e2e_human_review_row_count:{len(human_reviews)}")
-    review_observations: set[tuple[str, str]] = set()
+    observation_counts = Counter(
+        (str(row.get("case_id") or ""), str(row.get("reviewer_id") or ""))
+        for row in human_reviews
+    )
+    slot_counts = Counter(
+        (str(row.get("case_id") or ""), str(row.get("reviewer_slot") or ""))
+        for row in human_reviews
+    )
+    completed_row_validity: list[tuple[dict[str, str], bool]] = []
     for row in human_reviews:
+        row_error_start = len(errors)
         case_id = str(row.get("case_id") or "")
         reviewer_id = str(row.get("reviewer_id") or "")
         reviewer_slot = str(row.get("reviewer_slot") or "")
         observation = (case_id, reviewer_id)
-        if observation in review_observations:
+        slot_observation = (case_id, reviewer_slot)
+        if observation_counts[observation] != 1:
+            errors.append(f"duplicate_human_review_observation:{case_id}:{reviewer_id}")
             counts["duplicate_ids"] += 1
-        review_observations.add(observation)
+        if slot_counts[slot_observation] != 1:
+            errors.append(f"duplicate_human_review_slot:{case_id}:{reviewer_slot}")
+            counts["duplicate_ids"] += 1
         if reviewer_id not in REVIEWER_IDS:
             errors.append(f"third_reviewer:{case_id}:{reviewer_id}")
         if set(row) != set(E2E_REVIEW_COLUMNS):
             errors.append(f"human_review_field_set_mismatch:{case_id}:{reviewer_slot}")
+        if row.get("schema_version") != SELECTIVE_EVAL_SCHEMA_VERSION or row.get("profile") != SELECTIVE_EVAL_PROFILE:
+            errors.append(f"human_review_schema_or_profile_mismatch:{case_id}:{reviewer_slot}")
         if row.get("human_review_id") != make_human_review_id(case_id, reviewer_slot):
             errors.append(f"invalid_human_review_id:{case_id}:{reviewer_slot}")
         expected_reviewer = {"reviewer_1": "R1", "reviewer_2": "R2"}.get(reviewer_slot)
@@ -632,16 +655,49 @@ def validate_selective_eval_package(
         if status_value == "completed":
             counts["completed_human_review_count"] += 1
         for field in FINAL_HUMAN_LABEL_FIELDS:
-            if str(row.get(field) or "") not in ALLOWED_HUMAN_LABELS:
+            label = str(row.get(field) or "")
+            if label not in ALLOWED_HUMAN_LABELS:
                 errors.append(f"invalid_human_label:{case_id}:{field}")
-        if str(row.get("human_overall_verdict") or "") not in ALLOWED_OVERALL_VERDICTS:
+            if status_value == "completed" and not label:
+                errors.append(f"completed_human_review_missing_label:{case_id}:{reviewer_id}:{field}")
+        overall_verdict = str(row.get("human_overall_verdict") or "")
+        if overall_verdict not in ALLOWED_OVERALL_VERDICTS:
             errors.append(f"invalid_human_overall_verdict:{case_id}")
+        if status_value == "completed" and not overall_verdict:
+            errors.append(f"completed_human_review_missing_overall_verdict:{case_id}:{reviewer_id}")
         if any(str(row.get(field) or "") in {"no", "uncertain"} for field in FINAL_HUMAN_LABEL_FIELDS):
             if not str(row.get("human_notes") or "").strip():
                 errors.append(f"human_review_notes_required:{case_id}:{reviewer_id}")
+        if status_value == "completed":
+            output = valid_output_by_case.get(case_id)
+            if output is None:
+                errors.append(f"completed_human_review_missing_valid_output:{case_id}:{reviewer_id}")
+            elif row.get("api_output_id") != output.get("api_output_id"):
+                errors.append(f"completed_human_review_output_mismatch:{case_id}:{reviewer_id}")
         for field, value in row.items():
             if field in FINAL_HUMAN_FIELDS and field != "reviewer_id" and str(value or "").strip():
                 counts["human_labels_filled"] += 1
+        if status_value == "completed":
+            completed_row_validity.append((row, len(errors) == row_error_start))
+
+    valid_completed_rows = [row for row, valid in completed_row_validity if valid]
+    counts["valid_completed_human_review_count"] = len(valid_completed_rows)
+    counts["invalid_completed_human_review_count"] = (
+        len(completed_row_validity) - len(valid_completed_rows)
+    )
+    valid_completed_by_case = Counter(str(row.get("case_id") or "") for row in valid_completed_rows)
+    completed_rows_per_reviewer = Counter(
+        str(row.get("reviewer_id") or "") for row in valid_completed_rows
+    )
+    counts["completed_reviewed_case_count"] = len(valid_completed_by_case)
+    counts["cases_with_two_completed_reviewers"] = sum(
+        value == 2 for value in valid_completed_by_case.values()
+    )
+    counts["cases_with_one_completed_reviewer"] = sum(
+        value == 1 for value in valid_completed_by_case.values()
+    )
+    counts["cases_without_completed_review"] = len(cases) - len(valid_completed_by_case)
+    counts["completed_rows_per_reviewer"] = dict(sorted(completed_rows_per_reviewer.items()))
     for row in adjudication:
         for field in (
             "reviewer_1_id", "reviewer_2_id", "reviewer_1_summary", "reviewer_2_summary", *ADJUDICATION_FIELDS,
@@ -649,15 +705,6 @@ def validate_selective_eval_package(
             if str(row.get(field) or "").strip():
                 counts["human_labels_filled"] += 1
 
-    imported_output_errors, imported_output_by_id = _validate_imported_api_outputs(
-        imported_outputs, case_by_id,
-    )
-    errors.extend(imported_output_errors)
-    counts["imported_api_output_count"] = len(imported_outputs)
-    counts["missing_api_output_count"] = max(0, len(cases) - len(imported_outputs))
-    counts["api_output_completion_rate"] = (
-        round(len(imported_outputs) / len(cases), 6) if cases else 0.0
-    )
     if "cases/machine_judgments.jsonl" in actual_files and "cases/api_outputs.jsonl" not in actual_files:
         errors.append("machine_judgments_require_api_outputs")
     errors.extend(_validate_imported_machine_judgments(
@@ -665,10 +712,8 @@ def validate_selective_eval_package(
     ))
     counts["imported_machine_judgment_count"] = len(imported_judgments)
     counts["missing_machine_judgment_count"] = max(0, len(judgments) - len(imported_judgments))
-    if counts["completed_human_review_count"] and not imported_outputs:
-        errors.append("completed_human_review_requires_api_outputs")
     counts["package_stage"] = (
-        "human_reviewed" if counts["completed_human_review_count"] else
+        "human_reviewed" if counts["valid_completed_human_review_count"] else
         "judged" if imported_judgments else
         "generated" if imported_outputs else
         "blank"

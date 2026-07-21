@@ -7,19 +7,26 @@ from pathlib import Path
 from typing import Any
 
 from enh3bench.e2e_eval_schema import (
+    ALLOWED_HUMAN_LABELS,
+    ALLOWED_OVERALL_VERDICTS,
     ALLOWED_ANSWER_STATUSES,
     ALLOWED_JUDGE_VERDICTS,
     ALLOWED_SUPPORT_STATUSES,
     E2E_METRICS_SCHEMA_VERSION,
     JUDGE_DIMENSIONS,
+    JUDGE_SLOTS,
+    FINAL_HUMAN_LABEL_FIELDS,
+    REVIEWER_IDS,
     SELECTIVE_EVAL_PROFILE,
     SELECTIVE_EVAL_SCHEMA_VERSION,
     make_judgment_id,
+    make_human_review_id,
     make_output_id,
     read_csv,
     read_json,
     read_jsonl,
 )
+from enh3bench.e2e_case_generation import E2E_REVIEW_COLUMNS
 
 
 API_OUTPUT_FIELDS = {
@@ -42,8 +49,17 @@ METRICS_SUMMARY_FIELDS = {
     "generation_completion", "answerability", "human_final_output_assessment",
     "machine_judge_assessment", "abstention_correctness", "citation_entailment",
     "citation_completeness", "fabricated_metric_count", "reviewer_coverage",
-    "inferential_metrics_ready", "judge_disagreement_count", "reason",
+    "valid_completed_human_review_count", "invalid_completed_human_review_count",
+    "completed_reviewed_case_count", "cases_with_two_completed_reviewers",
+    "cases_with_one_completed_reviewer", "cases_without_completed_review",
+    "completed_rows_per_reviewer", "generation_complete", "human_review_complete",
+    "machine_judgment_complete", "human_metrics_ready", "judge_metrics_ready",
+    "judge_human_metrics_ready", "judge_disagreement_count", "reason",
 }
+
+METRICS_IMPLEMENTATION_REQUIRED_REASON = (
+    "metric computation requires a separately approved metrics implementation"
+)
 
 
 def validate_api_output(row: dict[str, Any], case: dict[str, Any]) -> list[str]:
@@ -232,21 +248,158 @@ def validate_machine_judgment(
     return errors
 
 
+def _valid_outputs_by_case(
+    cases: list[dict[str, Any]], outputs: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    case_by_id = {str(case.get("case_id") or ""): case for case in cases}
+    candidates: dict[str, dict[str, Any]] = {}
+    output_ids: Counter[str] = Counter()
+    case_ids: Counter[str] = Counter()
+    for row in outputs:
+        output_ids[str(row.get("api_output_id") or "")] += 1
+        case_ids[str(row.get("source_case_id") or "")] += 1
+    for row in outputs:
+        case_id = str(row.get("source_case_id") or "")
+        output_id = str(row.get("api_output_id") or "")
+        case = case_by_id.get(case_id)
+        if (
+            case is not None
+            and output_ids[output_id] == 1
+            and case_ids[case_id] == 1
+            and not validate_api_output(row, case)
+        ):
+            candidates[case_id] = row
+    return candidates
+
+
+def _valid_completed_reviews(
+    reviews: list[dict[str, str]], cases: list[dict[str, Any]],
+    outputs_by_case: dict[str, dict[str, Any]],
+) -> list[dict[str, str]]:
+    case_by_id = {str(case.get("case_id") or ""): case for case in cases}
+    completed = [row for row in reviews if row.get("review_status") == "completed"]
+    observations = Counter(
+        (str(row.get("case_id") or ""), str(row.get("reviewer_id") or ""))
+        for row in reviews
+    )
+    slots = Counter(
+        (str(row.get("case_id") or ""), str(row.get("reviewer_slot") or ""))
+        for row in reviews
+    )
+    valid: list[dict[str, str]] = []
+    slot_identity = {"reviewer_1": "R1", "reviewer_2": "R2"}
+    for row in completed:
+        case_id = str(row.get("case_id") or "")
+        reviewer_id = str(row.get("reviewer_id") or "")
+        reviewer_slot = str(row.get("reviewer_slot") or "")
+        case = case_by_id.get(case_id)
+        output = outputs_by_case.get(case_id)
+        labels = [str(row.get(field) or "") for field in FINAL_HUMAN_LABEL_FIELDS]
+        overall = str(row.get("human_overall_verdict") or "")
+        notes_required = any(value in {"no", "uncertain"} for value in labels)
+        if (
+            set(row) != set(E2E_REVIEW_COLUMNS)
+            or row.get("schema_version") != SELECTIVE_EVAL_SCHEMA_VERSION
+            or row.get("profile") != SELECTIVE_EVAL_PROFILE
+            or case is None
+            or output is None
+            or row.get("api_output_id") != output.get("api_output_id")
+            or row.get("api_output_id") != make_output_id(case_id)
+            or reviewer_id not in REVIEWER_IDS
+            or slot_identity.get(reviewer_slot) != reviewer_id
+            or row.get("human_review_id") != make_human_review_id(case_id, reviewer_slot)
+            or observations[(case_id, reviewer_id)] != 1
+            or slots[(case_id, reviewer_slot)] != 1
+            or any(value not in (ALLOWED_HUMAN_LABELS - {""}) for value in labels)
+            or overall not in (ALLOWED_OVERALL_VERDICTS - {""})
+            or (notes_required and not str(row.get("human_notes") or "").strip())
+        ):
+            continue
+        expected_static = {
+            "paper_id": str(case.get("paper_id") or ""),
+            "document_id": str(case.get("document_id") or ""),
+            "split": str(case.get("split") or ""),
+            "case_type": str(case.get("case_type") or ""),
+        }
+        if any(row.get(field) != value for field, value in expected_static.items()):
+            continue
+        valid.append(row)
+    return valid
+
+
+def _valid_judgments(
+    judgments: list[dict[str, Any]], templates: list[dict[str, Any]],
+    cases: list[dict[str, Any]], outputs_by_case: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    case_by_id = {str(case.get("case_id") or ""): case for case in cases}
+    template_by_id = {str(row.get("machine_judgment_id") or ""): row for row in templates}
+    ids = Counter(str(row.get("machine_judgment_id") or "") for row in judgments)
+    observations = Counter(
+        (str(row.get("source_case_id") or ""), str(row.get("judge_slot") or ""))
+        for row in judgments
+    )
+    judge_observations = Counter(
+        (str(row.get("source_case_id") or ""), str(row.get("judge_id") or ""))
+        for row in judgments
+    )
+    valid: list[dict[str, Any]] = []
+    for row in judgments:
+        case_id = str(row.get("source_case_id") or "")
+        judgment_id = str(row.get("machine_judgment_id") or "")
+        slot = str(row.get("judge_slot") or "")
+        judge_id = str(row.get("judge_id") or "")
+        case = case_by_id.get(case_id)
+        template = template_by_id.get(judgment_id)
+        output = outputs_by_case.get(case_id)
+        if (
+            case is None or template is None or output is None
+            or slot not in JUDGE_SLOTS or not judge_id
+            or ids[judgment_id] != 1
+            or observations[(case_id, slot)] != 1
+            or judge_observations[(case_id, judge_id)] != 1
+            or validate_machine_judgment(row, template, case, output)
+        ):
+            continue
+        valid.append(row)
+    return valid
+
+
 def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
     root = Path(run_dir)
     manifest = read_json(root / "manifests/selective_eval_manifest.json")
     cases = read_jsonl(root / "cases/e2e_case_frame.jsonl")
     output_path = root / "cases/api_outputs.jsonl"
     judgment_path = root / "cases/machine_judgments.jsonl"
+    judgment_templates = read_jsonl(root / "cases/machine_judgment_template.jsonl")
     reviews = read_csv(root / "review/e2e_human_review.csv")
     outputs = read_jsonl(output_path) if output_path.is_file() else []
     judgments = read_jsonl(judgment_path) if judgment_path.is_file() else []
     completed_reviews = [row for row in reviews if row.get("review_status") == "completed"]
-    reviewer_counts = Counter(row.get("reviewer_id") for row in completed_reviews)
+    outputs_by_case = _valid_outputs_by_case(cases, outputs)
+    valid_completed_reviews = _valid_completed_reviews(reviews, cases, outputs_by_case)
+    valid_judgments = _valid_judgments(
+        judgments, judgment_templates, cases, outputs_by_case,
+    )
+    reviewer_counts = Counter(row.get("reviewer_id") for row in valid_completed_reviews)
+    completed_by_case = Counter(row.get("case_id") for row in valid_completed_reviews)
+    cases_with_two = sum(value == 2 for value in completed_by_case.values())
+    cases_with_one = sum(value == 1 for value in completed_by_case.values())
+    generation_complete = len(outputs_by_case) == len(cases) == 48
+    human_review_complete = (
+        len(valid_completed_reviews) == 96
+        and cases_with_two == 48
+        and set(completed_by_case) == {str(case.get("case_id") or "") for case in cases}
+    )
+    valid_judgments_by_case = Counter(row.get("source_case_id") for row in valid_judgments)
+    machine_judgment_complete = (
+        len(valid_judgments) == 96
+        and len(valid_judgments_by_case) == 48
+        and all(value == 2 for value in valid_judgments_by_case.values())
+    )
     stage = (
-        "human_reviewed" if completed_reviews else
-        "judged" if judgments else
-        "generated" if outputs else
+        "human_reviewed" if valid_completed_reviews else
+        "judged" if valid_judgments else
+        "generated" if outputs_by_case else
         "blank"
     )
     result: dict[str, Any] = {
@@ -267,11 +420,22 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
         "abstention_correctness": None, "citation_entailment": None,
         "citation_completeness": None, "fabricated_metric_count": 0,
         "reviewer_coverage": dict(sorted(reviewer_counts.items())),
-        "inferential_metrics_ready": bool(outputs and completed_reviews),
+        "valid_completed_human_review_count": len(valid_completed_reviews),
+        "invalid_completed_human_review_count": len(completed_reviews) - len(valid_completed_reviews),
+        "completed_reviewed_case_count": len(completed_by_case),
+        "cases_with_two_completed_reviewers": cases_with_two,
+        "cases_with_one_completed_reviewer": cases_with_one,
+        "cases_without_completed_review": len(cases) - len(completed_by_case),
+        "completed_rows_per_reviewer": dict(sorted(reviewer_counts.items())),
+        "generation_complete": generation_complete,
+        "human_review_complete": human_review_complete,
+        "machine_judgment_complete": machine_judgment_complete,
+        "human_metrics_ready": generation_complete and human_review_complete,
+        "judge_metrics_ready": generation_complete and machine_judgment_complete,
+        "judge_human_metrics_ready": (
+            generation_complete and human_review_complete and machine_judgment_complete
+        ),
         "judge_disagreement_count": None,
+        "reason": METRICS_IMPLEMENTATION_REQUIRED_REASON,
     }
-    if not outputs or not completed_reviews:
-        result["reason"] = "API outputs and completed human reviews are required before inferential metrics"
-        return result
-    result["reason"] = "metric computation remains unavailable until a separately approved completed-review phase"
     return result

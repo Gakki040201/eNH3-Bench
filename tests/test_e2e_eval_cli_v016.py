@@ -37,6 +37,10 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         for row in imported:
             row.update({"answer_status": "failed", "generation_status": "failed"})
         write_jsonl(cls.package_dir / "cases/api_outputs.jsonl", imported)
+        cls.prompt_file = cls.base / "prompt.txt"
+        cls.prompt_file.write_text("fixture generation prompt\n", encoding="utf-8")
+        cls.parameters_file = cls.base / "generation_parameters.json"
+        write_json(cls.parameters_file, {"temperature": 0, "max_tokens": 512})
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -62,7 +66,8 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         output = self.base / "exported_batch.jsonl"
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
-            "--selective-eval-root", str(self.eval_root), "--output", str(output),
+            "--selective-eval-root", str(self.eval_root),
+            "--source-calibration-root", str(self.source_root), "--output", str(output),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("network_calls: 0", result.stdout)
@@ -80,6 +85,7 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
             "--selective-eval-root", str(self.eval_root), "--split", "holdout",
+            "--source-calibration-root", str(self.source_root),
             "--output", str(output),
         )
         self.assertNotEqual(result.returncode, 0)
@@ -87,7 +93,7 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         self.assertFalse(output.exists())
 
     def test_invalid_holdout_freeze_manifest_fails(self) -> None:
-        freeze = valid_freeze_manifest(self.package_dir)
+        freeze = valid_freeze_manifest(self.package_dir, self.prompt_file, self.parameters_file)
         freeze["prompt_frozen"] = False
         freeze["routing_rules_frozen"] = False
         path = self.base / "invalid_freeze.json"; write_json(path, freeze)
@@ -95,7 +101,9 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
             "--selective-eval-root", str(self.eval_root), "--split", "holdout",
-            "--freeze-manifest", str(path), "--output", str(output),
+            "--source-calibration-root", str(self.source_root),
+            "--freeze-manifest", str(path), "--prompt-file", str(self.prompt_file),
+            "--generation-parameters-json", str(self.parameters_file), "--output", str(output),
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("prompt_frozen", result.stderr)
@@ -103,25 +111,32 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         self.assertFalse(output.exists())
 
     def test_holdout_source_identity_mismatch_fails(self) -> None:
-        freeze = valid_freeze_manifest(self.package_dir)
+        freeze = valid_freeze_manifest(self.package_dir, self.prompt_file, self.parameters_file)
         freeze["source_calibration_manifest_sha256"] = "0" * 64
         path = self.base / "wrong_source_freeze.json"; write_json(path, freeze)
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
             "--selective-eval-root", str(self.eval_root), "--split", "holdout",
-            "--freeze-manifest", str(path), "--output", str(self.base / "wrong_source.jsonl"),
+            "--source-calibration-root", str(self.source_root),
+            "--freeze-manifest", str(path), "--prompt-file", str(self.prompt_file),
+            "--generation-parameters-json", str(self.parameters_file),
+            "--output", str(self.base / "wrong_source/wrong_source.jsonl"),
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("source_calibration_manifest_sha256", result.stderr)
 
     def test_valid_holdout_export_is_sealed_and_label_free(self) -> None:
         freeze_path = self.base / "valid_freeze.json"
-        write_json(freeze_path, valid_freeze_manifest(self.package_dir))
-        output = self.base / "holdout.jsonl"
+        write_json(freeze_path, valid_freeze_manifest(
+            self.package_dir, self.prompt_file, self.parameters_file,
+        ))
+        output = self.base / "valid_release/holdout.jsonl"
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
             "--selective-eval-root", str(self.eval_root), "--split", "holdout",
-            "--freeze-manifest", str(freeze_path), "--output", str(output),
+            "--source-calibration-root", str(self.source_root),
+            "--freeze-manifest", str(freeze_path), "--prompt-file", str(self.prompt_file),
+            "--generation-parameters-json", str(self.parameters_file), "--output", str(output),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         rows = read_jsonl(output)
@@ -137,7 +152,8 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         output.write_text("existing", encoding="utf-8")
         result = self.run_cli(
             "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
-            "--selective-eval-root", str(self.eval_root), "--output", str(output),
+            "--selective-eval-root", str(self.eval_root),
+            "--source-calibration-root", str(self.source_root), "--output", str(output),
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(output.read_text(encoding="utf-8"), "existing")

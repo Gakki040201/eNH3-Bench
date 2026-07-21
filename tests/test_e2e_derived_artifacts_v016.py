@@ -226,7 +226,7 @@ class DerivedArtifactValidationV016Tests(unittest.TestCase):
         summary = summarize_e2e(self.package_dir)
         summary["pass_rate"] = {"value": 1.0, "status": "available", "provenance": "fixture"}
         self.write_summary(summary)
-        self.assert_fails_with("metrics_summary_fabricated_without_prerequisites:pass_rate")
+        self.assert_fails_with("metrics_summary_unimplemented_metric_must_be_null:pass_rate")
 
     def test_completed_future_package_summary_structure_passes(self) -> None:
         self.prepare_outputs()

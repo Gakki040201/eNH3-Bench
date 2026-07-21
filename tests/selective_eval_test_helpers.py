@@ -5,13 +5,15 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from enh3bench.e2e_case_generation import make_api_output_templates, make_machine_judgment_templates
+from enh3bench.e2e_case_generation import (
+    make_api_output_templates,
+    make_machine_judgment_templates,
+)
+from enh3bench.e2e_holdout import build_freeze_manifest, read_generation_parameters
 from enh3bench.e2e_eval_schema import (
-    ANSWER_CONTRACT_VERSION,
+    FINAL_HUMAN_LABEL_FIELDS,
     JUDGE_DIMENSIONS,
-    QUESTION_TEMPLATE_VERSION,
-    RISK_MODEL_VERSION,
-    SELECTIVE_EVAL_SCHEMA_VERSION,
+    read_csv,
     read_json,
     read_jsonl,
     write_json,
@@ -162,23 +164,24 @@ def valid_machine_judgments(
     return rows
 
 
-def valid_freeze_manifest(package_dir: Path) -> dict[str, Any]:
+def valid_human_reviews(package_dir: Path, count: int = 96) -> list[dict[str, str]]:
+    rows = read_csv(package_dir / "review/e2e_human_review.csv")
+    for row in rows[:count]:
+        row["review_status"] = "completed"
+        for field in FINAL_HUMAN_LABEL_FIELDS:
+            row[field] = "yes"
+        row["human_overall_verdict"] = "pass"
+    return rows
+
+
+def valid_freeze_manifest(
+    package_dir: Path, prompt_file: Path, generation_parameters_json: Path,
+) -> dict[str, Any]:
     manifest = read_json(package_dir / "manifests/selective_eval_manifest.json")
-    return {
-        "schema_version": SELECTIVE_EVAL_SCHEMA_VERSION,
-        "selective_eval_run_name": manifest["selective_eval_run_name"],
-        "source_calibration_manifest_sha256": manifest["source_calibration_manifest_sha256"],
-        "prompt_version": "fixture-prompt-v1",
-        "generation_model_family": "fixture-model-family",
-        "generation_parameters_sha256": "a" * 64,
-        "risk_model_version": RISK_MODEL_VERSION,
-        "question_template_version": QUESTION_TEMPLATE_VERSION,
-        "answer_contract_version": ANSWER_CONTRACT_VERSION,
-        "development_case_count": 36,
-        "holdout_case_count": 12,
-        "development_results_frozen": True,
-        "routing_rules_frozen": True,
-        "prompt_frozen": True,
-        "created_at_utc": "2026-07-21T00:00:00Z",
-        "status": "frozen",
-    }
+    cases = read_jsonl(package_dir / "cases/e2e_case_frame.jsonl")
+    return build_freeze_manifest(
+        manifest, cases, run_dir=package_dir, prompt_file=prompt_file,
+        generation_parameters=read_generation_parameters(generation_parameters_json),
+        prompt_version="fixture-prompt-v1", generation_model_family="fixture-model-family",
+        created_at_utc="2026-07-21T00:00:00Z",
+    )
