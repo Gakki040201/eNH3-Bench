@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+from contextlib import redirect_stderr, redirect_stdout
 from copy import deepcopy
+import io
 from pathlib import Path
 import subprocess
 import sys
@@ -13,28 +15,32 @@ from enh3bench.e2e_case_generation import make_api_output_templates
 from enh3bench.e2e_eval_schema import JUDGE_DIMENSIONS
 from enh3bench.e2e_eval_package import build_selective_eval_package
 from enh3bench.e2e_eval_schema import read_jsonl, write_json, write_jsonl
-from tests.selective_eval_test_helpers import valid_freeze_manifest
+from scripts import prepare_api_generation_batch
+from tests.selective_eval_test_helpers import (
+    create_source_calibration_fixture,
+    valid_freeze_manifest,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class E2EEvalCliV016Tests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.base = Path(cls.temp.name)
-        cls.source_root = ROOT / "data/calibration"
-        cls.source_run_name = "enrr_calibration_v016_round1_20260719"
-        cls.eval_root = cls.base / "data/selective_eval"
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.base = Path(self.temp.name)
+        self.source_root = self.base / "data/calibration"
+        self.source_run_name = "calibration_fixture"
+        create_source_calibration_fixture(self.source_root, run_name=self.source_run_name)
+        self.eval_root = self.base / "data/selective_eval"
         build_selective_eval_package(
-            source_calibration_run_name=cls.source_run_name, source_calibration_root=cls.source_root,
-            selective_eval_run_name="eval", selective_eval_root=cls.eval_root,
+            source_calibration_run_name=self.source_run_name, source_calibration_root=self.source_root,
+            selective_eval_run_name="eval", selective_eval_root=self.eval_root,
             clean=True, validate_source_package=False,
         )
-        cls.package_dir = cls.eval_root / "eval"
+        self.package_dir = self.eval_root / "eval"
         imported = make_api_output_templates([
-            case for case in read_jsonl(cls.package_dir / "cases/e2e_case_frame.jsonl")
+            case for case in read_jsonl(self.package_dir / "cases/e2e_case_frame.jsonl")
             if case["split"] == "development"
         ])
         for row in imported:
@@ -45,17 +51,44 @@ class E2EEvalCliV016Tests(unittest.TestCase):
                 "generation_parameters": {"temperature": 0, "max_tokens": 512},
                 "abstention_reason": "fixture bounded evidence insufficient",
             })
-        write_jsonl(cls.package_dir / "cases/api_outputs.jsonl", imported)
-        cls.prompt_file = cls.base / "prompt.txt"
-        cls.prompt_file.write_text("fixture generation prompt\n", encoding="utf-8")
-        cls.parameters_file = cls.base / "generation_parameters.json"
-        write_json(cls.parameters_file, {"temperature": 0, "max_tokens": 512})
+        write_jsonl(self.package_dir / "cases/api_outputs.jsonl", imported)
+        self.prompt_file = self.base / "prompt.txt"
+        self.prompt_file.write_text("fixture generation prompt\n", encoding="utf-8")
+        self.parameters_file = self.base / "generation_parameters.json"
+        write_json(self.parameters_file, {"temperature": 0, "max_tokens": 512})
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.temp.cleanup()
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def run_source_validated_main(
+        self, module: object, args: tuple[str, ...], script: str,
+    ) -> subprocess.CompletedProcess[str]:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        real_validate = module.validate_selective_eval_package
+
+        def validate_with_synthetic_source(**kwargs: object) -> dict:
+            self.assertIs(kwargs.get("check_source_package"), True)
+            with mock.patch(
+                "enh3bench.e2e_eval_validation.validate_calibration_package",
+                return_value={"result": "PASS", "errors": []},
+            ):
+                return real_validate(**kwargs)
+
+        with mock.patch.object(
+            module, "validate_selective_eval_package", side_effect=validate_with_synthetic_source,
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                returncode = module.main(list(args))
+        return subprocess.CompletedProcess(
+            [script, *args], returncode, stdout.getvalue(), stderr.getvalue()
+        )
 
     def run_cli(self, script: str, *args: str) -> subprocess.CompletedProcess[str]:
+        if script == "prepare_api_generation_batch.py":
+            return self.run_source_validated_main(
+                prepare_api_generation_batch, args, script,
+            )
         return subprocess.run(
             [sys.executable, str(ROOT / "scripts" / script), *args], cwd=ROOT,
             text=True, capture_output=True, check=False,

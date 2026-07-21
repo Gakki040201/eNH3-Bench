@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
 import sys
 
@@ -20,7 +21,7 @@ from enh3bench.e2e_holdout import (  # noqa: E402
 )
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Create an auditable holdout freeze from validated development artifacts."
     )
@@ -32,7 +33,7 @@ def main() -> int:
     parser.add_argument("--generation-model-family", required=True)
     parser.add_argument("--prompt-version", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         run_dir = resolve_run_target(args.selective_eval_root, args.selective_eval_run_name)
         output = args.output.resolve()

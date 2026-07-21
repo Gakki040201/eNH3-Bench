@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
 import sys
 
@@ -27,7 +28,7 @@ from enh3bench.e2e_eval_schema import (  # noqa: E402
 from enh3bench.e2e_eval_validation import validate_selective_eval_package  # noqa: E402
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export an API generation batch without making an API call.")
     parser.add_argument("--selective-eval-run-name", required=True)
     parser.add_argument("--selective-eval-root", type=Path, default=Path("data/selective_eval"))
@@ -37,7 +38,7 @@ def main() -> int:
     parser.add_argument("--prompt-file", type=Path)
     parser.add_argument("--generation-parameters-json", type=Path)
     parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         run_dir = resolve_run_target(args.selective_eval_root, args.selective_eval_run_name)
         if args.output is not None and path_is_within(args.output, run_dir):

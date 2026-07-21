@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr, redirect_stdout
+import io
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -25,17 +26,16 @@ from enh3bench.e2e_eval_schema import (
     write_jsonl,
 )
 from enh3bench.e2e_holdout import validate_development_freeze_outputs, write_holdout_release
-
-
-ROOT = Path(__file__).resolve().parents[1]
-
+from scripts import create_holdout_freeze_manifest, prepare_api_generation_batch
+from tests.selective_eval_test_helpers import create_source_calibration_fixture
 
 class E2EHoldoutFreezeV016Tests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.base = Path(self.temp.name)
-        self.source_root = ROOT / "data/calibration"
-        self.source_run_name = "enrr_calibration_v016_round1_20260719"
+        self.source_root = self.base / "data/calibration"
+        self.source_run_name = "calibration_fixture"
+        create_source_calibration_fixture(self.source_root, run_name=self.source_run_name)
         self.eval_root = self.base / "data/selective_eval"
         build_selective_eval_package(
             source_calibration_run_name=self.source_run_name,
@@ -54,9 +54,30 @@ class E2EHoldoutFreezeV016Tests(unittest.TestCase):
         self.temp.cleanup()
 
     def run_cli(self, script: str, *args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / script), *args], cwd=ROOT,
-            text=True, capture_output=True, check=False,
+        modules = {
+            "create_holdout_freeze_manifest.py": create_holdout_freeze_manifest,
+            "prepare_api_generation_batch.py": prepare_api_generation_batch,
+        }
+        module = modules[script]
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        real_validate = module.validate_selective_eval_package
+
+        def validate_with_synthetic_source(**kwargs: object) -> dict:
+            self.assertIs(kwargs.get("check_source_package"), True)
+            with mock.patch(
+                "enh3bench.e2e_eval_validation.validate_calibration_package",
+                return_value={"result": "PASS", "errors": []},
+            ):
+                return real_validate(**kwargs)
+
+        with mock.patch.object(
+            module, "validate_selective_eval_package", side_effect=validate_with_synthetic_source,
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                returncode = module.main(list(args))
+        return subprocess.CompletedProcess(
+            [script, *args], returncode, stdout.getvalue(), stderr.getvalue()
         )
 
     def write_development_outputs(self, count: int = 36) -> None:
