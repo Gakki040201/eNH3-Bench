@@ -98,6 +98,18 @@ The split manifest records case and anchor IDs for every selected paper. Anchors
 papers use the same global paper split function. A holdout anchor is diagnostic only after unsealing and
 cannot be used for iterative prompt adjustment.
 
+The generator-visible batch is deliberately narrower than the evaluator case frame. It contains only
+the question, answer contract, bounded context, citation allowlists, stable source identity, and the fact
+that abstention is allowed. It never exposes split, risk tier or reasons, answerability labels,
+`abstention_expected`, evaluator routes, or expected verdicts. `abstention_allowed=true` gives the future
+generator permission to decline an unsupported answer; it does not reveal an evaluator expectation.
+
+Batch export defaults to the 36 development cases. Holdout export is a separate 12-case operation and
+requires a strict freeze manifest binding package and source identities, prompt version, model family,
+generation-parameter hash, risk/question/answer-contract versions, and case counts. Development results,
+routing rules, and the prompt must all be frozen. There is no uncontrolled `all` export mode, and the
+freeze manifest contains no labels, answers, credentials, or generation secrets.
+
 ## Single-paper E2E cases and bounded context
 
 The case profile is `single_paper_scientific_answer_v1`. It covers paper scope, reaction family, primary
@@ -120,9 +132,20 @@ parameters, source case ID, and source manifest SHA-256. Allowed answer statuses
 Each claim includes a claim ID, text, type, supporting allowlisted source-span and evidence-link IDs, and
 one of `supported`, `partially_supported`, `unsupported`, or `uncertain`. The importer rejects unknown
 cases or fields, duplicate outputs, source-identity mismatch, malformed or claimless answered outputs,
-substantive content in an abstention, and citations outside the case allowlist. Validation finishes
-before an atomic output write, so failure leaves no partial imported file. Export and import commands
-perform no network call.
+substantive content in an abstention, and citations outside the case allowlist. Row validation finishes
+before atomic installation, and full package validation follows it with rollback on failure, so no
+partial or invalid imported file remains. Export and import commands perform no network call.
+
+Imported API outputs and machine judgments are optional derived package artifacts. When present, the
+independent package validator revalidates every row against the case, template, stable ID, source hash,
+claim and citation allowlists, and same-paper boundary. Partial imports are allowed and reported with
+imported and missing counts. Machine judgments require an already valid imported API output and remain
+machine observations rather than human truth.
+
+Package import writes only the standard package paths. An arbitrary destination requires explicit
+`--export-only`, which validates and exports without claiming package installation. Package installation
+uses an atomic write followed by full package validation; failure removes the new artifact and restores
+the pre-import package tree. Existing artifacts are never overwritten.
 
 Abstention is an allowed and sometimes expected scientific outcome. It should be used when bounded
 evidence cannot support a defensible answer. Abstention does not bypass review: reviewers assess whether
@@ -168,6 +191,11 @@ judge assessment, judge-human agreement, abstention correctness, citation entail
 completeness, and unsupported-claim rate separate. Risk tier and expected answer action are never used
 as human truth. Metrics become meaningful only after an authorized generation run and completed
 independent human review.
+
+The package validator derives, rather than accepts, the current stage: `blank`, `generated`, `judged`,
+or `human_reviewed`. Optional metrics summaries are checked against current artifact counts, package and
+calibration identities, reviewer coverage, and inferential-metric prerequisites. A stale summary or a
+metric that claims unavailable human or judge evidence is rejected.
 
 Drift monitoring should retain the random sentinel and track prompt version, model version, new reaction
 families, new genres, risk-tier shifts, citation failures, and disagreement rates. A model or prompt

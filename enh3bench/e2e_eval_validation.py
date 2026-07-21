@@ -10,16 +10,25 @@ from typing import Any, Iterable
 
 from enh3bench.calibration_package import tree_hash
 from enh3bench.calibration_validation import validate_calibration_package
-from enh3bench.e2e_case_generation import assess_case_answerability, generate_cases
+from enh3bench.e2e_case_generation import (
+    E2E_REVIEW_COLUMNS,
+    GENERATION_BATCH_FIELDS,
+    assess_case_answerability,
+    generate_cases,
+)
+from enh3bench.e2e_holdout import validate_generation_batch_rows
 from enh3bench.e2e_eval_package import SOURCE_FILES, protected_v015_modules_hash, source_hashes
 from enh3bench.e2e_eval_schema import (
     ADJUDICATION_FIELDS,
     ALLOWED_ANSWERABILITY_STATUSES,
     ALLOWED_HUMAN_LABELS,
+    ALLOWED_OVERALL_VERDICTS,
+    ALLOWED_REVIEW_STATUSES,
     ANCHOR_TYPE_QUOTAS,
     CASE_TYPE_QUOTAS,
     FINAL_HUMAN_FIELDS,
     FINAL_HUMAN_LABEL_FIELDS,
+    E2E_METRICS_SCHEMA_VERSION,
     JUDGE_DIMENSIONS,
     JUDGE_SLOTS,
     REVIEWER_IDS,
@@ -39,6 +48,12 @@ from enh3bench.e2e_eval_schema import (
     sha256_file,
 )
 from enh3bench.e2e_risk_routing import build_risk_ledger, score_item
+from enh3bench.e2e_eval_metrics import (
+    METRICS_SUMMARY_FIELDS,
+    summarize_e2e,
+    validate_api_output,
+    validate_machine_judgment,
+)
 from enh3bench.selective_calibration import select_anchors
 
 
@@ -56,6 +71,15 @@ REQUIRED_FILES = frozenset({
 OPTIONAL_FILES = frozenset({
     "cases/api_outputs.jsonl", "cases/machine_judgments.jsonl", "reports/e2e_metrics_summary.json",
 })
+MUTABLE_FILES = OPTIONAL_FILES | frozenset({
+    "review/e2e_human_review.csv", "review/adjudication_template.csv",
+})
+METRIC_VALUE_FIELDS = frozenset({
+    "precision", "pass_rate", "cohen_kappa", "judge_human_agreement",
+    "unsupported_claim_rate", "generation_completion", "answerability",
+    "human_final_output_assessment", "machine_judge_assessment",
+    "abstention_correctness", "citation_entailment", "citation_completeness",
+})
 ABSOLUTE_PATH_PATTERN = re.compile(
     r"(?i)(?:(?<![A-Za-z0-9])[A-Z]:[\\/]|\\\\[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_.$ -]+|(?<![A-Za-z0-9])/(?:home|users|var|tmp)/|file://)"
 )
@@ -65,7 +89,7 @@ SECRET_PATTERN = re.compile(
 FULL_DOCUMENT_KEYS = {"document_body", "full_document_text", "full_text", "pdf_bytes"}
 
 
-def _result(errors: list[str], warnings: list[str], counts: dict[str, int]) -> dict[str, Any]:
+def _result(errors: list[str], warnings: list[str], counts: dict[str, Any]) -> dict[str, Any]:
     unique_errors = sorted(set(errors))
     unique_warnings = sorted(set(warnings))
     return {
@@ -138,6 +162,129 @@ def _without_run(row: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in row.items() if key != "selective_eval_run_name"}
 
 
+def _validate_imported_api_outputs(
+    rows: list[dict[str, Any]], case_by_id: dict[str, dict[str, Any]],
+) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    errors: list[str] = []
+    by_id: dict[str, dict[str, Any]] = {}
+    seen_cases: set[str] = set()
+    for index, row in enumerate(rows, 1):
+        output_id = str(row.get("api_output_id") or "")
+        case_id = str(row.get("source_case_id") or "")
+        if output_id in by_id:
+            errors.append(f"duplicate_imported_api_output_id:{output_id}")
+        else:
+            by_id[output_id] = row
+        if case_id in seen_cases:
+            errors.append(f"duplicate_imported_api_output_case:{case_id}")
+        seen_cases.add(case_id)
+        case = case_by_id.get(case_id)
+        if case is None:
+            errors.append(f"unknown_imported_api_output_case:{index}:{case_id}")
+            continue
+        errors.extend(
+            f"imported_api_output:{index}:{error}"
+            for error in validate_api_output(row, case)
+        )
+    return errors, by_id
+
+
+def _validate_imported_machine_judgments(
+    rows: list[dict[str, Any]], templates: list[dict[str, Any]],
+    case_by_id: dict[str, dict[str, Any]], output_by_id: dict[str, dict[str, Any]],
+) -> list[str]:
+    errors: list[str] = []
+    template_by_id = {str(row.get("machine_judgment_id") or ""): row for row in templates}
+    seen_ids: set[str] = set()
+    seen_observations: set[tuple[str, str]] = set()
+    for index, row in enumerate(rows, 1):
+        judgment_id = str(row.get("machine_judgment_id") or "")
+        case_id = str(row.get("source_case_id") or "")
+        output_id = str(row.get("source_api_output_id") or "")
+        judge_id = str(row.get("judge_id") or "")
+        observation = (case_id, judge_id)
+        if judgment_id in seen_ids:
+            errors.append(f"duplicate_imported_machine_judgment_id:{judgment_id}")
+        seen_ids.add(judgment_id)
+        if observation in seen_observations:
+            errors.append(f"duplicate_imported_machine_judgment_observation:{case_id}:{judge_id}")
+        seen_observations.add(observation)
+        template = template_by_id.get(judgment_id)
+        if template is None:
+            errors.append(f"unknown_imported_machine_judgment:{index}:{judgment_id}")
+            continue
+        case = case_by_id.get(case_id)
+        if case is None:
+            errors.append(f"unknown_imported_machine_judgment_case:{index}:{case_id}")
+            continue
+        output = output_by_id.get(output_id)
+        if output is None:
+            errors.append(f"unknown_imported_machine_judgment_output:{index}:{output_id}")
+            continue
+        errors.extend(
+            f"imported_machine_judgment:{index}:{error}"
+            for error in validate_machine_judgment(row, template, case, output)
+        )
+    return errors
+
+
+def _validate_metrics_summary(
+    summary: dict[str, Any], run_dir: Path, manifest: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    expected = summarize_e2e(run_dir)
+    if set(summary) != METRICS_SUMMARY_FIELDS:
+        errors.append("metrics_summary_field_set_mismatch")
+    identity = {
+        "schema_version": SELECTIVE_EVAL_SCHEMA_VERSION,
+        "profile": SELECTIVE_EVAL_PROFILE,
+        "metric_schema_version": E2E_METRICS_SCHEMA_VERSION,
+        "selective_eval_run_name": manifest.get("selective_eval_run_name"),
+        "source_calibration_run_name": manifest.get("source_calibration_run_name"),
+        "source_calibration_manifest_sha256": manifest.get("source_calibration_manifest_sha256"),
+    }
+    for field, value in identity.items():
+        if summary.get(field) != value:
+            errors.append(f"metrics_summary_identity_mismatch:{field}")
+    if summary.get("status") not in {"not_available", "available", "invalid"}:
+        errors.append("metrics_summary_invalid_status")
+    if summary.get("status") == "available" and not expected["inferential_metrics_ready"]:
+        errors.append("metrics_summary_available_without_prerequisites")
+    validation_errors = summary.get("validation_errors")
+    if not isinstance(validation_errors, list):
+        errors.append("metrics_summary_validation_errors_not_list")
+    elif summary.get("status") != "invalid" and validation_errors:
+        errors.append("metrics_summary_noninvalid_has_validation_errors")
+    for field in (
+        "package_stage", "case_count", "api_output_count", "machine_judgment_count",
+        "completed_human_review_count", "reviewer_coverage", "inferential_metrics_ready",
+    ):
+        if summary.get(field) != expected.get(field):
+            errors.append(f"metrics_summary_stale_or_inconsistent:{field}")
+    for field in METRIC_VALUE_FIELDS:
+        value = summary.get(field)
+        if value is not None:
+            if not isinstance(value, dict) or set(value) != {"value", "status", "provenance"}:
+                errors.append(f"metrics_summary_invalid_metric_object:{field}")
+                continue
+            if value.get("status") not in {"available", "not_available"}:
+                errors.append(f"metrics_summary_invalid_metric_status:{field}")
+            metric_value = value.get("value")
+            if metric_value is not None and (
+                not isinstance(metric_value, (int, float)) or isinstance(metric_value, bool)
+            ):
+                errors.append(f"metrics_summary_invalid_metric_value:{field}")
+            if not str(value.get("provenance") or "").strip():
+                errors.append(f"metrics_summary_blank_metric_provenance:{field}")
+            if not expected["inferential_metrics_ready"]:
+                errors.append(f"metrics_summary_fabricated_without_prerequisites:{field}")
+            if summary.get("status") == "not_available":
+                errors.append(f"metrics_summary_not_available_contains_metric:{field}")
+    if summary.get("fabricated_metric_count") != 0:
+        errors.append("metrics_summary_fabricated_metric_count_nonzero")
+    return errors
+
+
 def validate_selective_eval_package(
     *,
     selective_eval_run_name: str,
@@ -158,6 +305,10 @@ def validate_selective_eval_package(
         "duplicate_ids": 0, "abstention_expected_cases": 0,
         "answerable_cases": 0, "partially_answerable_cases": 0,
         "insufficient_evidence_cases": 0, "out_of_scope_cases": 0,
+        "imported_api_output_count": 0, "missing_api_output_count": 48,
+        "api_output_completion_rate": 0.0, "imported_machine_judgment_count": 0,
+        "missing_machine_judgment_count": 96, "completed_human_review_count": 0,
+        "package_stage": "blank",
     }
     actual_files = {
         path.relative_to(run_dir).as_posix() for path in run_dir.rglob("*") if path.is_file()
@@ -183,6 +334,22 @@ def validate_selective_eval_package(
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         errors.append(f"invalid_package_data:{exc}")
         return _result(errors, warnings, counts)
+
+    imported_outputs: list[dict[str, Any]] = []
+    imported_judgments: list[dict[str, Any]] = []
+    metrics_summary: dict[str, Any] | None = None
+    try:
+        if "cases/api_outputs.jsonl" in actual_files:
+            imported_outputs = read_jsonl(run_dir / "cases/api_outputs.jsonl")
+        if "cases/machine_judgments.jsonl" in actual_files:
+            imported_judgments = read_jsonl(run_dir / "cases/machine_judgments.jsonl")
+        if "reports/e2e_metrics_summary.json" in actual_files:
+            value = read_json(run_dir / "reports/e2e_metrics_summary.json")
+            if not isinstance(value, dict):
+                raise ValueError("metrics summary must be a JSON object")
+            metrics_summary = value
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid_optional_artifact:{exc}")
 
     for label, value in (("manifest", manifest), ("split", split_manifest), ("source_hashes", source_hash_manifest)):
         if value.get("schema_version") != SELECTIVE_EVAL_SCHEMA_VERSION:
@@ -245,6 +412,17 @@ def validate_selective_eval_package(
         for row in frames["link"] for field in ("target_span_id", "evidence_span_id")
     }
     known_links = {str(row.get("evidence_link_id") or "") for row in frames["link"]}
+    span_papers = {
+        str(row.get("cleanroom_span_id") or ""): str(row.get("paper_id") or "")
+        for row in frames["span"] if row.get("cleanroom_span_id")
+    }
+    link_papers: dict[str, str] = {}
+    for row in frames["link"]:
+        paper_id = str(row.get("paper_id") or "")
+        link_papers[str(row.get("evidence_link_id") or "")] = paper_id
+        for field in ("target_span_id", "evidence_span_id"):
+            if row.get(field):
+                span_papers[str(row[field])] = paper_id
     expected_ledger = build_risk_ledger(frames)
     expected_anchors = select_anchors(frames, expected_ledger, seed=int(manifest.get("seed") or 0), anchor_count=24)
     expected_anchor_by_item = {row["source_calibration_item_id"]: row for row in expected_anchors}
@@ -360,22 +538,22 @@ def validate_selective_eval_package(
             link_id = str(context.get("evidence_link_id") or "")
             if span_id and span_id not in known_spans:
                 counts["unresolved_ids"] += 1
+            if span_id and span_papers.get(span_id) != str(row.get("paper_id") or ""):
+                errors.append(f"cross_paper_context_span:{case_id}:{span_id}")
             if link_id and link_id not in known_links:
                 counts["unresolved_ids"] += 1
+            if link_id and link_papers.get(link_id) != str(row.get("paper_id") or ""):
+                errors.append(f"cross_paper_context_link:{case_id}:{link_id}")
         if any(value not in known_spans for value in row.get("allowed_source_span_ids") or []):
             counts["unresolved_ids"] += 1
         if any(value not in known_links for value in row.get("allowed_evidence_link_ids") or []):
             counts["unresolved_ids"] += 1
+        if any(span_papers.get(value) != str(row.get("paper_id") or "") for value in row.get("allowed_source_span_ids") or []):
+            errors.append(f"cross_paper_case_span_allowlist:{case_id}")
+        if any(link_papers.get(value) != str(row.get("paper_id") or "") for value in row.get("allowed_evidence_link_ids") or []):
+            errors.append(f"cross_paper_case_link_allowlist:{case_id}")
 
-    if len(batch) != 48 or {row.get("case_id") for row in batch} != set(case_by_id):
-        errors.append("api_batch_case_mismatch")
-    for row in batch:
-        if row.get("generation_status") != "pending" or row.get("network_call_performed") is not False:
-            errors.append(f"api_batch_not_blank:{row.get('case_id')}")
-        case = case_by_id.get(str(row.get("case_id") or ""), {})
-        for field in ("answerability_status", "answerability_reasons", "abstention_expected"):
-            if row.get(field) != case.get(field):
-                errors.append(f"api_batch_case_field_mismatch:{row.get('case_id')}:{field}")
+    errors.extend(validate_generation_batch_rows(batch, cases))
 
     if len(outputs) != 48:
         errors.append(f"api_output_template_count:{len(outputs)}")
@@ -429,8 +607,38 @@ def validate_selective_eval_package(
         review_observations.add(observation)
         if reviewer_id not in REVIEWER_IDS:
             errors.append(f"third_reviewer:{case_id}:{reviewer_id}")
+        if set(row) != set(E2E_REVIEW_COLUMNS):
+            errors.append(f"human_review_field_set_mismatch:{case_id}:{reviewer_slot}")
         if row.get("human_review_id") != make_human_review_id(case_id, reviewer_slot):
             errors.append(f"invalid_human_review_id:{case_id}:{reviewer_slot}")
+        expected_reviewer = {"reviewer_1": "R1", "reviewer_2": "R2"}.get(reviewer_slot)
+        if reviewer_id != expected_reviewer:
+            errors.append(f"human_review_slot_identity_mismatch:{case_id}:{reviewer_slot}")
+        case = case_by_id.get(case_id)
+        if case is None:
+            errors.append(f"human_review_unknown_case:{case_id}")
+        else:
+            expected_static = {
+                "api_output_id": make_output_id(case_id), "paper_id": str(case["paper_id"]),
+                "document_id": str(case["document_id"]), "split": str(case["split"]),
+                "case_type": str(case["case_type"]),
+            }
+            for field, value in expected_static.items():
+                if row.get(field) != value:
+                    errors.append(f"human_review_static_field_mismatch:{case_id}:{field}")
+        status_value = str(row.get("review_status") or "")
+        if status_value not in ALLOWED_REVIEW_STATUSES:
+            errors.append(f"invalid_human_review_status:{case_id}:{status_value}")
+        if status_value == "completed":
+            counts["completed_human_review_count"] += 1
+        for field in FINAL_HUMAN_LABEL_FIELDS:
+            if str(row.get(field) or "") not in ALLOWED_HUMAN_LABELS:
+                errors.append(f"invalid_human_label:{case_id}:{field}")
+        if str(row.get("human_overall_verdict") or "") not in ALLOWED_OVERALL_VERDICTS:
+            errors.append(f"invalid_human_overall_verdict:{case_id}")
+        if any(str(row.get(field) or "") in {"no", "uncertain"} for field in FINAL_HUMAN_LABEL_FIELDS):
+            if not str(row.get("human_notes") or "").strip():
+                errors.append(f"human_review_notes_required:{case_id}:{reviewer_id}")
         for field, value in row.items():
             if field in FINAL_HUMAN_FIELDS and field != "reviewer_id" and str(value or "").strip():
                 counts["human_labels_filled"] += 1
@@ -440,6 +648,36 @@ def validate_selective_eval_package(
         ):
             if str(row.get(field) or "").strip():
                 counts["human_labels_filled"] += 1
+
+    imported_output_errors, imported_output_by_id = _validate_imported_api_outputs(
+        imported_outputs, case_by_id,
+    )
+    errors.extend(imported_output_errors)
+    counts["imported_api_output_count"] = len(imported_outputs)
+    counts["missing_api_output_count"] = max(0, len(cases) - len(imported_outputs))
+    counts["api_output_completion_rate"] = (
+        round(len(imported_outputs) / len(cases), 6) if cases else 0.0
+    )
+    if "cases/machine_judgments.jsonl" in actual_files and "cases/api_outputs.jsonl" not in actual_files:
+        errors.append("machine_judgments_require_api_outputs")
+    errors.extend(_validate_imported_machine_judgments(
+        imported_judgments, judgments, case_by_id, imported_output_by_id,
+    ))
+    counts["imported_machine_judgment_count"] = len(imported_judgments)
+    counts["missing_machine_judgment_count"] = max(0, len(judgments) - len(imported_judgments))
+    if counts["completed_human_review_count"] and not imported_outputs:
+        errors.append("completed_human_review_requires_api_outputs")
+    counts["package_stage"] = (
+        "human_reviewed" if counts["completed_human_review_count"] else
+        "judged" if imported_judgments else
+        "generated" if imported_outputs else
+        "blank"
+    )
+    if metrics_summary is not None:
+        try:
+            errors.extend(_validate_metrics_summary(metrics_summary, run_dir, manifest))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"metrics_summary_recomputation_failed:{exc}")
 
     if split_manifest.get("cross_split_leakage_count") != 0:
         errors.append("split_manifest_leakage_nonzero")
@@ -451,9 +689,13 @@ def validate_selective_eval_package(
         path.relative_to(run_dir).as_posix(): sha256_file(path)
         for path in sorted(item for item in run_dir.rglob("*") if item.is_file())
         if path.relative_to(run_dir).as_posix() != "manifests/selective_eval_manifest.json"
-        and path.relative_to(run_dir).as_posix() not in OPTIONAL_FILES
+        and path.relative_to(run_dir).as_posix() not in MUTABLE_FILES
     }
-    if manifest.get("output_file_hashes") != current_hashes:
+    manifest_hashes = {
+        key: value for key, value in (manifest.get("output_file_hashes") or {}).items()
+        if key not in MUTABLE_FILES
+    }
+    if manifest_hashes != current_hashes:
         errors.append("output_file_hash_mismatch")
     scan_counts = _scan(run_dir)
     counts.update(scan_counts)
@@ -464,7 +706,7 @@ def validate_selective_eval_package(
     if counts["full_document_embeddings"]:
         errors.append(f"full_document_embeddings_detected:{counts['full_document_embeddings']}")
     for key in (
-        "api_outputs_filled", "machine_judgments_filled", "human_labels_filled", "unresolved_ids",
+        "api_outputs_filled", "machine_judgments_filled", "unresolved_ids",
         "absolute_paths", "full_document_embeddings", "secrets", "duplicate_ids",
     ):
         if counts[key]:

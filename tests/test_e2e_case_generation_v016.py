@@ -4,6 +4,8 @@ from collections import Counter, defaultdict
 import unittest
 
 from enh3bench.e2e_case_generation import (
+    EVALUATOR_ONLY_CASE_FIELDS,
+    GENERATION_BATCH_FIELDS,
     assess_case_answerability,
     generate_cases,
     make_api_generation_batch,
@@ -82,6 +84,16 @@ class E2ECaseGenerationV016Tests(unittest.TestCase):
     def test_generation_batch_performs_no_network_call(self) -> None:
         batch = make_api_generation_batch(self.cases)
         self.assertTrue(all(row["network_call_performed"] is False for row in batch))
+        self.assertTrue(all(set(row) == GENERATION_BATCH_FIELDS for row in batch))
+        self.assertTrue(all(not (set(row) & EVALUATOR_ONLY_CASE_FIELDS) for row in batch))
+
+    def test_case_frame_retains_evaluator_metadata(self) -> None:
+        required = {
+            "automatic_case_risk_score", "automatic_case_risk_tier",
+            "automatic_case_risk_reasons", "automatic_signal_stratum",
+            "answerability_status", "answerability_reasons", "abstention_expected", "split",
+        }
+        self.assertTrue(all(required.issubset(case) for case in self.cases))
 
     def test_case_answerability_is_explicit_and_recomputable(self) -> None:
         by_paper = defaultdict(lambda: defaultdict(list))

@@ -10,7 +10,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.e2e_eval_metrics import validate_machine_judgment  # noqa: E402
-from enh3bench.e2e_eval_schema import read_jsonl, resolve_run_target, write_jsonl  # noqa: E402
+from enh3bench.e2e_eval_schema import (  # noqa: E402
+    install_jsonl_with_validation,
+    read_jsonl,
+    resolve_run_target,
+    write_jsonl,
+)
+from enh3bench.e2e_eval_validation import validate_selective_eval_package  # noqa: E402
 
 
 def main() -> int:
@@ -19,9 +25,23 @@ def main() -> int:
     parser.add_argument("--selective-eval-root", type=Path, default=Path("data/selective_eval"))
     parser.add_argument("--input-jsonl", type=Path, required=True)
     parser.add_argument("--output-jsonl", type=Path)
+    parser.add_argument("--export-only", action="store_true")
+    parser.add_argument("--source-calibration-root", type=Path)
     args = parser.parse_args()
     try:
         run_dir = resolve_run_target(args.selective_eval_root, args.selective_eval_run_name)
+        source_root = (
+            args.source_calibration_root.resolve() if args.source_calibration_root
+            else args.selective_eval_root.resolve().parent / "calibration"
+        )
+        existing_validation = validate_selective_eval_package(
+            selective_eval_run_name=args.selective_eval_run_name,
+            selective_eval_root=args.selective_eval_root,
+            source_calibration_root=source_root,
+            check_source_package=False,
+        )
+        if existing_validation.get("result") != "PASS":
+            raise ValueError(f"current API output package artifact is invalid: {existing_validation.get('errors', [])[:8]}")
         templates = read_jsonl(run_dir / "cases/machine_judgment_template.jsonl")
         template_by_id = {str(row["machine_judgment_id"]): row for row in templates}
         cases = read_jsonl(run_dir / "cases/e2e_case_frame.jsonl")
@@ -63,14 +83,40 @@ def main() -> int:
             )
         if errors:
             raise ValueError("; ".join(errors[:12]))
-        output = args.output_jsonl.resolve() if args.output_jsonl else run_dir / "cases/machine_judgments.jsonl"
-        if output.exists():
-            raise FileExistsError(f"refusing to overwrite existing machine judgments: {output}")
-        write_jsonl(output, rows)
+        standard_output = (run_dir / "cases/machine_judgments.jsonl").resolve()
+        output = args.output_jsonl.resolve() if args.output_jsonl else standard_output
+        if args.export_only:
+            if args.output_jsonl is None:
+                raise ValueError("--export-only requires --output-jsonl")
+            if output == standard_output:
+                raise ValueError("--export-only output must be outside the package standard path")
+            if output.exists():
+                raise FileExistsError(f"refusing to overwrite existing export: {output}")
+            write_jsonl(output, rows)
+            import_mode = "export_only"
+        else:
+            if output != standard_output:
+                raise ValueError(
+                    "package import output must be cases/machine_judgments.jsonl; "
+                    "use --export-only for external paths"
+                )
+            install_jsonl_with_validation(
+                standard_output, rows,
+                lambda: validate_selective_eval_package(
+                    selective_eval_run_name=args.selective_eval_run_name,
+                    selective_eval_root=args.selective_eval_root,
+                    source_calibration_root=source_root,
+                    check_source_package=False,
+                ),
+            )
+            import_mode = "package"
     except (OSError, ValueError) as exc:
         print(f"machine_judgment_import: FAIL\n- {exc}", file=sys.stderr)
         return 1
-    print(f"machine_judgment_import: PASS\njudgments: {len(rows)}\njudge_calls: 0\noutput: {output}")
+    print(
+        f"machine_judgment_import: PASS\nimport_mode: {import_mode}\njudgments: {len(rows)}"
+        f"\njudge_calls: 0\noutput: {output}"
+    )
     return 0
 
 

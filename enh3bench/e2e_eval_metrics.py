@@ -10,12 +10,14 @@ from enh3bench.e2e_eval_schema import (
     ALLOWED_ANSWER_STATUSES,
     ALLOWED_JUDGE_VERDICTS,
     ALLOWED_SUPPORT_STATUSES,
+    E2E_METRICS_SCHEMA_VERSION,
     JUDGE_DIMENSIONS,
     SELECTIVE_EVAL_PROFILE,
     SELECTIVE_EVAL_SCHEMA_VERSION,
     make_judgment_id,
     make_output_id,
     read_csv,
+    read_json,
     read_jsonl,
 )
 
@@ -30,6 +32,17 @@ JUDGMENT_FIELDS = {
     "schema_version", "profile", "machine_judgment_id", "source_case_id", "source_api_output_id",
     "source_manifest_sha256", "judge_slot", "judge_id", "judgment_status", "dimensions",
     "judge_disagreement_status", "human_truth_claimed", "judge_call_performed",
+}
+METRICS_SUMMARY_FIELDS = {
+    "schema_version", "profile", "metric_schema_version", "selective_eval_run_name",
+    "source_calibration_run_name", "source_calibration_manifest_sha256", "status",
+    "validation_errors", "package_stage", "case_count", "api_output_count",
+    "machine_judgment_count", "completed_human_review_count", "precision", "pass_rate",
+    "cohen_kappa", "judge_human_agreement", "unsupported_claim_rate",
+    "generation_completion", "answerability", "human_final_output_assessment",
+    "machine_judge_assessment", "abstention_correctness", "citation_entailment",
+    "citation_completeness", "fabricated_metric_count", "reviewer_coverage",
+    "inferential_metrics_ready", "judge_disagreement_count", "reason",
 }
 
 
@@ -221,6 +234,7 @@ def validate_machine_judgment(
 
 def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
     root = Path(run_dir)
+    manifest = read_json(root / "manifests/selective_eval_manifest.json")
     cases = read_jsonl(root / "cases/e2e_case_frame.jsonl")
     output_path = root / "cases/api_outputs.jsonl"
     judgment_path = root / "cases/machine_judgments.jsonl"
@@ -228,10 +242,22 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
     outputs = read_jsonl(output_path) if output_path.is_file() else []
     judgments = read_jsonl(judgment_path) if judgment_path.is_file() else []
     completed_reviews = [row for row in reviews if row.get("review_status") == "completed"]
+    reviewer_counts = Counter(row.get("reviewer_id") for row in completed_reviews)
+    stage = (
+        "human_reviewed" if completed_reviews else
+        "judged" if judgments else
+        "generated" if outputs else
+        "blank"
+    )
     result: dict[str, Any] = {
         "schema_version": SELECTIVE_EVAL_SCHEMA_VERSION,
         "profile": SELECTIVE_EVAL_PROFILE,
+        "metric_schema_version": E2E_METRICS_SCHEMA_VERSION,
+        "selective_eval_run_name": manifest.get("selective_eval_run_name"),
+        "source_calibration_run_name": manifest.get("source_calibration_run_name"),
+        "source_calibration_manifest_sha256": manifest.get("source_calibration_manifest_sha256"),
         "status": "not_available",
+        "validation_errors": [], "package_stage": stage,
         "case_count": len(cases), "api_output_count": len(outputs),
         "machine_judgment_count": len(judgments), "completed_human_review_count": len(completed_reviews),
         "precision": None, "pass_rate": None, "cohen_kappa": None,
@@ -240,12 +266,12 @@ def summarize_e2e(run_dir: str | Path) -> dict[str, Any]:
         "human_final_output_assessment": None, "machine_judge_assessment": None,
         "abstention_correctness": None, "citation_entailment": None,
         "citation_completeness": None, "fabricated_metric_count": 0,
-        "reviewer_coverage": {}, "judge_disagreement_count": None,
+        "reviewer_coverage": dict(sorted(reviewer_counts.items())),
+        "inferential_metrics_ready": bool(outputs and completed_reviews),
+        "judge_disagreement_count": None,
     }
     if not outputs or not completed_reviews:
         result["reason"] = "API outputs and completed human reviews are required before inferential metrics"
         return result
-    reviewer_counts = Counter(row.get("reviewer_id") for row in completed_reviews)
-    result["reviewer_coverage"] = dict(sorted(reviewer_counts.items()))
     result["reason"] = "metric computation remains unavailable until a separately approved completed-review phase"
     return result

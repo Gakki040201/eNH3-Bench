@@ -12,8 +12,8 @@ from unittest import mock
 from enh3bench.e2e_case_generation import make_api_output_templates
 from enh3bench.e2e_eval_schema import JUDGE_DIMENSIONS
 from enh3bench.e2e_eval_package import build_selective_eval_package
-from enh3bench.e2e_eval_schema import read_jsonl, write_jsonl
-from tests.selective_eval_test_helpers import create_source_calibration_fixture
+from enh3bench.e2e_eval_schema import read_jsonl, write_json, write_jsonl
+from tests.selective_eval_test_helpers import create_source_calibration_fixture, valid_freeze_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,7 +66,81 @@ class E2EEvalCliV016Tests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("network_calls: 0", result.stdout)
-        self.assertEqual(len(read_jsonl(output)), 48)
+        rows = read_jsonl(output)
+        self.assertEqual(len(rows), 36)
+        case_split = {
+            row["case_id"]: row["split"]
+            for row in read_jsonl(self.package_dir / "cases/e2e_case_frame.jsonl")
+        }
+        self.assertTrue(all(case_split[row["case_id"]] == "development" for row in rows))
+        self.assertTrue(all("answerability_status" not in row for row in rows))
+
+    def test_holdout_export_requires_freeze_manifest(self) -> None:
+        output = self.base / "holdout_without_freeze.jsonl"
+        result = self.run_cli(
+            "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
+            "--selective-eval-root", str(self.eval_root), "--split", "holdout",
+            "--output", str(output),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("requires --freeze-manifest", result.stderr)
+        self.assertFalse(output.exists())
+
+    def test_invalid_holdout_freeze_manifest_fails(self) -> None:
+        freeze = valid_freeze_manifest(self.package_dir)
+        freeze["prompt_frozen"] = False
+        freeze["routing_rules_frozen"] = False
+        path = self.base / "invalid_freeze.json"; write_json(path, freeze)
+        output = self.base / "invalid_holdout.jsonl"
+        result = self.run_cli(
+            "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
+            "--selective-eval-root", str(self.eval_root), "--split", "holdout",
+            "--freeze-manifest", str(path), "--output", str(output),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("prompt_frozen", result.stderr)
+        self.assertIn("routing_rules_frozen", result.stderr)
+        self.assertFalse(output.exists())
+
+    def test_holdout_source_identity_mismatch_fails(self) -> None:
+        freeze = valid_freeze_manifest(self.package_dir)
+        freeze["source_calibration_manifest_sha256"] = "0" * 64
+        path = self.base / "wrong_source_freeze.json"; write_json(path, freeze)
+        result = self.run_cli(
+            "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
+            "--selective-eval-root", str(self.eval_root), "--split", "holdout",
+            "--freeze-manifest", str(path), "--output", str(self.base / "wrong_source.jsonl"),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source_calibration_manifest_sha256", result.stderr)
+
+    def test_valid_holdout_export_is_sealed_and_label_free(self) -> None:
+        freeze_path = self.base / "valid_freeze.json"
+        write_json(freeze_path, valid_freeze_manifest(self.package_dir))
+        output = self.base / "holdout.jsonl"
+        result = self.run_cli(
+            "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
+            "--selective-eval-root", str(self.eval_root), "--split", "holdout",
+            "--freeze-manifest", str(freeze_path), "--output", str(output),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        rows = read_jsonl(output)
+        self.assertEqual(len(rows), 12)
+        forbidden = {
+            "split", "answerability_status", "answerability_reasons", "abstention_expected",
+            "automatic_case_risk_tier", "automatic_case_risk_reasons", "human_route", "machine_route",
+        }
+        self.assertTrue(all(not (set(row) & forbidden) for row in rows))
+
+    def test_generation_export_refuses_overwrite(self) -> None:
+        output = self.base / "existing_batch.jsonl"
+        output.write_text("existing", encoding="utf-8")
+        result = self.run_cli(
+            "prepare_api_generation_batch.py", "--selective-eval-run-name", "eval",
+            "--selective-eval-root", str(self.eval_root), "--output", str(output),
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(output.read_text(encoding="utf-8"), "existing")
 
     def test_unknown_case_import_rejected(self) -> None:
         case = read_jsonl(self.package_dir / "cases/e2e_case_frame.jsonl")[0]

@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 
 SELECTIVE_EVAL_SCHEMA_VERSION = "0.16-selective-eval.1"
@@ -20,6 +20,7 @@ QUESTION_TEMPLATE_VERSION = "v016-e2e-question-templates-v1"
 ANSWER_CONTRACT_VERSION = "v016-scientific-answer-contract-v1"
 JUDGE_TEMPLATE_VERSION = "v016-multijudge-template-v1"
 HUMAN_REVIEW_TEMPLATE_VERSION = "v016-final-output-review-v1"
+E2E_METRICS_SCHEMA_VERSION = "0.16-e2e-metrics.1"
 SPLIT_ALGORITHM = "sha256-paper-bucket-75-25-v1"
 DEFAULT_SEED = 16
 REVIEWER_IDS = ("R1", "R2")
@@ -260,6 +261,28 @@ def write_json(path: str | Path, value: Any) -> None:
 
 def write_jsonl(path: str | Path, rows: Iterable[dict[str, Any]]) -> None:
     atomic_write_text(path, "".join(canonical_json(row) + "\n" for row in rows))
+
+
+def install_jsonl_with_validation(
+    path: str | Path, rows: Iterable[dict[str, Any]],
+    post_validate: Callable[[], dict[str, Any]],
+) -> dict[str, Any]:
+    """Atomically install a new optional artifact and remove it if package validation fails."""
+    destination = Path(path)
+    if destination.exists():
+        raise FileExistsError(f"refusing to overwrite existing artifact: {destination}")
+    write_jsonl(destination, rows)
+    try:
+        result = post_validate()
+        if result.get("result") != "PASS":
+            raise ValueError(f"post-write package validation failed: {result.get('errors', [])[:8]}")
+        return result
+    except BaseException:
+        try:
+            destination.unlink()
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def write_csv(path: str | Path, rows: list[dict[str, Any]], fieldnames: Iterable[str]) -> None:

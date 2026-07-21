@@ -5,7 +5,18 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from enh3bench.e2e_eval_schema import write_json, write_jsonl
+from enh3bench.e2e_case_generation import make_api_output_templates, make_machine_judgment_templates
+from enh3bench.e2e_eval_schema import (
+    ANSWER_CONTRACT_VERSION,
+    JUDGE_DIMENSIONS,
+    QUESTION_TEMPLATE_VERSION,
+    RISK_MODEL_VERSION,
+    SELECTIVE_EVAL_SCHEMA_VERSION,
+    read_json,
+    read_jsonl,
+    write_json,
+    write_jsonl,
+)
 
 
 ITEM_TYPES = ("span", "paper", "document", "link")
@@ -120,3 +131,54 @@ def create_source_calibration_fixture(root: Path, run_name: str = "calibration_f
     (run / "previews").mkdir(parents=True, exist_ok=True)
     (run / "previews/calibration_preview.md").write_text("# Blank fixture preview\n", encoding="utf-8")
     return run
+
+
+def valid_api_outputs(package_dir: Path, count: int = 48) -> list[dict[str, Any]]:
+    cases = read_jsonl(package_dir / "cases/e2e_case_frame.jsonl")[:count]
+    rows = make_api_output_templates(cases)
+    for row in rows:
+        row.update({"answer_status": "failed", "generation_status": "failed"})
+    return rows
+
+
+def valid_machine_judgments(
+    package_dir: Path, *, case_count: int = 48, observations_per_case: int = 2,
+) -> list[dict[str, Any]]:
+    cases = read_jsonl(package_dir / "cases/e2e_case_frame.jsonl")[:case_count]
+    rows = make_machine_judgment_templates(cases)
+    if observations_per_case == 1:
+        rows = [row for row in rows if row["judge_slot"] == "judge_1"]
+    for row in rows:
+        row.update({
+            "judge_id": f"fixture_{row['judge_slot']}", "judgment_status": "completed",
+            "judge_call_performed": True,
+        })
+        for name in JUDGE_DIMENSIONS:
+            row["dimensions"][name].update({
+                "score": 0 if name == "unsupported_claim_count" else 0.8,
+                "verdict": "pass", "confidence": 0.8, "rationale": "fixture rationale",
+                "evidence": [], "judge_model": "fixture", "judge_prompt_version": "v1",
+            })
+    return rows
+
+
+def valid_freeze_manifest(package_dir: Path) -> dict[str, Any]:
+    manifest = read_json(package_dir / "manifests/selective_eval_manifest.json")
+    return {
+        "schema_version": SELECTIVE_EVAL_SCHEMA_VERSION,
+        "selective_eval_run_name": manifest["selective_eval_run_name"],
+        "source_calibration_manifest_sha256": manifest["source_calibration_manifest_sha256"],
+        "prompt_version": "fixture-prompt-v1",
+        "generation_model_family": "fixture-model-family",
+        "generation_parameters_sha256": "a" * 64,
+        "risk_model_version": RISK_MODEL_VERSION,
+        "question_template_version": QUESTION_TEMPLATE_VERSION,
+        "answer_contract_version": ANSWER_CONTRACT_VERSION,
+        "development_case_count": 36,
+        "holdout_case_count": 12,
+        "development_results_frozen": True,
+        "routing_rules_frozen": True,
+        "prompt_frozen": True,
+        "created_at_utc": "2026-07-21T00:00:00Z",
+        "status": "frozen",
+    }

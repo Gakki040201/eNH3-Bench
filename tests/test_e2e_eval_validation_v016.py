@@ -52,6 +52,9 @@ class E2EEvalValidationV016Tests(unittest.TestCase):
         self.assertEqual(counts["human_labels_filled"], 0)
         self.assertEqual(counts["api_outputs_filled"], 0)
         self.assertEqual(counts["machine_judgments_filled"], 0)
+        self.assertEqual(counts["imported_api_output_count"], 0)
+        self.assertEqual(counts["imported_machine_judgment_count"], 0)
+        self.assertEqual(counts["package_stage"], "blank")
 
     def test_third_reviewer_is_rejected(self) -> None:
         path = self.package_dir / "review/e2e_human_review.csv"
@@ -76,6 +79,19 @@ class E2EEvalValidationV016Tests(unittest.TestCase):
             result = self.validate()
             self.assertEqual(result["counts"]["api_outputs_filled"], 1)
             self.assertEqual(result["result"], "FAIL")
+        finally:
+            path.write_bytes(original)
+
+    def test_evaluator_metadata_in_generation_batch_is_rejected(self) -> None:
+        path = self.package_dir / "cases/api_generation_batch.jsonl"
+        original = path.read_bytes()
+        try:
+            rows = read_jsonl(path)
+            rows[0]["answerability_status"] = "answerable"
+            write_jsonl(path, rows)
+            result = self.validate()
+            self.assertEqual(result["result"], "FAIL")
+            self.assertTrue(any("api_batch_evaluator_metadata_exposed" in error for error in result["errors"]))
         finally:
             path.write_bytes(original)
 

@@ -35,6 +35,19 @@ from enh3bench.e2e_risk_routing import aggregate_case_risk
 Group = dict[str, list[dict[str, Any]]]
 Predicate = Callable[[Group], bool]
 
+GENERATION_BATCH_FIELDS = frozenset({
+    "schema_version", "profile", "case_id", "paper_id", "question",
+    "expected_answer_contract", "required_answer_sections", "allowed_source_span_ids",
+    "allowed_evidence_link_ids", "bounded_source_context", "abstention_allowed",
+    "generation_status", "network_call_performed", "source_manifest_sha256",
+})
+EVALUATOR_ONLY_CASE_FIELDS = frozenset({
+    "automatic_case_risk_score", "automatic_case_risk_tier", "automatic_case_risk_reasons",
+    "automatic_signal_stratum", "answerability_status", "answerability_reasons",
+    "abstention_expected", "human_route", "machine_route", "split", "holdout",
+    "evaluator_expected_verdict",
+})
+
 
 def _groups(frames: dict[str, list[dict[str, Any]]]) -> dict[str, Group]:
     result: dict[str, Group] = defaultdict(lambda: defaultdict(list))
@@ -391,10 +404,7 @@ def make_api_generation_batch(cases: list[dict[str, Any]]) -> list[dict[str, Any
         "allowed_source_span_ids": case["allowed_source_span_ids"],
         "allowed_evidence_link_ids": case["allowed_evidence_link_ids"],
         "bounded_source_context": case["bounded_source_context"],
-        "answerability_status": case["answerability_status"],
-        "answerability_reasons": case["answerability_reasons"],
         "abstention_allowed": case["abstention_allowed"],
-        "abstention_expected": case["abstention_expected"],
         "generation_status": "pending",
         "network_call_performed": False,
         "source_manifest_sha256": case["source_manifest_sha256"],
