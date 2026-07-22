@@ -20,21 +20,28 @@ from enh3bench.e2e_eval_validation import validate_selective_eval_package
 from enh3bench.generation_pilot import (
     ANSWERABILITY_STATUSES,
     CASE_TYPES,
+    CITATION_JSON_SCHEMA,
+    CLAIM_JSON_SCHEMA,
     COMPILED_PROMPT_FIELDS,
     COST_ESTIMATE_SCHEMA_VERSION,
     DEFAULT_PROMPT_TEMPLATE,
     EVALUATOR_ONLY_FIELDS,
     EXECUTION_ONLY_FIELDS,
+    EXECUTION_RECEIPT_ID_PREFIX,
     FixtureGenerationBackend,
     GENERATION_BACKEND_INTERFACE_VERSION,
     GENERATION_PILOT_PROFILE,
     GENERATION_PROMPT_VERSION,
     GENERATION_RUN_SCHEMA_VERSION,
+    GENERATION_RUN_ID_PREFIX,
     GENERATOR_BATCH_FIELDS,
     GenerationBackend,
     PILOT_CASE_COUNT,
+    PILOT_SELECTION_ID_PREFIX,
+    PROMPT_INSTANCE_ID_PREFIX,
     RECEIPT_FIELDS,
     REQUEST_ENVELOPE_FIELDS,
+    REQUEST_ENVELOPE_ID_PREFIX,
     RESPONSE_JSON_SCHEMA,
     build_development_pilot,
     estimate_generation_cost,
@@ -45,6 +52,7 @@ from enh3bench.generation_pilot import (
     resolve_external_run_target,
     run_generation_dry_run,
     select_pilot_cases,
+    validate_response_object,
     validate_generation_pilot,
 )
 from scripts import build_development_pilot as build_cli
@@ -159,6 +167,29 @@ class GenerationPilotV016Tests(unittest.TestCase):
 
     def _cases(self) -> list[dict]:
         return read_jsonl(self.eval_root / "eval/cases/e2e_case_frame.jsonl")
+
+    def _valid_response(self) -> dict:
+        return {
+            "answer_status": "answered",
+            "answer_text": "The bounded evidence supports the claim.",
+            "confidence_statement": "Bounded-context confidence only.",
+            "claims": [{
+                "claim_id": "claim-1",
+                "claim_text": "A supported author result.",
+                "claim_type": "author_result",
+                "supporting_source_span_ids": ["span-1"],
+                "supporting_evidence_link_ids": [],
+                "support_status": "supported",
+            }],
+            "citations": [{
+                "citation_id": "citation-1",
+                "claim_ids": ["claim-1"],
+                "source_span_ids": ["span-1"],
+                "evidence_link_ids": [],
+            }],
+            "limitations": [],
+            "abstention_reason": "",
+        }
 
     def _validate(self, name: str) -> dict:
         return validate_generation_pilot(
@@ -801,6 +832,305 @@ class GenerationPilotV016Tests(unittest.TestCase):
     def test_74_core_module_has_no_drive_specific_default_root(self) -> None:
         text = (ROOT / "enh3bench/generation_pilot.py").read_text(encoding="utf-8")
         self.assertNotIn("eNH3_Bench_API", text)
+
+    def test_75_claim_schema_is_closed_and_has_exact_required_fields(self) -> None:
+        self.assertFalse(CLAIM_JSON_SCHEMA["additionalProperties"])
+        self.assertEqual(set(CLAIM_JSON_SCHEMA["required"]), {
+            "claim_id", "claim_text", "claim_type", "supporting_source_span_ids",
+            "supporting_evidence_link_ids", "support_status",
+        })
+
+    def test_76_citation_schema_is_closed_and_has_exact_required_fields(self) -> None:
+        self.assertFalse(CITATION_JSON_SCHEMA["additionalProperties"])
+        self.assertEqual(set(CITATION_JSON_SCHEMA["required"]), {
+            "citation_id", "claim_ids", "source_span_ids", "evidence_link_ids",
+        })
+        self.assertIn("anyOf", CITATION_JSON_SCHEMA)
+
+    def test_77_each_missing_claim_required_field_is_invalid(self) -> None:
+        for field in CLAIM_JSON_SCHEMA["required"]:
+            with self.subTest(field=field):
+                value = self._valid_response()
+                del value["claims"][0][field]
+                self.assertTrue(any(f"missing:{field}" in error for error in validate_response_object(value)))
+
+    def test_78_invalid_claim_support_status_is_rejected(self) -> None:
+        value = self._valid_response()
+        value["claims"][0]["support_status"] = "verified"
+        self.assertIn("claim[0]:invalid_support_status", validate_response_object(value))
+
+    def test_79_invalid_claim_type_is_rejected(self) -> None:
+        value = self._valid_response()
+        value["claims"][0]["claim_type"] = "paper_fact"
+        self.assertIn("claim[0]:invalid_claim_type", validate_response_object(value))
+
+    def test_80_arbitrary_claim_object_is_rejected(self) -> None:
+        value = self._valid_response()
+        value["claims"] = [{"arbitrary": "object"}]
+        errors = validate_response_object(value)
+        self.assertTrue(any("missing:" in error for error in errors))
+        self.assertIn("claim[0]:unknown:arbitrary", errors)
+
+    def test_81_citation_requires_a_source_span_or_evidence_link(self) -> None:
+        value = self._valid_response()
+        value["citations"][0]["source_span_ids"] = []
+        value["citations"][0]["evidence_link_ids"] = []
+        self.assertIn("citation[0]:source_or_link_required", validate_response_object(value))
+
+    def test_82_provider_metadata_is_not_in_response_contract(self) -> None:
+        forbidden = {"provider_name", "model_name", "api_status", "token_usage", "cost", "routing"}
+        self.assertFalse(forbidden & set(RESPONSE_JSON_SCHEMA["properties"]))
+        value = self._valid_response()
+        value["provider_name"] = "fixture"
+        self.assertIn("response:unknown:provider_name", validate_response_object(value))
+
+    def test_83_valid_strict_response_object_is_accepted(self) -> None:
+        self.assertEqual(validate_response_object(self._valid_response()), [])
+
+    def test_84_response_ids_are_nonblank_and_unique(self) -> None:
+        value = self._valid_response()
+        value["claims"][0]["claim_id"] = " "
+        value["claims"][0]["supporting_source_span_ids"] = ["span-1", "span-1"]
+        errors = validate_response_object(value)
+        self.assertIn("claim[0]:claim_id:blank_or_nonstring", errors)
+        self.assertIn("claim[0]:supporting_source_span_ids:not_unique", errors)
+
+    def test_85_prompt_limits_evidence_to_bounded_context(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        self.assertIn("only the supplied single-paper bounded context", text)
+        for phrase in ("memory", "training data", "external papers", "outside knowledge"):
+            self.assertIn(phrase, text)
+
+    def test_86_prompt_forbids_guessing_and_fabrication(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        self.assertIn("do not guess missing experimental conditions", text)
+        for phrase in ("doi", "numerical value", "material", "method", "citation", "reaction condition"):
+            self.assertIn(phrase, text)
+
+    def test_87_prompt_requires_claim_binding_and_ownership_classes(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("Bind every substantive claim", text)
+        for value in ("author_result", "external_reference", "uncertain_ownership"):
+            self.assertIn(value, text)
+
+    def test_88_prompt_rejects_context_as_automatic_primary_evidence(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        for phrase in ("references", "captions", "review tables", "cited literature", "do not automatically"):
+            self.assertIn(phrase, text)
+
+    def test_89_prompt_requires_missing_quantification_and_validation_statements(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        self.assertIn("requested quantification is missing", text)
+        self.assertIn("validation evidence is missing", text)
+
+    def test_90_prompt_distinguishes_negative_answers_from_abstention(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        self.assertIn("does not automatically require abstention", text)
+        self.assertIn("supports a negative conclusion", text)
+        self.assertIn("rather than abstaining", text)
+
+    def test_91_prompt_requires_three_statuses_and_json_only(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+        for value in ("answered", "partially_answered", "abstained"):
+            self.assertIn(f"`{value}`", text)
+        self.assertIn("Output only one JSON object", text)
+        self.assertIn("Markdown code fence", text)
+
+    def test_92_prompt_requires_allowlists_support_labels_and_traceability(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        self.assertIn("outside the supplied allowlists", text)
+        self.assertIn("unsupported or uncertain claim", text)
+        self.assertIn("claim-to-citation traceability", text)
+
+    def test_93_prompt_contains_no_evaluator_only_contract_terms(self) -> None:
+        text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8").casefold()
+        forbidden = (
+            "answerability_status", "abstention_expected", "risk tier", "risk score",
+            "selection reasons", "human route", "machine route", "expected verdict",
+            "holdout identity", "reference answer",
+        )
+        self.assertTrue(all(value not in text for value in forbidden))
+
+    def test_94_compiled_prompt_embeds_exact_contract_text(self) -> None:
+        expected = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+        rows = read_jsonl(self._baseline() / "prompts/compiled_prompt_instances.jsonl")
+        self.assertTrue(expected.strip())
+        self.assertTrue(all(row["prompt_contract_text"] == expected for row in rows))
+
+    def test_95_prompt_template_sha_binds_embedded_text(self) -> None:
+        from enh3bench.e2e_eval_schema import sha256_bytes
+        rows = read_jsonl(self._baseline() / "prompts/compiled_prompt_instances.jsonl")
+        for row in rows:
+            self.assertEqual(
+                row["prompt_template_sha256"],
+                sha256_bytes(row["prompt_contract_text"].encode("utf-8")),
+            )
+
+    def test_96_compiled_hash_changes_when_prompt_contract_text_changes(self) -> None:
+        from enh3bench.e2e_eval_schema import canonical_json, sha256_bytes
+        row = deepcopy(read_jsonl(self._baseline() / "prompts/compiled_prompt_instances.jsonl")[0])
+        original = row["compiled_prompt_sha256"]
+        row["prompt_contract_text"] += "\nchanged"
+        base = {key: value for key, value in row.items() if key != "compiled_prompt_sha256"}
+        self.assertNotEqual(original, sha256_bytes(canonical_json(base).encode("utf-8")))
+
+    def test_97_validator_rejects_modified_prompt_contract_text(self) -> None:
+        name, run = self._copy_baseline("prompt_text_modified")
+        path = run / "prompts/compiled_prompt_instances.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["prompt_contract_text"] += "\nchanged"
+        write_jsonl(path, rows)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["prompt_contract_text_match_count"], 6)
+
+    def test_98_validator_rejects_empty_prompt_contract_text(self) -> None:
+        name, run = self._copy_baseline("prompt_text_empty")
+        path = run / "prompts/compiled_prompt_instances.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["prompt_contract_text"] = ""
+        write_jsonl(path, rows)
+        self.assertEqual(self._validate(name)["result"], "FAIL")
+
+    def test_99_validator_rejects_evaluator_term_in_prompt_contract_text(self) -> None:
+        name, run = self._copy_baseline("prompt_text_evaluator")
+        path = run / "prompts/compiled_prompt_instances.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["prompt_contract_text"] += "\nanswerability_status"
+        write_jsonl(path, rows)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertGreater(result["counts"]["compiled_prompt_evaluator_field_count"], 0)
+
+    def test_100_validator_counts_response_schema_contract_mutation(self) -> None:
+        name, run = self._copy_baseline("response_schema_mutation")
+        path = run / "prompts/compiled_prompt_instances.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["response_json_schema"]["additionalProperties"] = True
+        write_jsonl(path, rows)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["response_schema_contract_error_count"], 1)
+
+    def test_101_all_stable_id_prefixes_are_exact(self) -> None:
+        run = self._baseline()
+        manifest = read_json(run / "manifests/generation_run_manifest.json")
+        selection = read_json(run / "pilot/pilot_selection_manifest.json")
+        prompts = read_jsonl(run / "prompts/compiled_prompt_instances.jsonl")
+        envelopes = read_jsonl(run / "execution/request_envelopes.jsonl")
+        receipts = read_jsonl(run / "execution/dry_run_receipts.jsonl")
+        self.assertRegex(manifest["generation_run_id"], rf"^{GENERATION_RUN_ID_PREFIX}_[0-9A-F]{{20}}$")
+        self.assertRegex(selection["pilot_selection_id"], rf"^{PILOT_SELECTION_ID_PREFIX}_[0-9A-F]{{20}}$")
+        self.assertTrue(all(row["prompt_instance_id"].startswith(f"{PROMPT_INSTANCE_ID_PREFIX}_") for row in prompts))
+        self.assertTrue(all(row["request_envelope_id"].startswith(f"{REQUEST_ENVELOPE_ID_PREFIX}_") for row in envelopes))
+        self.assertTrue(all(row["execution_receipt_id"].startswith(f"{EXECUTION_RECEIPT_ID_PREFIX}_") for row in receipts))
+
+    def test_102_generation_and_selection_ids_ignore_run_name_and_time(self) -> None:
+        name = self._unique("stable_run_ids")
+        other = self._build(name)
+        first_manifest = read_json(self._baseline() / "manifests/generation_run_manifest.json")
+        other_manifest = read_json(other / "manifests/generation_run_manifest.json")
+        self.assertEqual(first_manifest["generation_run_id"], other_manifest["generation_run_id"])
+        self.assertEqual(first_manifest["pilot_selection_id"], other_manifest["pilot_selection_id"])
+
+    def test_103_prompt_and_receipt_ids_match_across_run_names(self) -> None:
+        other = self._full(self._unique("stable_execution_ids"))
+        first_prompts = read_jsonl(self._baseline() / "prompts/compiled_prompt_instances.jsonl")
+        other_prompts = read_jsonl(other / "prompts/compiled_prompt_instances.jsonl")
+        first_receipts = read_jsonl(self._baseline() / "execution/dry_run_receipts.jsonl")
+        other_receipts = read_jsonl(other / "execution/dry_run_receipts.jsonl")
+        self.assertEqual(
+            [row["prompt_instance_id"] for row in first_prompts],
+            [row["prompt_instance_id"] for row in other_prompts],
+        )
+        self.assertEqual(
+            [row["execution_receipt_id"] for row in first_receipts],
+            [row["execution_receipt_id"] for row in other_receipts],
+        )
+
+    def test_104_validator_rejects_generation_run_id_mutation(self) -> None:
+        name, run = self._copy_baseline("generation_id_mutation")
+        path = run / "manifests/generation_run_manifest.json"
+        value = read_json(path)
+        value["generation_run_id"] = "GR16_00000000000000000000"
+        write_json(path, value)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["generation_run_id_valid_count"], 0)
+
+    def test_105_validator_rejects_pilot_selection_id_mutation(self) -> None:
+        name, run = self._copy_baseline("selection_id_mutation")
+        path = run / "pilot/pilot_selection_manifest.json"
+        value = read_json(path)
+        value["pilot_selection_id"] = "PS16_00000000000000000000"
+        write_json(path, value)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["pilot_selection_id_valid_count"], 0)
+
+    def test_106_validator_rejects_prompt_instance_id_mutation(self) -> None:
+        name, run = self._copy_baseline("prompt_id_mutation")
+        path = run / "prompts/compiled_prompt_instances.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["prompt_instance_id"] = "GP16_00000000000000000000"
+        write_jsonl(path, rows)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["prompt_instance_id_valid_count"], 6)
+
+    def test_107_validator_rejects_execution_receipt_id_mutation(self) -> None:
+        name, run = self._copy_baseline("receipt_id_mutation")
+        path = run / "execution/dry_run_receipts.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["execution_receipt_id"] = "ER16_00000000000000000000"
+        write_jsonl(path, rows)
+        result = self._validate(name)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertEqual(result["counts"]["execution_receipt_id_valid_count"], 6)
+
+    def test_108_windows_forward_slash_absolute_path_is_detected(self) -> None:
+        name, run = self._copy_baseline("windows_path_mutation")
+        path = run / "reports/cost_estimate_template.json"
+        value = read_json(path)
+        value["pricing_source"] = "F:/private/pricing.json"
+        write_json(path, value)
+        result = self._validate(name)
+        self.assertGreater(result["counts"]["windows_absolute_path_count"], 0)
+
+    def test_109_posix_absolute_path_is_detected(self) -> None:
+        name, run = self._copy_baseline("posix_path_mutation")
+        path = run / "reports/cost_estimate_template.json"
+        value = read_json(path)
+        value["pricing_source"] = "/tmp/private/pricing.json"
+        write_json(path, value)
+        result = self._validate(name)
+        self.assertGreater(result["counts"]["posix_absolute_path_count"], 0)
+
+    def test_110_https_url_is_not_an_absolute_file_path(self) -> None:
+        name, run = self._copy_baseline("https_path_control")
+        path = run / "reports/cost_estimate_template.json"
+        value = read_json(path)
+        value["pricing_source"] = "https://example.org/pricing"
+        write_json(path, value)
+        result = self._validate(name)
+        self.assertEqual(result["counts"]["windows_absolute_path_count"], 0)
+        self.assertEqual(result["counts"]["posix_absolute_path_count"], 0)
+
+    def test_111_validator_reports_all_strict_contract_counts(self) -> None:
+        result = self._validate(self.baseline_name)
+        self.assertEqual(result["result"], "PASS", result["errors"])
+        expected = {
+            "generation_run_id_valid_count": 1,
+            "pilot_selection_id_valid_count": 1,
+            "prompt_instance_id_valid_count": 7,
+            "execution_receipt_id_valid_count": 7,
+            "prompt_contract_text_match_count": 7,
+            "response_schema_contract_error_count": 0,
+            "windows_absolute_path_count": 0,
+            "posix_absolute_path_count": 0,
+        }
+        for field, value in expected.items():
+            self.assertEqual(result["counts"][field], value, field)
 
 
 if __name__ == "__main__":

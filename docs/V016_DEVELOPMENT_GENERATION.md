@@ -69,6 +69,24 @@ Prompt compilation writes seven schema-bound instances. The fixture dry run writ
 envelopes and seven receipts, but no answer text, claims, citations, answer status, provider response,
 usage record, failure output, or `outputs/api_outputs.jsonl`.
 
+Each compiled prompt is self-contained: `prompt_contract_text` is the exact UTF-8 template body, its
+SHA-256 is recorded as `prompt_template_sha256`, and the body participates in
+`compiled_prompt_sha256`. The contract confines any future answer to bounded context and allowlisted
+source identities, forbids outside knowledge and fabrication, distinguishes author results from cited
+or uncertain ownership, treats negative conclusions separately from abstention, and requires a single
+schema-conforming JSON object with claim-to-citation traceability.
+
+The response schema is closed at the response, claim, and citation levels. Claims require nonblank
+identity and text, an enumerated ownership/type, unique source/link arrays, and an explicit support
+status. Citations require unique claim/source/link arrays and at least one source span or evidence link.
+Provider, model, API, usage, cost, evaluator, risk, and routing metadata are outside the response
+contract.
+
+Stable identities use canonical JSON plus SHA-256 only: `GR16_` identifies the generation contract,
+`PS16_` the deterministic selection, `GP16_` each prompt instance, `RQ16_` each request envelope, and
+`ER16_` each dry-run receipt. Their payloads exclude run names, timestamps, output roots, Python hash
+state, and file-write order.
+
 ## Offline token and cost estimate
 
 The estimator uses local prompt characters to produce conservative token bounds. With no explicit
@@ -80,7 +98,9 @@ and a valid ISO date. The estimator does not retrieve prices.
 
 The validator proves the seven-case/type/paper counts, answerability diversity, development-only
 boundary, prompt and request hashes, receipt nonimportability, artifact absence, metadata firewall,
-source immutability, blank Phase B1A source state, and zero serialized secrets or absolute paths.
+source immutability, blank Phase B1A source state, strict response/prompt contracts, stable identity
+recomputation, and zero serialized secrets or Windows/POSIX absolute paths. HTTPS URLs are not treated
+as absolute filesystem paths.
 
 Reproducibility compares normalized hashes for selection, generator batch, compiled prompts, request
 envelopes, and token estimate. Only run name, creation time, and an external-root field may be

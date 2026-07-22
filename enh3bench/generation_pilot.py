@@ -44,6 +44,11 @@ COST_ESTIMATE_SCHEMA_VERSION = "0.16-generation-cost.1"
 FIXTURE_BACKEND_VERSION = "fixture-generation-v1"
 PILOT_CASE_COUNT = 7
 DEFAULT_PROMPT_TEMPLATE = Path(__file__).resolve().parents[1] / "prompts/v016_development_generation_v1.md"
+GENERATION_RUN_ID_PREFIX = "GR16"
+PILOT_SELECTION_ID_PREFIX = "PS16"
+PROMPT_INSTANCE_ID_PREFIX = "GP16"
+EXECUTION_RECEIPT_ID_PREFIX = "ER16"
+REQUEST_ENVELOPE_ID_PREFIX = "RQ16"
 
 CASE_TYPES = (
     "paper_scope_classification",
@@ -78,7 +83,7 @@ COMPILED_PROMPT_FIELDS = frozenset({
     "schema_version", "prompt_instance_id", "prompt_version", "case_id", "paper_id",
     "case_type", "question", "required_answer_sections", "expected_answer_contract",
     "allowed_source_span_ids", "allowed_evidence_link_ids", "bounded_source_context",
-    "response_json_schema", "source_manifest_sha256", "prompt_template_sha256",
+    "prompt_contract_text", "response_json_schema", "source_manifest_sha256", "prompt_template_sha256",
     "compiled_prompt_sha256",
 })
 RECEIPT_FIELDS = frozenset({
@@ -92,6 +97,52 @@ REQUEST_ENVELOPE_FIELDS = frozenset({
     "backend_version", "prompt_version", "compiled_prompt_sha256", "request_sha256",
     "execution_mode", "created_at_utc",
 })
+NONBLANK_STRING_JSON_SCHEMA: dict[str, Any] = {
+    "type": "string",
+    "minLength": 1,
+    "pattern": r".*\S.*",
+}
+UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA: dict[str, Any] = {
+    "type": "array",
+    "items": NONBLANK_STRING_JSON_SCHEMA,
+    "uniqueItems": True,
+}
+CLAIM_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "claim_id", "claim_text", "claim_type", "supporting_source_span_ids",
+        "supporting_evidence_link_ids", "support_status",
+    ],
+    "properties": {
+        "claim_id": NONBLANK_STRING_JSON_SCHEMA,
+        "claim_text": NONBLANK_STRING_JSON_SCHEMA,
+        "claim_type": {"enum": [
+            "author_result", "external_reference", "method_or_context",
+            "negative_evidence", "uncertain_ownership",
+        ]},
+        "supporting_source_span_ids": UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA,
+        "supporting_evidence_link_ids": UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA,
+        "support_status": {"enum": [
+            "supported", "partially_supported", "unsupported", "uncertain",
+        ]},
+    },
+}
+CITATION_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["citation_id", "claim_ids", "source_span_ids", "evidence_link_ids"],
+    "properties": {
+        "citation_id": NONBLANK_STRING_JSON_SCHEMA,
+        "claim_ids": UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA,
+        "source_span_ids": UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA,
+        "evidence_link_ids": UNIQUE_NONBLANK_STRINGS_JSON_SCHEMA,
+    },
+    "anyOf": [
+        {"properties": {"source_span_ids": {"minItems": 1}}},
+        {"properties": {"evidence_link_ids": {"minItems": 1}}},
+    ],
+}
 RESPONSE_JSON_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -104,12 +155,17 @@ RESPONSE_JSON_SCHEMA: dict[str, Any] = {
         "answer_text": {"type": "string"},
         "answer_status": {"enum": ["answered", "partially_answered", "abstained"]},
         "confidence_statement": {"type": "string"},
-        "claims": {"type": "array", "items": {"type": "object"}},
-        "citations": {"type": "array", "items": {"type": "object"}},
+        "claims": {"type": "array", "items": CLAIM_JSON_SCHEMA},
+        "citations": {"type": "array", "items": CITATION_JSON_SCHEMA},
         "limitations": {"type": "array", "items": {"type": "string"}},
         "abstention_reason": {"type": "string"},
     },
 }
+PROMPT_FORBIDDEN_EVALUATOR_TERMS = frozenset({
+    "answerability_status", "abstention_expected", "risk_tier", "risk_score",
+    "selection_reasons", "human_route", "machine_route", "expected_verdict",
+    "holdout_identity", "reference_answer",
+})
 NORMALIZED_FIELDS = {"generation_run_name", "created_at_utc", "external_output_root"}
 FORBIDDEN_ARTIFACT_NAMES = {
     "api_outputs.jsonl", "machine_judgments.jsonl", "human_labels.jsonl",
@@ -124,6 +180,149 @@ def _utc_now() -> str:
 
 def _stable_id(prefix: str, payload: Any) -> str:
     return f"{prefix}_{sha256_bytes(canonical_json(payload).encode('utf-8'))[:20].upper()}"
+
+
+def _pilot_selection_id(selected: list[dict[str, Any]], source_manifest_sha256: str) -> str:
+    cases = [
+        {
+            "case_id": row["case_id"],
+            "paper_id": row["paper_id"],
+            "case_type": row["case_type"],
+            "answerability_status": row["answerability_status"],
+            "stable_selection_rank": row["stable_rank_sha256"],
+        }
+        for row in sorted(selected, key=lambda value: str(value["case_id"]))
+    ]
+    return _stable_id(PILOT_SELECTION_ID_PREFIX, {
+        "selection_algorithm": "evaluator-diversity-sha256-v1",
+        "source_manifest_sha256": source_manifest_sha256,
+        "selected_cases": cases,
+    })
+
+
+def _generation_run_id(
+    *, source_manifest_sha256: str, pilot_selection_id: str,
+    prompt_template_sha256: str,
+) -> str:
+    return _stable_id(GENERATION_RUN_ID_PREFIX, {
+        "schema_version": GENERATION_RUN_SCHEMA_VERSION,
+        "profile": GENERATION_PILOT_PROFILE,
+        "prompt_version": GENERATION_PROMPT_VERSION,
+        "backend_interface_version": GENERATION_BACKEND_INTERFACE_VERSION,
+        "source_selective_eval_manifest_sha256": source_manifest_sha256,
+        "pilot_selection_id": pilot_selection_id,
+        "prompt_template_sha256": prompt_template_sha256,
+    })
+
+
+def _prompt_instance_id(row: dict[str, Any], prompt_template_sha256: str) -> str:
+    return _stable_id(PROMPT_INSTANCE_ID_PREFIX, {
+        "prompt_version": GENERATION_PROMPT_VERSION,
+        "case_id": row["case_id"],
+        "paper_id": row["paper_id"],
+        "source_manifest_sha256": row["source_manifest_sha256"],
+        "prompt_template_sha256": prompt_template_sha256,
+    })
+
+
+def _execution_receipt_id(
+    *, request_sha256: str, backend_name: str, backend_version: str,
+    execution_status: str,
+) -> str:
+    return _stable_id(EXECUTION_RECEIPT_ID_PREFIX, {
+        "request_sha256": request_sha256,
+        "backend_name": backend_name,
+        "backend_version": backend_version,
+        "backend_interface_version": GENERATION_BACKEND_INTERFACE_VERSION,
+        "execution_status": execution_status,
+    })
+
+
+def _is_nonblank_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _validate_unique_nonblank_strings(value: Any, field: str) -> list[str]:
+    if not isinstance(value, list):
+        return [f"{field}:not_array"]
+    errors = [f"{field}:blank_or_nonstring"] if any(not _is_nonblank_string(item) for item in value) else []
+    if all(isinstance(item, str) for item in value) and len(value) != len(set(value)):
+        errors.append(f"{field}:not_unique")
+    return errors
+
+
+def validate_response_object(value: Any) -> list[str]:
+    """Validate a hypothetical future response without adding a schema dependency."""
+
+    if not isinstance(value, dict):
+        return ["response:not_object"]
+    errors: list[str] = []
+    required = set(RESPONSE_JSON_SCHEMA["required"])
+    properties = set(RESPONSE_JSON_SCHEMA["properties"])
+    for field in sorted(required - set(value)):
+        errors.append(f"response:missing:{field}")
+    for field in sorted(set(value) - properties):
+        errors.append(f"response:unknown:{field}")
+    if value.get("answer_status") not in RESPONSE_JSON_SCHEMA["properties"]["answer_status"]["enum"]:
+        errors.append("response:invalid_answer_status")
+    for field in ("answer_text", "confidence_statement", "abstention_reason"):
+        if field in value and not isinstance(value[field], str):
+            errors.append(f"response:{field}:not_string")
+    limitations = value.get("limitations")
+    if not isinstance(limitations, list) or any(not isinstance(item, str) for item in limitations):
+        errors.append("response:limitations:not_string_array")
+    claims = value.get("claims")
+    if not isinstance(claims, list):
+        errors.append("response:claims:not_array")
+    else:
+        claim_required = set(CLAIM_JSON_SCHEMA["required"])
+        claim_properties = set(CLAIM_JSON_SCHEMA["properties"])
+        for index, claim in enumerate(claims):
+            label = f"claim[{index}]"
+            if not isinstance(claim, dict):
+                errors.append(f"{label}:not_object")
+                continue
+            for field in sorted(claim_required - set(claim)):
+                errors.append(f"{label}:missing:{field}")
+            for field in sorted(set(claim) - claim_properties):
+                errors.append(f"{label}:unknown:{field}")
+            for field in ("claim_id", "claim_text"):
+                if field in claim and not _is_nonblank_string(claim[field]):
+                    errors.append(f"{label}:{field}:blank_or_nonstring")
+            if claim.get("claim_type") not in CLAIM_JSON_SCHEMA["properties"]["claim_type"]["enum"]:
+                errors.append(f"{label}:invalid_claim_type")
+            if claim.get("support_status") not in CLAIM_JSON_SCHEMA["properties"]["support_status"]["enum"]:
+                errors.append(f"{label}:invalid_support_status")
+            for field in ("supporting_source_span_ids", "supporting_evidence_link_ids"):
+                if field in claim:
+                    errors.extend(f"{label}:{error}" for error in _validate_unique_nonblank_strings(claim[field], field))
+    citations = value.get("citations")
+    if not isinstance(citations, list):
+        errors.append("response:citations:not_array")
+    else:
+        citation_required = set(CITATION_JSON_SCHEMA["required"])
+        citation_properties = set(CITATION_JSON_SCHEMA["properties"])
+        for index, citation in enumerate(citations):
+            label = f"citation[{index}]"
+            if not isinstance(citation, dict):
+                errors.append(f"{label}:not_object")
+                continue
+            for field in sorted(citation_required - set(citation)):
+                errors.append(f"{label}:missing:{field}")
+            for field in sorted(set(citation) - citation_properties):
+                errors.append(f"{label}:unknown:{field}")
+            if "citation_id" in citation and not _is_nonblank_string(citation["citation_id"]):
+                errors.append(f"{label}:citation_id:blank_or_nonstring")
+            for field in ("claim_ids", "source_span_ids", "evidence_link_ids"):
+                if field in citation:
+                    errors.extend(f"{label}:{error}" for error in _validate_unique_nonblank_strings(citation[field], field))
+            if not citation.get("source_span_ids") and not citation.get("evidence_link_ids"):
+                errors.append(f"{label}:source_or_link_required")
+    return errors
+
+
+def response_schema_contract_errors(schema: Any) -> list[str]:
+    return [] if schema == RESPONSE_JSON_SCHEMA else ["response_schema_contract_mismatch"]
 
 
 def _path_is_within(path: Path, parent: Path) -> bool:
@@ -228,12 +427,13 @@ def select_pilot_cases(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _selection_manifest(
     selected: list[dict[str, Any]], *, source_run_name: str,
-    source_manifest_sha256: str, created_at_utc: str,
+    source_manifest_sha256: str, pilot_selection_id: str, created_at_utc: str,
 ) -> dict[str, Any]:
     return {
         "schema_version": GENERATION_RUN_SCHEMA_VERSION,
         "profile": GENERATION_PILOT_PROFILE,
         "selection_algorithm": "evaluator-diversity-sha256-v1",
+        "pilot_selection_id": pilot_selection_id,
         "created_at_utc": created_at_utc,
         "source_selective_eval_run_name": source_run_name,
         "source_selective_eval_manifest_sha256": source_manifest_sha256,
@@ -283,8 +483,12 @@ def build_development_pilot(
     if _path_is_within(pilot_root, source_dir) or _path_is_within(source_dir, pilot_root):
         raise ValueError("generation_output_root_overlaps_source_package")
     prompt_path = Path(prompt_template).resolve()
-    if not prompt_path.is_file() or not prompt_path.read_text(encoding="utf-8").strip():
+    if not prompt_path.is_file():
         raise ValueError("generation_prompt_template_missing_or_blank")
+    prompt_contract_text = prompt_path.read_text(encoding="utf-8")
+    if not prompt_contract_text.strip():
+        raise ValueError("generation_prompt_template_missing_or_blank")
+    prompt_template_sha256 = sha256_bytes(prompt_contract_text.encode("utf-8"))
     source_validation = validate_selective_eval_package(
         selective_eval_run_name=selective_eval_run_name,
         selective_eval_root=selective_eval_root,
@@ -297,6 +501,7 @@ def build_development_pilot(
         raise ValueError("source_selective_eval_not_blank")
     source_tree_before = tree_hash(source_dir)
     source_manifest_path = source_dir / "manifests/selective_eval_manifest.json"
+    source_manifest_sha256 = sha256_file(source_manifest_path)
     source_manifest = read_json(source_manifest_path)
     cases = read_jsonl(source_dir / "cases/e2e_case_frame.jsonl")
     batch = read_jsonl(source_dir / "cases/api_generation_batch.jsonl")
@@ -304,6 +509,12 @@ def build_development_pilot(
     if batch_errors:
         raise ValueError("source_generation_batch_invalid:" + ";".join(batch_errors[:8]))
     selected = select_pilot_cases(cases)
+    pilot_selection_id = _pilot_selection_id(selected, source_manifest_sha256)
+    generation_run_id = _generation_run_id(
+        source_manifest_sha256=source_manifest_sha256,
+        pilot_selection_id=pilot_selection_id,
+        prompt_template_sha256=prompt_template_sha256,
+    )
     selected_ids = {row["case_id"] for row in selected}
     pilot_batch = [
         {field: row[field] for field in GENERATOR_BATCH_FIELDS}
@@ -322,7 +533,8 @@ def build_development_pilot(
         selection_manifest = _selection_manifest(
             selected,
             source_run_name=selective_eval_run_name,
-            source_manifest_sha256=sha256_file(source_manifest_path),
+            source_manifest_sha256=source_manifest_sha256,
+            pilot_selection_id=pilot_selection_id,
             created_at_utc=created_at,
         )
         write_json(stage / "pilot/pilot_selection_manifest.json", selection_manifest)
@@ -335,19 +547,21 @@ def build_development_pilot(
             "profile": GENERATION_PILOT_PROFILE,
             "prompt_version": GENERATION_PROMPT_VERSION,
             "backend_interface_version": GENERATION_BACKEND_INTERFACE_VERSION,
+            "generation_run_id": generation_run_id,
+            "pilot_selection_id": pilot_selection_id,
             "generation_run_name": generation_run_name,
             "created_at_utc": created_at,
             "status": "pilot_built",
             "source_selective_eval_run_name": selective_eval_run_name,
-            "source_selective_eval_manifest_sha256": sha256_file(source_manifest_path),
+            "source_selective_eval_manifest_sha256": source_manifest_sha256,
             "source_selective_eval_tree_sha256_before": source_tree_before,
             "source_selective_eval_tree_sha256_after": source_tree_after,
             "source_case_frame_sha256": sha256_file(source_dir / "cases/e2e_case_frame.jsonl"),
             "source_generation_batch_sha256": sha256_file(source_dir / "cases/api_generation_batch.jsonl"),
             "source_calibration_run_name": source_manifest.get("source_calibration_run_name"),
             "source_calibration_manifest_sha256": source_manifest.get("source_calibration_manifest_sha256"),
-            "prompt_template_sha256": sha256_file(prompt_path),
-            "prompt_template_character_count": len(prompt_path.read_text(encoding="utf-8")),
+            "prompt_template_sha256": prompt_template_sha256,
+            "prompt_template_character_count": len(prompt_contract_text),
             "selected_case_count": PILOT_CASE_COUNT,
             "unique_paper_count": PILOT_CASE_COUNT,
             "holdout_case_count": 0,
@@ -379,18 +593,16 @@ def prepare_generation_prompts(
     if any(_forbidden_execution_keys(row) or _forbidden_evaluator_keys(row) for row in batch):
         raise ValueError("pilot_generator_batch_metadata_firewall_failed")
     template_path = Path(prompt_template).resolve()
-    template_sha = sha256_file(template_path)
+    prompt_contract_text = template_path.read_text(encoding="utf-8")
+    if not prompt_contract_text.strip():
+        raise ValueError("generation_prompt_template_missing_or_blank")
+    template_sha = sha256_bytes(prompt_contract_text.encode("utf-8"))
     if manifest.get("prompt_template_sha256") != template_sha:
         raise ValueError("prompt_template_hash_mismatch")
     compiled: list[dict[str, Any]] = []
     for row in batch:
         case_type = str(row["expected_answer_contract"]["case_type"])
-        prompt_id = _stable_id("GPI16", {
-            "schema_version": GENERATION_RUN_SCHEMA_VERSION,
-            "prompt_version": GENERATION_PROMPT_VERSION,
-            "case_id": row["case_id"],
-            "prompt_template_sha256": template_sha,
-        })
+        prompt_id = _prompt_instance_id(row, template_sha)
         base = {
             "schema_version": GENERATION_RUN_SCHEMA_VERSION,
             "prompt_instance_id": prompt_id,
@@ -404,6 +616,7 @@ def prepare_generation_prompts(
             "allowed_source_span_ids": row["allowed_source_span_ids"],
             "allowed_evidence_link_ids": row["allowed_evidence_link_ids"],
             "bounded_source_context": row["bounded_source_context"],
+            "prompt_contract_text": prompt_contract_text,
             "response_json_schema": RESPONSE_JSON_SCHEMA,
             "source_manifest_sha256": row["source_manifest_sha256"],
             "prompt_template_sha256": template_sha,
@@ -463,7 +676,7 @@ class FixtureGenerationBackend:
         request_sha = sha256_bytes(canonical_json(stable).encode("utf-8"))
         return {
             **stable,
-            "request_envelope_id": _stable_id("GRE16", stable),
+            "request_envelope_id": _stable_id(REQUEST_ENVELOPE_ID_PREFIX, stable),
             "generation_run_name": generation_run_name,
             "request_sha256": request_sha,
             "created_at_utc": created_at_utc,
@@ -472,11 +685,12 @@ class FixtureGenerationBackend:
     def execute(self, request_envelope: dict[str, Any], *, created_at_utc: str) -> dict[str, Any]:
         return {
             "schema_version": GENERATION_RUN_SCHEMA_VERSION,
-            "execution_receipt_id": _stable_id("GRC16", {
-                "request_sha256": request_envelope["request_sha256"],
-                "backend_name": self.backend_name,
-                "backend_version": self.backend_version,
-            }),
+            "execution_receipt_id": _execution_receipt_id(
+                request_sha256=request_envelope["request_sha256"],
+                backend_name=self.backend_name,
+                backend_version=self.backend_version,
+                execution_status="dry_run",
+            ),
             "prompt_instance_id": request_envelope["prompt_instance_id"],
             "case_id": request_envelope["case_id"],
             "backend_name": self.backend_name,
@@ -525,6 +739,16 @@ def run_generation_dry_run(
         raise ValueError("compiled_prompt_contract_mismatch")
     if any(_forbidden_execution_keys(row) or _forbidden_evaluator_keys(row) for row in prompts):
         raise ValueError("compiled_prompt_metadata_firewall_failed")
+    prompt_contract_text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+    template_sha = sha256_bytes(prompt_contract_text.encode("utf-8"))
+    if any(
+        row.get("prompt_contract_text") != prompt_contract_text
+        or row.get("prompt_template_sha256") != template_sha
+        or _forbidden_prompt_evaluator_terms(row.get("prompt_contract_text"))
+        or response_schema_contract_errors(row.get("response_json_schema"))
+        for row in prompts
+    ):
+        raise ValueError("compiled_prompt_self_containment_contract_failed")
     envelopes: list[dict[str, Any]] = []
     receipts: list[dict[str, Any]] = []
     for prompt_instance in prompts:
@@ -723,14 +947,46 @@ def _forbidden_execution_keys(value: Any) -> set[str]:
     return {key for key, _ in _walk_values(value) if key in EXECUTION_ONLY_FIELDS}
 
 
+def _forbidden_prompt_evaluator_terms(value: Any) -> set[str]:
+    text = str(value or "").casefold()
+    return {term for term in PROMPT_FORBIDDEN_EVALUATOR_TERMS if term in text}
+
+
+def _string_values(value: Any):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield str(key)
+            yield from _string_values(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _string_values(item)
+
+
 def _safety_counts(paths: list[Path]) -> dict[str, int]:
-    counts = {"absolute_paths": 0, "secrets": 0}
+    counts = {
+        "absolute_paths": 0,
+        "windows_absolute_path_count": 0,
+        "posix_absolute_path_count": 0,
+        "secrets": 0,
+    }
     secret_pattern = re.compile(r"(?i)(api[_-]?key|authorization\s*:|bearer\s+[A-Za-z0-9])")
-    drive_pattern = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]")
+    drive_pattern = re.compile(r"(?i)(?<![A-Za-z0-9])[A-Za-z]:[\\/]")
+    posix_pattern = re.compile(r"(?<![:/A-Za-z0-9])/(?!/)[A-Za-z0-9._~-]+(?:/|$)")
     for path in paths:
         text = path.read_text(encoding="utf-8")
-        counts["absolute_paths"] += len(drive_pattern.findall(text))
         counts["secrets"] += len(secret_pattern.findall(text))
+        try:
+            values: Any = read_jsonl(path) if path.suffix == ".jsonl" else read_json(path)
+        except (ValueError, json.JSONDecodeError):
+            values = text
+        for value in _string_values(values):
+            counts["windows_absolute_path_count"] += len(drive_pattern.findall(value))
+            counts["posix_absolute_path_count"] += len(posix_pattern.findall(value))
+    counts["absolute_paths"] = (
+        counts["windows_absolute_path_count"] + counts["posix_absolute_path_count"]
+    )
     return counts
 
 
@@ -787,9 +1043,11 @@ def validate_generation_pilot(
         errors.append("selection_manifest_profile_mismatch")
     if selection.get("source_selective_eval_manifest_sha256") != manifest.get("source_selective_eval_manifest_sha256"):
         errors.append("selection_source_manifest_mismatch")
-    if manifest.get("prompt_template_sha256") != sha256_file(DEFAULT_PROMPT_TEMPLATE):
+    prompt_contract_text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+    template_sha = sha256_bytes(prompt_contract_text.encode("utf-8"))
+    if manifest.get("prompt_template_sha256") != template_sha:
         errors.append("manifest_prompt_template_hash_mismatch")
-    if manifest.get("prompt_template_character_count") != len(DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")):
+    if manifest.get("prompt_template_character_count") != len(prompt_contract_text):
         errors.append("manifest_prompt_template_character_count_mismatch")
     source_name = str(manifest.get("source_selective_eval_run_name") or "")
     try:
@@ -841,6 +1099,29 @@ def validate_generation_pilot(
         errors.append(f"source_validation_failed:{exc}")
         case_by_id = {}
     selected_rows = selection.get("selected_cases") if isinstance(selection.get("selected_cases"), list) else []
+    try:
+        expected_pilot_selection_id = _pilot_selection_id(
+            selected_rows, str(manifest.get("source_selective_eval_manifest_sha256") or ""),
+        )
+    except (KeyError, TypeError):
+        expected_pilot_selection_id = ""
+    pilot_selection_id_valid = bool(
+        expected_pilot_selection_id
+        and selection.get("pilot_selection_id") == expected_pilot_selection_id
+        and manifest.get("pilot_selection_id") == expected_pilot_selection_id
+    )
+    counts["pilot_selection_id_valid_count"] = int(pilot_selection_id_valid)
+    if not pilot_selection_id_valid:
+        errors.append("pilot_selection_id_mismatch")
+    expected_generation_run_id = _generation_run_id(
+        source_manifest_sha256=str(manifest.get("source_selective_eval_manifest_sha256") or ""),
+        pilot_selection_id=expected_pilot_selection_id,
+        prompt_template_sha256=template_sha,
+    )
+    generation_run_id_valid = manifest.get("generation_run_id") == expected_generation_run_id
+    counts["generation_run_id_valid_count"] = int(generation_run_id_valid)
+    if not generation_run_id_valid:
+        errors.append("generation_run_id_mismatch")
     counts["selected_case_count"] = len(selected_rows)
     counts["unique_paper_count"] = len({str(row.get("paper_id") or "") for row in selected_rows})
     counts["case_type_count"] = len({str(row.get("case_type") or "") for row in selected_rows})
@@ -895,7 +1176,6 @@ def validate_generation_pilot(
         forbidden = _forbidden_evaluator_keys(row)
         if forbidden:
             errors.append(f"evaluator_metadata_in_batch:{row.get('case_id', '')}:{sorted(forbidden)}")
-    template_sha = sha256_file(DEFAULT_PROMPT_TEMPLATE)
     counts["prompt_instance_count"] = len(prompts)
     counts["compiled_prompt_forbidden_execution_field_count"] = sum(
         len(_forbidden_execution_keys(row)) for row in prompts
@@ -903,6 +1183,9 @@ def validate_generation_pilot(
     counts["compiled_prompt_evaluator_field_count"] = sum(
         len(_forbidden_evaluator_keys(row)) for row in prompts
     )
+    counts["prompt_contract_text_match_count"] = 0
+    counts["prompt_instance_id_valid_count"] = 0
+    counts["response_schema_contract_error_count"] = 0
     for row in prompts:
         case_id = str(row.get("case_id") or "")
         execution_fields = _forbidden_execution_keys(row)
@@ -911,20 +1194,31 @@ def validate_generation_pilot(
         forbidden = _forbidden_evaluator_keys(row)
         if forbidden:
             errors.append(f"evaluator_metadata_in_prompt:{case_id}:{sorted(forbidden)}")
+        forbidden_terms = _forbidden_prompt_evaluator_terms(row.get("prompt_contract_text"))
+        if forbidden_terms:
+            counts["compiled_prompt_evaluator_field_count"] += len(forbidden_terms)
+            errors.append(f"evaluator_terms_in_prompt_contract:{case_id}:{sorted(forbidden_terms)}")
         if set(row) != COMPILED_PROMPT_FIELDS:
             errors.append(f"compiled_prompt_field_mismatch:{case_id}")
-            continue
         base = {key: value for key, value in row.items() if key != "compiled_prompt_sha256"}
         if row.get("compiled_prompt_sha256") != sha256_bytes(canonical_json(base).encode("utf-8")):
             errors.append(f"compiled_prompt_hash_mismatch:{case_id}")
         if row.get("prompt_template_sha256") != template_sha:
             errors.append(f"prompt_template_hash_mismatch:{case_id}")
-        if row.get("prompt_instance_id") != _stable_id("GPI16", {
-            "schema_version": GENERATION_RUN_SCHEMA_VERSION,
-            "prompt_version": GENERATION_PROMPT_VERSION,
-            "case_id": case_id,
-            "prompt_template_sha256": template_sha,
-        }):
+        prompt_text_matches = row.get("prompt_contract_text") == prompt_contract_text
+        counts["prompt_contract_text_match_count"] += int(prompt_text_matches)
+        if not prompt_text_matches:
+            errors.append(f"prompt_contract_text_mismatch:{case_id}")
+        schema_errors = response_schema_contract_errors(row.get("response_json_schema"))
+        counts["response_schema_contract_error_count"] += len(schema_errors)
+        errors.extend(f"response_schema:{case_id}:{error}" for error in schema_errors)
+        try:
+            expected_prompt_id = _prompt_instance_id(row, template_sha)
+        except KeyError:
+            expected_prompt_id = ""
+        prompt_id_valid = bool(expected_prompt_id and row.get("prompt_instance_id") == expected_prompt_id)
+        counts["prompt_instance_id_valid_count"] += int(prompt_id_valid)
+        if not prompt_id_valid:
             errors.append(f"prompt_instance_id_mismatch:{case_id}")
     backend = FixtureGenerationBackend()
     prompt_by_id = {str(row.get("prompt_instance_id") or ""): row for row in prompts}
@@ -956,6 +1250,7 @@ def validate_generation_pilot(
     counts["receipt_forbidden_evaluator_field_count"] = sum(
         len(_forbidden_evaluator_keys(row)) for row in receipts
     )
+    counts["execution_receipt_id_valid_count"] = 0
     for row in receipts:
         case_id = str(row.get("case_id") or "")
         forbidden = _forbidden_evaluator_keys(row)
@@ -965,6 +1260,16 @@ def validate_generation_pilot(
             backend.parse_response(row)
         except ValueError as exc:
             errors.append(f"receipt_invalid:{case_id}:{exc}")
+        expected_receipt_id = _execution_receipt_id(
+            request_sha256=str(row.get("request_sha256") or ""),
+            backend_name=str(row.get("backend_name") or ""),
+            backend_version=str(row.get("backend_version") or ""),
+            execution_status=str(row.get("execution_status") or ""),
+        )
+        receipt_id_valid = row.get("execution_receipt_id") == expected_receipt_id
+        counts["execution_receipt_id_valid_count"] += int(receipt_id_valid)
+        if not receipt_id_valid:
+            errors.append(f"execution_receipt_id_mismatch:{case_id}")
         if case_id not in envelope_by_case or row.get("request_sha256") != envelope_by_case[case_id].get("request_sha256"):
             errors.append(f"receipt_request_mismatch:{case_id}")
         elif row != backend.execute(
