@@ -15,7 +15,14 @@ import uuid
 
 from enh3bench.calibration_package import tree_hash
 from enh3bench.e2e_eval_package import build_selective_eval_package
-from enh3bench.e2e_eval_schema import read_json, read_jsonl, write_json, write_jsonl
+from enh3bench.e2e_eval_schema import (
+    read_json,
+    read_jsonl,
+    sha256_bytes,
+    sha256_file,
+    write_json,
+    write_jsonl,
+)
 from enh3bench.e2e_eval_validation import validate_selective_eval_package
 from enh3bench.generation_pilot import (
     ANSWERABILITY_STATUSES,
@@ -305,8 +312,79 @@ class GenerationPilotV016Tests(unittest.TestCase):
 
     def test_19_prompt_template_hash_is_bound(self) -> None:
         manifest = read_json(self._baseline() / "manifests/generation_run_manifest.json")
-        from enh3bench.e2e_eval_schema import sha256_file
-        self.assertEqual(manifest["prompt_template_sha256"], sha256_file(DEFAULT_PROMPT_TEMPLATE))
+        prompt_contract_text = DEFAULT_PROMPT_TEMPLATE.read_text(encoding="utf-8")
+        expected_sha = sha256_bytes(prompt_contract_text.encode("utf-8"))
+        self.assertEqual(manifest["prompt_template_sha256"], expected_sha)
+
+    def test_prompt_template_hash_is_newline_normalized(self) -> None:
+        lf_template = self.base / f"{self._unique('prompt_lf')}.md"
+        crlf_template = self.base / f"{self._unique('prompt_crlf')}.md"
+        lf_template.write_bytes(b"line one\nline two\n")
+        crlf_template.write_bytes(b"line one\r\nline two\r\n")
+
+        self.assertNotEqual(sha256_file(lf_template), sha256_file(crlf_template))
+        semantic_sha = sha256_bytes(b"line one\nline two\n")
+        self.assertEqual(
+            sha256_bytes(lf_template.read_text(encoding="utf-8").encode("utf-8")),
+            semantic_sha,
+        )
+        self.assertEqual(
+            sha256_bytes(crlf_template.read_text(encoding="utf-8").encode("utf-8")),
+            semantic_sha,
+        )
+
+        lf_run_name = self._unique("newline_lf")
+        crlf_run_name = self._unique("newline_crlf")
+        for run_name, template in (
+            (lf_run_name, lf_template),
+            (crlf_run_name, crlf_template),
+        ):
+            build_development_pilot(
+                selective_eval_run_name="eval",
+                selective_eval_root=self.eval_root,
+                source_calibration_root=self.calibration_root,
+                generation_run_name=run_name,
+                generation_root=self.output_root,
+                prompt_template=template,
+                validate_source_package=False,
+            )
+
+        lf_run = self.output_root / lf_run_name
+        crlf_run = self.output_root / crlf_run_name
+        lf_manifest = read_json(lf_run / "manifests/generation_run_manifest.json")
+        crlf_manifest = read_json(crlf_run / "manifests/generation_run_manifest.json")
+        for field in (
+            "prompt_template_sha256",
+            "generation_run_id",
+            "prompt_template_character_count",
+        ):
+            self.assertEqual(lf_manifest[field], crlf_manifest[field], field)
+
+        prepare_generation_prompts(
+            generation_run_name=lf_run_name,
+            generation_root=self.output_root,
+            prompt_template=lf_template,
+        )
+        prepare_generation_prompts(
+            generation_run_name=crlf_run_name,
+            generation_root=self.output_root,
+            prompt_template=crlf_template,
+        )
+        lf_prompts = read_jsonl(lf_run / "prompts/compiled_prompt_instances.jsonl")
+        crlf_prompts = read_jsonl(crlf_run / "prompts/compiled_prompt_instances.jsonl")
+        self.assertEqual(len(lf_prompts), PILOT_CASE_COUNT)
+        self.assertEqual(len(crlf_prompts), PILOT_CASE_COUNT)
+        for field in (
+            "prompt_contract_text",
+            "prompt_template_sha256",
+            "prompt_instance_id",
+            "compiled_prompt_sha256",
+        ):
+            self.assertEqual(
+                [row[field] for row in lf_prompts],
+                [row[field] for row in crlf_prompts],
+                field,
+            )
 
     def test_20_compiles_seven_prompt_instances(self) -> None:
         rows = read_jsonl(self._baseline() / "prompts/compiled_prompt_instances.jsonl")
