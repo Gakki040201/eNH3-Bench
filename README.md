@@ -247,6 +247,10 @@ The initial benchmark repository provides:
 
 The benchmark core is no-API by default. It does not require OpenAI, DeepSeek, GraphRAG, AutoGen, LangChain, cloud models, website scraping, PDF parsing, or model training. Baseline tooling is intended to run locally with lightweight Python standard-library code, with `pytest` available only as an optional development dependency.
 
+The v0.16 Phase B1B0 development-generation pilot is strictly offline and fixture-only. It compiles
+seven development cases, emits nonimportable dry-run receipts, and writes runtime artifacts outside the
+repository. Provider execution is not enabled in this phase. See `docs/V016_DEVELOPMENT_GENERATION.md`.
+
 ## v0.2 Real-Paper Gold Dataset Workflow
 
 The v0.2 scaffold prepares a ten-paper real-literature case study without adding API integrations, PDF parsing, or UI code. Paper slots are defined in `data/papers/papers.v0.2.template.csv`, manual span placeholders are defined in `data/spans/spans.v0.2.template.jsonl`, and matching gold-label templates are defined in `data/gold/gold.v0.2.template.jsonl`.
