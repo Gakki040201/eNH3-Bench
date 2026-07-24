@@ -24,12 +24,14 @@ from enh3bench.generation_pilot import (
 from enh3bench.provider_execution import (
     API_KEY_ENVIRONMENT_VARIABLE,
     CANDIDATE_OUTPUT_SCHEMA_VERSION,
+    INPUT_TOKEN_RESERVATION_METHOD,
     MAX_ALLOWED_RETRIES,
     OPENAI_COMPATIBLE_BACKEND_NAME,
     OPENAI_COMPATIBLE_BACKEND_VERSION,
     PROVIDER_EXECUTION_INTERFACE_VERSION,
     PROVIDER_RAW_RESPONSE_SCHEMA_VERSION,
     REAL_API_AUTHORIZATION_SCOPE,
+    REAL_EXECUTION_JOURNAL_SCHEMA_VERSION,
     REAL_EXECUTION_PLAN_SCHEMA_VERSION,
     REAL_EXECUTION_RECEIPT_SCHEMA_VERSION,
     TRANSIENT_HTTP_STATUSES,
@@ -44,6 +46,7 @@ from enh3bench.provider_execution import (
     endpoint_origin_hash,
     is_retryable_http_status,
     prepare_real_execution,
+    reserve_request_input_tokens,
     run_real_execution,
     safe_endpoint_identity,
     validate_execution_plan,
@@ -170,9 +173,10 @@ class ProviderExecutionV016Tests(unittest.TestCase):
     def _budget(self, **overrides: object) -> ExecutionBudget:
         values: dict[str, object] = {
             "max_requests": 7,
-            "max_input_tokens": 100_000,
+            "max_network_attempts": 7,
+            "max_input_tokens": 500_000,
             "max_output_tokens": 700,
-            "max_total_tokens": 100_700,
+            "max_total_tokens": 500_700,
             "timeout_seconds": 60.0,
             "max_retries": 2,
             "max_estimated_cost": None,
@@ -197,9 +201,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
 
     def _backend(self, responses: list[TransportResponse | BaseException]) -> tuple[OpenAICompatibleHTTPBackend, QueueTransport]:
         transport = QueueTransport(responses)
-        backend = OpenAICompatibleHTTPBackend(
-            endpoint=ENDPOINT, transport=transport, sleep=lambda _: None,
-        )
+        backend = OpenAICompatibleHTTPBackend(endpoint=ENDPOINT, transport=transport)
         return backend, transport
 
     def _run_success(self, prefix: str) -> tuple[Path, str, Path, dict, QueueTransport]:
@@ -213,19 +215,70 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             authorization=REAL_API_AUTHORIZATION_SCOPE,
             credential_reader=lambda _: TEST_CREDENTIAL,
             backend=backend,
+            sleep=lambda _: None,
         )
         return root, name, target, result, transport
 
+    def _run_with_responses(
+        self, prefix: str, responses: list[TransportResponse | BaseException],
+        *, max_network_attempts: int,
+    ) -> tuple[Path, str, Path, QueueTransport, dict]:
+        budget = self._budget(
+            max_network_attempts=max_network_attempts,
+            max_input_tokens=1_000_000,
+            max_output_tokens=max_network_attempts * 100,
+            max_total_tokens=1_000_000 + max_network_attempts * 100,
+        )
+        root, name, target, _ = self._prepare(prefix, budget=budget)
+        backend, transport = self._backend(responses)
+        result = run_real_execution(
+            generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+            execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+            credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            sleep=lambda _: None,
+        )
+        return root, name, target, transport, result
+
+    def _sync_artifact_mutation(
+        self, target: Path, *, relative_path: str, journal_key: str,
+        mutate: object, index: int = 0,
+    ) -> None:
+        rows = read_jsonl(target / relative_path)
+        mutate(rows[index])  # type: ignore[operator]
+        write_jsonl(target / relative_path, rows)
+        journal_path = target / "execution/real_execution_journal.json"
+        journal = read_json(journal_path)
+        artifact_attempts = [
+            attempt for attempt in journal["attempts"]
+            if isinstance(attempt.get("terminal_artifacts"), dict)
+            and attempt["terminal_artifacts"].get(journal_key) is not None
+        ]
+        artifact_attempts[index]["terminal_artifacts"][journal_key] = deepcopy(rows[index])
+        write_json(journal_path, journal)
+
+    def _failed_runtime(self, prefix: str) -> tuple[Path, str, Path, QueueTransport]:
+        root, name, target, _ = self._prepare(prefix)
+        backend, transport = self._backend([provider_response(content="not-json")])
+        with self.assertRaisesRegex(ValueError, "model_output_malformed_json"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+                sleep=lambda _: None,
+            )
+        return root, name, target, transport
+
     def test_01_schema_and_backend_constants_are_versioned(self) -> None:
-        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.1")
+        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.2")
         self.assertEqual(REAL_EXECUTION_RECEIPT_SCHEMA_VERSION, "0.16-real-execution-receipt.1")
         self.assertEqual(CANDIDATE_OUTPUT_SCHEMA_VERSION, "0.16-candidate-api-output.1")
         self.assertEqual(PROVIDER_RAW_RESPONSE_SCHEMA_VERSION, "0.16-provider-raw-response.1")
-        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v1")
+        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v2")
+        self.assertEqual(REAL_EXECUTION_JOURNAL_SCHEMA_VERSION, "0.16-real-execution-journal.1")
 
     def test_02_only_one_provider_backend_is_defined(self) -> None:
         self.assertEqual(OPENAI_COMPATIBLE_BACKEND_NAME, "openai-compatible-http")
-        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v1")
+        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v2")
 
     def test_03_backend_satisfies_provider_protocol(self) -> None:
         self.assertIsInstance(OpenAICompatibleHTTPBackend(endpoint=ENDPOINT), ProviderExecutionBackend)
@@ -344,7 +397,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
     def test_25_plan_identity_binds_budget_timeout_and_retry(self) -> None:
         _, _, _, baseline = self._prepare("identity_base")
         variations = (
-            self._budget(max_input_tokens=100_001, max_total_tokens=100_701),
+            self._budget(max_input_tokens=500_001, max_total_tokens=500_701),
             self._budget(timeout_seconds=61),
             self._budget(max_retries=1),
         )
@@ -447,23 +500,23 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             )
 
     def test_34_input_token_budget_fails_preflight(self) -> None:
-        with self.assertRaisesRegex(ValueError, "input_token_budget_preflight_failed"):
+        with self.assertRaisesRegex(ValueError, "reserved_input_token_budget_preflight_failed"):
             self._prepare(
                 "input_budget", budget=self._budget(max_input_tokens=1, max_total_tokens=701),
             )
 
     def test_35_output_token_budget_fails_preflight(self) -> None:
-        with self.assertRaisesRegex(ValueError, "output_token_budget_preflight_failed"):
+        with self.assertRaisesRegex(ValueError, "reserved_output_token_budget_preflight_failed"):
             self._prepare("output_budget", budget=self._budget(max_output_tokens=699))
 
     def test_36_total_token_budget_fails_preflight(self) -> None:
         _, _, _, reference = self._prepare("total_budget_reference")
-        estimated_input = reference["estimated_input_tokens"]
-        with self.assertRaisesRegex(ValueError, "total_token_budget_preflight_failed"):
+        reserved_input = reference["reserved_input_tokens_total"]
+        with self.assertRaisesRegex(ValueError, "reserved_total_token_budget_preflight_failed"):
             self._prepare(
                 "total_budget",
                 budget=self._budget(
-                    max_input_tokens=estimated_input, max_total_tokens=estimated_input,
+                    max_input_tokens=reserved_input, max_total_tokens=reserved_input,
                 ),
             )
 
@@ -471,7 +524,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         root, name, _, plan = self._prepare("check_prepared")
         result = check_real_execution(generation_run_name=name, generation_root=root)
         self.assertEqual(result["result"], "PASS")
-        self.assertEqual(result["stage"], "prepared")
+        self.assertEqual(result["stage"], "PREPARED")
         self.assertEqual(result["execution_plan_id"], plan["execution_plan_id"])
 
     def test_38_validator_detects_plan_identity_tampering(self) -> None:
@@ -589,57 +642,74 @@ class ProviderExecutionV016Tests(unittest.TestCase):
 
     def test_50_explicit_timeout_is_forwarded_to_transport(self) -> None:
         backend, transport = self._backend([provider_response()])
-        backend.execute(
+        backend.execute_once(
             {"provider_payload": {"model": MODEL_ID}}, api_key=TEST_CREDENTIAL,
-            timeout_seconds=37.5, max_retries=0,
+            timeout_seconds=37.5,
         )
         self.assertEqual(transport.calls[0][3], 37.5)
 
     def test_51_http_401_is_not_retried(self) -> None:
         backend, transport = self._backend([TransportResponse(401, b"{}")])
-        response, attempts = backend.execute(
-            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1, max_retries=2,
+        response = backend.execute_once(
+            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1,
         )
-        self.assertEqual((response.status_code, attempts, len(transport.calls)), (401, 1, 1))
+        self.assertEqual((response.status_code, len(transport.calls)), (401, 1))
 
     def test_52_http_429_is_retried(self) -> None:
-        backend, transport = self._backend([TransportResponse(429, b"{}"), provider_response()])
-        response, attempts = backend.execute(
-            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1, max_retries=2,
+        responses = [TransportResponse(429, b"{}"), provider_response()] + [
+            provider_response() for _ in range(6)
+        ]
+        _, _, _, transport, result = self._run_with_responses(
+            "retry_429", responses, max_network_attempts=8,
         )
-        self.assertEqual((response.status_code, attempts, len(transport.calls)), (200, 2, 2))
+        self.assertEqual((result["network_attempt_count"], len(transport.calls)), (8, 8))
 
     def test_53_http_500_is_retried(self) -> None:
-        backend, transport = self._backend([TransportResponse(500, b"{}"), provider_response()])
-        _, attempts = backend.execute(
-            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1, max_retries=2,
+        responses = [TransportResponse(500, b"{}"), provider_response()] + [
+            provider_response() for _ in range(6)
+        ]
+        _, _, _, transport, result = self._run_with_responses(
+            "retry_500", responses, max_network_attempts=8,
         )
-        self.assertEqual((attempts, len(transport.calls)), (2, 2))
+        self.assertEqual((result["network_attempt_count"], len(transport.calls)), (8, 8))
 
     def test_54_retry_cap_is_enforced(self) -> None:
-        backend, transport = self._backend([TransportResponse(503, b"{}") for _ in range(3)])
-        response, attempts = backend.execute(
-            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1, max_retries=2,
+        budget = self._budget(
+            max_network_attempts=9, max_input_tokens=1_000_000,
+            max_output_tokens=900, max_total_tokens=1_000_900,
         )
-        self.assertEqual((response.status_code, attempts, len(transport.calls)), (503, 3, 3))
+        root, name, _, _ = self._prepare("retry_cap", budget=budget)
+        backend, transport = self._backend([TransportResponse(503, b"{}") for _ in range(3)])
+        with self.assertRaisesRegex(ValueError, "provider_http_status_503"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+                sleep=lambda _: None,
+            )
+        self.assertEqual(len(transport.calls), 3)
 
     def test_55_transient_connection_failure_is_retried(self) -> None:
-        backend, transport = self._backend([
+        responses: list[TransportResponse | BaseException] = [
             ProviderTransportError("provider_connection_reset", transient=True), provider_response(),
-        ])
-        _, attempts = backend.execute(
-            {"provider_payload": {}}, api_key=TEST_CREDENTIAL, timeout_seconds=1, max_retries=2,
+            *[provider_response() for _ in range(6)],
+        ]
+        _, _, _, transport, result = self._run_with_responses(
+            "retry_connection", responses, max_network_attempts=8,
         )
-        self.assertEqual((attempts, len(transport.calls)), (2, 2))
+        self.assertEqual((result["network_attempt_count"], len(transport.calls)), (8, 8))
 
     def test_56_nontransient_transport_failure_is_not_retried(self) -> None:
+        root, name, _, _ = self._prepare("nontransient")
         backend, transport = self._backend([
             ProviderTransportError("provider_transport_failure", transient=False),
         ])
         with self.assertRaisesRegex(ProviderTransportError, "provider_transport_failure"):
-            backend.execute(
-                {"provider_payload": {}}, api_key=TEST_CREDENTIAL,
-                timeout_seconds=1, max_retries=2,
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+                sleep=lambda _: None,
             )
         self.assertEqual(len(transport.calls), 1)
 
@@ -798,7 +868,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             generation_run_name=name, generation_root=root, require_completed=True,
         )
         self.assertEqual(result["result"], "PASS")
-        self.assertEqual(result["stage"], "completed_not_imported")
+        self.assertEqual(result["stage"], "COMPLETED")
         self.assertEqual(result["imported_output_count"], 0)
 
     def test_72_resume_returns_completed_validation_without_new_calls(self) -> None:
@@ -903,9 +973,10 @@ class ProviderExecutionV016Tests(unittest.TestCase):
                 "--max-output-tokens-per-request", "100",
                 "--response-format", "json_schema",
                 "--max-requests", "7",
-                "--max-input-tokens", "100000",
+                "--max-network-attempts", "7",
+                "--max-input-tokens", "500000",
                 "--max-output-tokens", "700",
-                "--max-total-tokens", "100700",
+                "--max-total-tokens", "500700",
                 "--timeout-seconds", "60",
                 "--max-retries", "2",
             ])
@@ -931,7 +1002,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         backend, transport = self._backend([
             provider_response(prompt_tokens=100_001, completion_tokens=5),
         ])
-        with self.assertRaisesRegex(ValueError, "provider_usage_exceeded_hard_budget"):
+        with self.assertRaisesRegex(ValueError, "provider_input_usage_exceeded_reservation"):
             run_real_execution(
                 generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
                 execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
@@ -941,7 +1012,413 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         self.assertEqual(len(transport.calls), 1)
         self.assertEqual(len(receipts), 1)
         self.assertEqual(receipts[0]["execution_status"], "failed")
-        self.assertEqual(receipts[0]["safe_error_code"], "provider_usage_exceeded_hard_budget")
+        self.assertEqual(receipts[0]["safe_error_code"], "provider_input_usage_exceeded_reservation")
+
+    def test_86_receipt_id_tamper_fails_strict_validation(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_receipt_id")
+        self._sync_artifact_mutation(
+            target, relative_path="execution/real_execution_receipts.jsonl",
+            journal_key="receipt", mutate=lambda row: row.__setitem__("real_execution_receipt_id", "RR16_TAMPERED"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root, require_completed=True)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertTrue(any("receipt_identity_mismatch" in error for error in result["errors"]))
+
+    def test_87_receipt_request_sha_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_receipt_request")
+        self._sync_artifact_mutation(
+            target, relative_path="execution/real_execution_receipts.jsonl",
+            journal_key="receipt", mutate=lambda row: row.__setitem__("request_sha256", "0" * 64),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("request_sha256_mismatch" in error for error in result["errors"]))
+
+    def test_88_receipt_prompt_sha_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_receipt_prompt")
+        self._sync_artifact_mutation(
+            target, relative_path="execution/real_execution_receipts.jsonl",
+            journal_key="receipt", mutate=lambda row: row.__setitem__("compiled_prompt_sha256", "0" * 64),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("compiled_prompt_sha256_mismatch" in error for error in result["errors"]))
+
+    def test_89_receipt_token_arithmetic_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_receipt_tokens")
+        self._sync_artifact_mutation(
+            target, relative_path="execution/real_execution_receipts.jsonl",
+            journal_key="receipt", mutate=lambda row: row.__setitem__("total_token_count", 999),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("token_arithmetic_mismatch" in error for error in result["errors"]))
+
+    def test_90_candidate_id_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_id")
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output", mutate=lambda row: row.__setitem__("candidate_output_id", "CO16_TAMPERED"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("candidate_identity_mismatch" in error for error in result["errors"]))
+
+    def test_91_candidate_response_sha_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_sha")
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output", mutate=lambda row: row.__setitem__("response_sha256", "0" * 64),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("response_sha_mismatch" in error for error in result["errors"]))
+
+    def test_92_candidate_response_object_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_object")
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output",
+            mutate=lambda row: row["response_object"].__setitem__("answer_text", "tampered"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual(result["result"], "FAIL")
+        self.assertTrue(any("response_sha_mismatch" in error for error in result["errors"]))
+
+    def test_93_candidate_case_id_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_case")
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output", mutate=lambda row: row.__setitem__("case_id", "unknown-case"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("unknown_case" in error for error in result["errors"]))
+
+    def test_94_candidate_model_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_model")
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output", mutate=lambda row: row.__setitem__("model_id", "wrong-model"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("model_id_mismatch" in error for error in result["errors"]))
+
+    def test_95_candidate_citation_allowlist_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_candidate_allowlist")
+        def mutate(row: dict) -> None:
+            row["response_object"]["claims"] = [{
+                "claim_id": "claim-1", "claim_text": "Tampered unsupported claim",
+                "claim_type": "author_result", "supporting_source_span_ids": ["unknown-span"],
+                "supporting_evidence_link_ids": [], "support_status": "supported",
+            }]
+        self._sync_artifact_mutation(
+            target, relative_path="candidate_outputs/candidate_api_outputs.jsonl",
+            journal_key="candidate_output", mutate=mutate,
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("citation_allowlist_invalid" in error for error in result["errors"]))
+
+    def test_96_raw_case_binding_tamper_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("tamper_raw_case")
+        self._sync_artifact_mutation(
+            target, relative_path="provider_raw/provider_raw_responses.jsonl",
+            journal_key="raw_response", mutate=lambda row: row.__setitem__("case_id", "unknown-case"),
+        )
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertTrue(any("unknown_case" in error for error in result["errors"]))
+
+    def test_97_duplicate_receipt_id_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("duplicate_receipt_id")
+        path = target / "execution/real_execution_receipts.jsonl"
+        rows = read_jsonl(path)
+        rows.append(deepcopy(rows[0]))
+        write_jsonl(path, rows)
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertIn("duplicate_real_execution_receipt_id", result["errors"])
+
+    def test_98_duplicate_candidate_id_fails(self) -> None:
+        root, name, target, _, _ = self._run_success("duplicate_candidate_id")
+        path = target / "candidate_outputs/candidate_api_outputs.jsonl"
+        rows = read_jsonl(path)
+        rows.append(deepcopy(rows[0]))
+        write_jsonl(path, rows)
+        result = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertIn("duplicate_candidate_output_id", result["errors"])
+
+    def test_99_failed_receipt_never_satisfies_require_completed(self) -> None:
+        root, name, _, _ = self._failed_runtime("failed_require_completed")
+        result = check_real_execution(
+            generation_run_name=name, generation_root=root, require_completed=True,
+        )
+        self.assertEqual(result["stage"], "FAILED")
+        self.assertEqual(result["result"], "FAIL")
+        self.assertIn("completed_execution_required", result["errors"])
+
+    def test_100_failed_runtime_resume_reads_no_credential_and_calls_no_transport(self) -> None:
+        root, name, _, _ = self._failed_runtime("failed_resume")
+        backend, transport = self._backend([])
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "failed_execution_requires_manual_review"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+                backend=backend, resume=True,
+            )
+        self.assertEqual(credential_calls, [])
+        self.assertEqual(transport.calls, [])
+
+    def test_101_corrupted_runtime_resume_reads_no_credential_and_calls_no_transport(self) -> None:
+        root, name, target, _, _ = self._run_success("corrupt_resume")
+        path = target / "candidate_outputs/candidate_api_outputs.jsonl"
+        rows = read_jsonl(path)
+        rows[0]["model_id"] = "corrupt-model"
+        write_jsonl(path, rows)
+        backend, transport = self._backend([])
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "corrupt_or_partial"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+                backend=backend, resume=True,
+            )
+        self.assertEqual((credential_calls, transport.calls), ([], []))
+
+    def test_102_keyboard_interrupt_leaves_indeterminate_journal(self) -> None:
+        root, name, target, _ = self._prepare("crash_keyboard")
+        backend, transport = self._backend([KeyboardInterrupt()])
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual(journal["state"], "attempt_started")
+        self.assertEqual(journal["network_attempt_count"], 1)
+        self.assertEqual(len(transport.calls), 1)
+
+    def test_103_system_exit_leaves_indeterminate_journal(self) -> None:
+        root, name, target, _ = self._prepare("crash_system_exit")
+        backend, _ = self._backend([SystemExit(19)])
+        with self.assertRaises(SystemExit):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(
+            read_json(target / "execution/real_execution_journal.json")["state"],
+            "attempt_started",
+        )
+
+    def test_104_indeterminate_resume_is_zero_credential_zero_network(self) -> None:
+        root, name, _, _ = self._prepare("crash_resume")
+        crashing_backend, _ = self._backend([KeyboardInterrupt()])
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=crashing_backend,
+            )
+        backend, transport = self._backend([])
+        credentials: list[str] = []
+        with self.assertRaisesRegex(ValueError, "indeterminate_provider_attempt"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credentials.append(key) or TEST_CREDENTIAL,
+                backend=backend, resume=True,
+            )
+        self.assertEqual((credentials, transport.calls), ([], []))
+
+    def test_105_completed_cases_are_not_resent_after_later_crash(self) -> None:
+        root, name, target, _ = self._prepare("crash_case_three")
+        backend, transport = self._backend([provider_response(), provider_response(), KeyboardInterrupt()])
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual(journal["logical_request_count"], 2)
+        self.assertEqual(len(read_jsonl(target / "execution/real_execution_receipts.jsonl")), 2)
+        resume_backend, resume_transport = self._backend([])
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "indeterminate_provider_attempt"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+                backend=resume_backend, resume=True,
+            )
+        self.assertEqual((credential_calls, resume_transport.calls), ([], []))
+        self.assertEqual(len(transport.calls), 3)
+
+    def test_106_network_attempt_cap_seven_blocks_retry_growth(self) -> None:
+        root, name, target, _ = self._prepare("attempt_cap_seven")
+        responses = [TransportResponse(429, b"{}"), provider_response()] + [
+            provider_response() for _ in range(5)
+        ]
+        backend, transport = self._backend(responses)
+        with self.assertRaisesRegex(ValueError, "network_attempt_budget_exhausted"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend, sleep=lambda _: None,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual((len(transport.calls), journal["network_attempt_count"]), (7, 7))
+
+    def test_107_network_attempt_cap_nine_blocks_tenth_before_transport(self) -> None:
+        budget = self._budget(
+            max_network_attempts=9, max_input_tokens=1_000_000,
+            max_output_tokens=900, max_total_tokens=1_000_900,
+        )
+        root, name, target, _ = self._prepare("attempt_cap_nine", budget=budget)
+        responses = [item for _ in range(3) for item in (
+            TransportResponse(429, b"{}"), TransportResponse(429, b"{}"), provider_response(),
+        )]
+        backend, transport = self._backend(responses)
+        with self.assertRaisesRegex(ValueError, "network_attempt_budget_exhausted"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend, sleep=lambda _: None,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual((len(transport.calls), journal["network_attempt_count"]), (9, 9))
+
+    def test_108_network_attempt_budget_cannot_be_below_logical_requests(self) -> None:
+        with self.assertRaisesRegex(ValueError, "below_logical_requests"):
+            self._budget(max_network_attempts=6).validate()
+
+    def test_109_network_attempt_budget_cannot_exceed_retry_contract(self) -> None:
+        with self.assertRaisesRegex(ValueError, "exceeds_retry_contract"):
+            self._budget(max_network_attempts=22).validate()
+
+    def test_110_unicode_payload_uses_conservative_byte_reservation(self) -> None:
+        _, _, target, _ = self._prepare("unicode_reservation")
+        prompt = deepcopy(read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0])
+        prompt["question"] = "氨合成证据边界" * 200
+        estimate = len(canonical_json({"question": prompt["question"]}).encode("utf-8")) // 4
+        reservation = reserve_request_input_tokens(prompt, self._configuration())
+        self.assertGreater(reservation, estimate)
+        self.assertNotEqual(reservation, estimate)
+
+    def test_111_plan_records_estimate_and_hard_reservation_separately(self) -> None:
+        _, _, _, plan = self._prepare("reservation_contract")
+        self.assertEqual(plan["input_token_reservation_method"], INPUT_TOKEN_RESERVATION_METHOD)
+        self.assertGreater(plan["reserved_input_tokens_total"], plan["estimated_input_tokens"])
+        self.assertEqual(len(plan["reserved_input_tokens_per_request"]), 7)
+
+    def test_112_insufficient_reserved_input_fails_before_transport(self) -> None:
+        backend, transport = self._backend([])
+        with self.assertRaisesRegex(ValueError, "reserved_input_token_budget_preflight_failed"):
+            self._prepare(
+                "reservation_input_preflight",
+                budget=self._budget(max_input_tokens=1, max_total_tokens=701),
+            )
+        self.assertEqual(transport.calls, [])
+        self.assertEqual(backend.backend_name, OPENAI_COMPATIBLE_BACKEND_NAME)
+
+    def test_113_insufficient_reserved_total_fails_before_transport(self) -> None:
+        _, _, _, reference = self._prepare("reservation_total_reference")
+        reserved_input = reference["reserved_input_tokens_total"]
+        backend, transport = self._backend([])
+        with self.assertRaisesRegex(ValueError, "reserved_total_token_budget_preflight_failed"):
+            self._prepare(
+                "reservation_total_preflight",
+                budget=self._budget(max_input_tokens=reserved_input, max_total_tokens=reserved_input),
+            )
+        self.assertEqual(transport.calls, [])
+        self.assertEqual(backend.backend_version, OPENAI_COMPATIBLE_BACKEND_VERSION)
+
+    def test_114_retry_consumes_fresh_token_reservation(self) -> None:
+        responses = [TransportResponse(429, b"{}"), provider_response()] + [
+            provider_response() for _ in range(6)
+        ]
+        _, _, target, _, result = self._run_with_responses(
+            "retry_reservation", responses, max_network_attempts=8,
+        )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        one_per_request = sum(read_json(target / "execution/real_execution_plan.json")["reserved_input_tokens_per_request"])
+        self.assertGreater(journal["reserved_input_tokens_consumed"], one_per_request)
+        self.assertEqual(result["network_attempt_count"], 8)
+
+    def test_115_wrong_backend_is_rejected_before_credential_read(self) -> None:
+        root, name, _, _ = self._prepare("wrong_backend_order")
+        class WrongBackend:
+            backend_name = "wrong-backend"
+            backend_version = "wrong-version"
+        credentials: list[str] = []
+        with self.assertRaisesRegex(ValueError, "provider_backend_contract_mismatch"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credentials.append(key) or TEST_CREDENTIAL,
+                backend=WrongBackend(),  # type: ignore[arg-type]
+            )
+        self.assertEqual(credentials, [])
+
+    def test_116_attempt_started_is_durable_before_transport_call(self) -> None:
+        root, name, target, _ = self._prepare("write_ahead")
+        observed: list[str] = []
+        def transport(endpoint: str, body: bytes, headers: dict[str, str], timeout: float) -> TransportResponse:
+            journal = read_json(target / "execution/real_execution_journal.json")
+            observed.append(journal["state"])
+            self.assertEqual(journal["network_attempt_count"], 1)
+            raise KeyboardInterrupt()
+        backend = OpenAICompatibleHTTPBackend(endpoint=ENDPOINT, transport=transport)
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(observed, ["attempt_started"])
+
+    def test_117_terminal_success_is_durable_before_next_case_transport(self) -> None:
+        root, name, target, _ = self._prepare("terminal_checkpoint")
+        calls = 0
+        def transport(endpoint: str, body: bytes, headers: dict[str, str], timeout: float) -> TransportResponse:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                journal = read_json(target / "execution/real_execution_journal.json")
+                self.assertEqual(journal["attempts"][0]["state"], "terminal_success")
+                self.assertEqual(len(read_jsonl(target / "execution/real_execution_receipts.jsonl")), 1)
+                raise KeyboardInterrupt()
+            return provider_response()
+        backend = OpenAICompatibleHTTPBackend(endpoint=ENDPOINT, transport=transport)
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(calls, 2)
+
+    def test_118_completed_runtime_requires_exactly_seven_success_layers(self) -> None:
+        root, name, _, _, _ = self._run_success("strict_completed")
+        result = check_real_execution(
+            generation_run_name=name, generation_root=root, require_completed=True,
+        )
+        self.assertEqual(result["result"], "PASS")
+        self.assertEqual((result["receipt_count"], result["provider_raw_response_count"], result["candidate_output_count"]), (7, 7, 7))
+
+    def test_119_journal_serialization_has_no_secret_or_absolute_path(self) -> None:
+        _, _, target, _, _ = self._run_success("journal_safe")
+        text = (target / "execution/real_execution_journal.json").read_text(encoding="utf-8")
+        self.assertNotIn(TEST_CREDENTIAL, text)
+        self.assertNotIn(str(target), text)
+        self.assertNotIn("Authorization", text)
+
+    def test_120_re16_identity_binds_network_attempt_cap(self) -> None:
+        _, _, _, seven = self._prepare("identity_attempts_seven")
+        eight_budget = self._budget(
+            max_network_attempts=8, max_input_tokens=1_000_000,
+            max_output_tokens=800, max_total_tokens=1_000_800,
+        )
+        _, _, _, eight = self._prepare("identity_attempts_eight", budget=eight_budget)
+        self.assertNotEqual(seven["execution_plan_id"], eight["execution_plan_id"])
 
 
 if __name__ == "__main__":

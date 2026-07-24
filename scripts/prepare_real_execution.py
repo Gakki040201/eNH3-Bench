@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--response-format", choices=("json_schema", "json_object"), required=True)
     parser.add_argument("--reasoning-effort", choices=("low", "medium", "high"))
     parser.add_argument("--max-requests", type=int, required=True)
+    parser.add_argument("--max-network-attempts", type=int, required=True)
     parser.add_argument("--max-input-tokens", type=int, required=True)
     parser.add_argument("--max-output-tokens", type=int, required=True)
     parser.add_argument("--max-total-tokens", type=int, required=True)
@@ -57,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     budget = ExecutionBudget(
         max_requests=args.max_requests,
+        max_network_attempts=args.max_network_attempts,
         max_input_tokens=args.max_input_tokens,
         max_output_tokens=args.max_output_tokens,
         max_total_tokens=args.max_total_tokens,

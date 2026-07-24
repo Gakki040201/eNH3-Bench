@@ -18,7 +18,7 @@ the following are present and valid:
 4. an explicitly configured OpenAI-compatible HTTPS chat-completions endpoint;
 5. an explicitly configured model and generation parameters;
 6. the approved seven-case B1B0 development selection, with zero holdout cases;
-7. hard request, token, timeout, and retry limits;
+7. hard logical-request, network-attempt, token-reservation, timeout, and retry limits;
 8. a credential available only after all preceding gates pass.
 
 There is no implicit provider, default external model, environment-driven automatic
@@ -29,7 +29,7 @@ execution, real-provider fallback, `--force` switch, or `--include-holdout` opti
 `enh3bench.provider_execution.ProviderExecutionBackend` separates three operations:
 
 - construction of a provider request from an existing B1B0 compiled prompt;
-- transport execution;
+- one auditable transport attempt (`execute_once`);
 - normalization of the provider response.
 
 B1B1 implements one backend: a minimal Python standard-library HTTPS transport for the
@@ -86,11 +86,12 @@ Offline preparation writes this external-runtime artifact:
 execution/real_execution_plan.json
 ```
 
-Its schema is `0.16-real-execution-plan.1`. The stable `RE16_...` identity binds the B1B0
+Its schema is `0.16-real-execution-plan.2`. The stable `RE16_...` identity binds the B1B0
 generation and selection identities, backend name and version, model, safe endpoint hash,
-approved request set, hard budgets, timeout, retry policy, authorization scope, and every
-recorded generation parameter. It deliberately excludes creation time, absolute paths,
-runtime root, and credentials.
+approved request set, logical-request and network-attempt caps, hard token-reservation
+method and bounds, timeout, retry policy, authorization scope, and every recorded generation
+parameter. It deliberately excludes creation time, absolute paths, runtime root, and
+credentials.
 
 Every result-affecting configured parameter is recorded: model, temperature, top-p, maximum
 output tokens per request, optional seed, response format, and optional reasoning effort.
@@ -100,23 +101,55 @@ Unsupported parameters are not invented.
 
 Preparation requires explicit hard limits for:
 
-- requests (never more than seven);
-- estimated input tokens;
+- logical scientific requests (`max_requests`, never more than seven);
+- actual provider HTTP attempts including retries (`max_network_attempts`);
+- reserved input tokens;
 - output tokens;
 - total tokens;
 - per-request timeout;
 - retries (never more than two).
 
+`max_requests` is not an HTTP-attempt count. The attempt cap must be at least the logical
+request count and no greater than `max_requests * (1 + max_retries)`. The execution layer,
+not the backend, checks and consumes this global cap immediately before each transport call.
+Therefore `network_call_count <= max_network_attempts` even when several cases retry.
+
 An optional estimated-cost limit requires an explicit pinned pricing contract. B1B1 does not
 retrieve or pin provider pricing, so its current plans leave the cost limit null. Token and
-request limits remain mandatory. Preflight rejects a plan before
-any network operation if the approved request set cannot fit. The runner checks the remaining
-budget before every request and stops when the next request cannot fit.
+request limits remain mandatory. The historical `ceil(payload_bytes / 4)` value remains an
+informational `estimated_input_tokens` only. Hard preflight instead uses the provider-neutral
+`utf8_payload_byte_upper_bound_v1` reservation: every UTF-8 provider-payload byte reserves one
+input token. The plan records per-request and total input reservations plus output and total
+reservations. Each retry consumes a fresh reservation. Insufficient input, output, total, or
+network-attempt budget fails before the transport is called; reported provider usage is then
+checked again after the response.
 
 Retries are bounded and apply only to HTTP 408, 429, 500, 502, 503, and 504, or an explicitly
 classified timeout/connection-reset failure. HTTP 400, 401, 403, 404, authorization failures,
 schema failures, and other permanent failures are not retried. Backoff is finite; tests inject
 a no-sleep function.
+
+## Durable journal and resume safety
+
+The external runtime contains an atomic write-ahead authority:
+
+```text
+execution/real_execution_journal.json
+```
+
+Its schema is `0.16-real-execution-journal.1`. Before every billable attempt, the runner
+atomically records `attempt_started` with the plan, request, prompt, case, per-request attempt,
+and global network-attempt identities. After transport it atomically records
+`terminal_success` or `terminal_failure`, including enough safe terminal data to validate and
+materialize the raw, receipt, and candidate layers.
+
+If a process dies after `attempt_started` and before its terminal record, that attempt is
+`INDETERMINATE`: manual review is required and automatic resend is forbidden. Resume classifies
+runtime state as `PREPARED`, `COMPLETED`, `FAILED`, `INDETERMINATE`, `PARTIAL`, or `CORRUPT`.
+Only `COMPLETED` is accepted offline, with zero credential reads and zero network calls.
+Failed, indeterminate, partial, and corrupt states all fail closed before credential access.
+`require_completed=True` requires exactly seven successful receipts, seven safe raw responses,
+seven valid nonimported candidates, and no failed or indeterminate attempt.
 
 ## Response and artifact boundaries
 
@@ -162,6 +195,7 @@ C:\Python314\python.exe scripts\prepare_real_execution.py `
   --max-output-tokens-per-request 1200 `
   --response-format json_schema `
   --max-requests 7 `
+  --max-network-attempts 7 `
   --max-input-tokens <reviewed-input-limit> `
   --max-output-tokens 8400 `
   --max-total-tokens <reviewed-total-limit> `
