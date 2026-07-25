@@ -251,6 +251,11 @@ The v0.16 Phase B1B0 development-generation pilot is strictly offline and fixtur
 seven development cases, emits nonimportable dry-run receipts, and writes runtime artifacts outside the
 repository. Provider execution is not enabled in this phase. See `docs/V016_DEVELOPMENT_GENERATION.md`.
 
+Phase B1B1 adds a default-off, development-only controlled provider execution layer with explicit
+authorization, credential, budget, timeout, retry, and candidate/import boundaries. It is infrastructure,
+not a scientific evaluation, and its implementation tests make no real API calls. See
+`docs/V016_CONTROLLED_PROVIDER_EXECUTION.md`.
+
 ## v0.2 Real-Paper Gold Dataset Workflow
 
 The v0.2 scaffold prepares a ten-paper real-literature case study without adding API integrations, PDF parsing, or UI code. Paper slots are defined in `data/papers/papers.v0.2.template.csv`, manual span placeholders are defined in `data/spans/spans.v0.2.template.jsonl`, and matching gold-label templates are defined in `data/gold/gold.v0.2.template.jsonl`.
