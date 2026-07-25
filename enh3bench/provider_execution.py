@@ -58,6 +58,7 @@ INPUT_TOKEN_RESERVATION_METHOD = "utf8_payload_byte_upper_bound_v1"
 
 REAL_EXECUTION_PLAN_RELATIVE_PATH = Path("execution/real_execution_plan.json")
 REAL_EXECUTION_JOURNAL_RELATIVE_PATH = Path("execution/real_execution_journal.json")
+REAL_EXECUTION_LOCK_RELATIVE_PATH = Path("execution/real_execution.lock")
 REAL_EXECUTION_RECEIPTS_RELATIVE_PATH = Path("execution/real_execution_receipts.jsonl")
 PROVIDER_RAW_RESPONSES_RELATIVE_PATH = Path("provider_raw/provider_raw_responses.jsonl")
 CANDIDATE_OUTPUTS_RELATIVE_PATH = Path("candidate_outputs/candidate_api_outputs.jsonl")
@@ -391,10 +392,16 @@ class OpenAICompatibleHTTPBackend:
             token_values["input_token_count"] + token_values["output_token_count"]
         ):
             raise ValueError("provider_usage_total_mismatch")
+        provider_response_id = value.get("id")
+        if not isinstance(provider_response_id, str) or not provider_response_id.strip():
+            raise ValueError("provider_response_id_missing")
+        finish_reason = choices[0].get("finish_reason")
+        if finish_reason != "stop":
+            raise ValueError("provider_finish_reason_not_complete")
         return {
-            "provider_response_id": str(value.get("id") or ""),
+            "provider_response_id": provider_response_id,
             "model_id": model,
-            "finish_reason": str(choices[0].get("finish_reason") or ""),
+            "finish_reason": finish_reason,
             "response_content": message["content"],
             **token_values,
         }
@@ -1125,6 +1132,32 @@ def _journal_stage(journal: dict[str, Any]) -> str:
     return "CORRUPT"
 
 
+def _acquire_real_execution_lock(run_dir: Path) -> tuple[Path, int]:
+    """Atomically create and retain the external-runtime execution lock."""
+
+    lock_path = run_dir / REAL_EXECUTION_LOCK_RELATIVE_PATH
+    try:
+        descriptor = os.open(
+            lock_path,
+            os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0),
+        )
+    except FileExistsError as exc:
+        raise ValueError("real_execution_lock_held") from exc
+    try:
+        os.write(descriptor, b"orphaned_lock_requires_manual_review\n")
+        os.fsync(descriptor)
+    except BaseException:
+        os.close(descriptor)
+        lock_path.unlink()
+        raise
+    return lock_path, descriptor
+
+
+def _release_real_execution_lock(lock_path: Path, descriptor: int) -> None:
+    os.close(descriptor)
+    lock_path.unlink()
+
+
 def run_real_execution(
     *,
     generation_run_name: str,
@@ -1138,6 +1171,44 @@ def run_real_execution(
     sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
     """Execute an approved plan; this is the sole credential-reading entry point."""
+
+    run_dir = resolve_external_run_target(generation_root, generation_run_name)
+    if not (run_dir / REAL_EXECUTION_PLAN_RELATIVE_PATH).parent.is_dir():
+        authorize_real_execution(
+            execute_real_api=execute_real_api,
+            authorization=authorization,
+        )
+        raise FileNotFoundError("real_execution_runtime_missing")
+    lock_path, lock_descriptor = _acquire_real_execution_lock(run_dir)
+    try:
+        return _run_real_execution_under_lock(
+            generation_run_name=generation_run_name,
+            generation_root=generation_root,
+            endpoint=endpoint,
+            execute_real_api=execute_real_api,
+            authorization=authorization,
+            credential_reader=credential_reader,
+            backend=backend,
+            resume=resume,
+            sleep=sleep,
+        )
+    finally:
+        _release_real_execution_lock(lock_path, lock_descriptor)
+
+
+def _run_real_execution_under_lock(
+    *,
+    generation_run_name: str,
+    generation_root: str | Path,
+    endpoint: str,
+    execute_real_api: bool = False,
+    authorization: str | None = None,
+    credential_reader: Callable[[str], str | None] | None = None,
+    backend: ProviderExecutionBackend | None = None,
+    resume: bool = False,
+    sleep: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """Run every safety gate and mutation while the caller retains the lock."""
 
     authorize_real_execution(execute_real_api=execute_real_api, authorization=authorization)
     run_dir = resolve_external_run_target(generation_root, generation_run_name)
@@ -1279,16 +1350,17 @@ def run_real_execution(
             break
     journal["state"] = "completed"
     _write_journal(journal_path, journal)
-    return {
-        "result": "PASS",
-        "execution_plan_id": plan["execution_plan_id"],
-        "logical_request_count": journal["logical_request_count"],
-        "network_attempt_count": journal["network_attempt_count"],
-        "request_count": journal["logical_request_count"],
-        "network_call_count": journal["network_attempt_count"],
-        "candidate_output_count": journal["logical_request_count"],
-        "imported_output_count": 0,
-    }
+    try:
+        completed_audit = check_real_execution(
+            generation_run_name=generation_run_name,
+            generation_root=generation_root,
+            require_completed=True,
+        )
+    except Exception as exc:
+        raise ValueError("completed_execution_self_validation_failed") from exc
+    if completed_audit.get("result") != "PASS" or completed_audit.get("stage") != "COMPLETED":
+        raise ValueError("completed_execution_self_validation_failed")
+    return completed_audit
 
 
 def _validate_receipt_row(
@@ -1428,8 +1500,13 @@ def _validate_raw_row(
     if success:
         if not isinstance(row.get("http_status"), int) or not 200 <= row["http_status"] < 300:
             errors.append(f"{label}:http_status_invalid")
-        if not isinstance(row.get("provider_response_id"), str) or not row["provider_response_id"]:
+        if (
+            not isinstance(row.get("provider_response_id"), str)
+            or not row["provider_response_id"].strip()
+        ):
             errors.append(f"{label}:provider_response_id_invalid")
+        if row.get("finish_reason") != "stop":
+            errors.append(f"{label}:finish_reason_not_complete")
         try:
             response_object, _ = _parse_candidate_response(row.get("response_content", ""), prompt)
             if candidate is None or response_object != candidate.get("response_object"):

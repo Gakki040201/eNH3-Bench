@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import socket
 import tempfile
+import threading
 import unittest
 from unittest import mock
 import uuid
@@ -55,6 +56,7 @@ from scripts import check_real_execution as check_cli
 from scripts import prepare_real_execution as prepare_cli
 from scripts import run_real_execution as run_cli
 from tests.selective_eval_test_helpers import create_source_calibration_fixture
+import enh3bench.provider_execution as provider_execution_module
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,13 +97,14 @@ def valid_model_object() -> dict:
 def provider_response(
     *, status: int = 200, model: str = MODEL_ID, content: str | None = None,
     prompt_tokens: int = 10, completion_tokens: int = 5,
+    response_id: str | None = "test-response-id", finish_reason: str | None = "stop",
 ) -> TransportResponse:
     body = {
-        "id": "test-response-id",
+        "id": response_id,
         "model": model,
         "choices": [{
             "message": {"role": "assistant", "content": content or canonical_json(valid_model_object())},
-            "finish_reason": "stop",
+            "finish_reason": finish_reason,
         }],
         "usage": {
             "prompt_tokens": prompt_tokens,
@@ -1419,6 +1422,259 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         )
         _, _, _, eight = self._prepare("identity_attempts_eight", budget=eight_budget)
         self.assertNotEqual(seven["execution_plan_id"], eight["execution_plan_id"])
+
+    def test_121_concurrent_runner_is_blocked_before_credential_and_transport(self) -> None:
+        root, name, target, _ = self._prepare("concurrent_lock")
+        entered_transport = threading.Event()
+        release_transport = threading.Event()
+        outer_calls: list[int] = []
+        outer_credentials: list[str] = []
+        outer_errors: list[BaseException] = []
+
+        def blocking_transport(
+            endpoint: str, body: bytes, headers: dict[str, str], timeout: float,
+        ) -> TransportResponse:
+            outer_calls.append(len(outer_calls) + 1)
+            if len(outer_calls) == 1:
+                entered_transport.set()
+                if not release_transport.wait(10):
+                    raise AssertionError("concurrent_lock_test_timeout")
+            return provider_response()
+
+        outer_backend = OpenAICompatibleHTTPBackend(endpoint=ENDPOINT, transport=blocking_transport)
+
+        def run_outer() -> None:
+            try:
+                run_real_execution(
+                    generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                    execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                    credential_reader=lambda key: outer_credentials.append(key) or TEST_CREDENTIAL,
+                    backend=outer_backend, sleep=lambda _: None,
+                )
+            except BaseException as exc:
+                outer_errors.append(exc)
+
+        thread = threading.Thread(target=run_outer)
+        thread.start()
+        self.assertTrue(entered_transport.wait(10))
+        inner_credentials: list[str] = []
+        inner_backend, inner_transport = self._backend([])
+        try:
+            with self.assertRaisesRegex(ValueError, "real_execution_lock_held"):
+                run_real_execution(
+                    generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                    execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                    credential_reader=lambda key: inner_credentials.append(key) or TEST_CREDENTIAL,
+                    backend=inner_backend,
+                )
+        finally:
+            release_transport.set()
+            thread.join(10)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual((inner_credentials, inner_transport.calls), ([], []))
+        self.assertEqual((outer_credentials, len(outer_calls), outer_errors),
+                         ([API_KEY_ENVIRONMENT_VARIABLE], 7, []))
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_122_preexisting_lock_is_zero_credential_zero_transport(self) -> None:
+        root, name, target, _ = self._prepare("preexisting_lock")
+        lock_path = target / "execution/real_execution.lock"
+        descriptor = os.open(
+            lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0),
+        )
+        os.close(descriptor)
+        credentials: list[str] = []
+        backend, transport = self._backend([])
+        try:
+            with self.assertRaisesRegex(ValueError, "real_execution_lock_held"):
+                run_real_execution(
+                    generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                    execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                    credential_reader=lambda key: credentials.append(key) or TEST_CREDENTIAL,
+                    backend=backend,
+                )
+            self.assertEqual((credentials, transport.calls), ([], []))
+            self.assertTrue(lock_path.exists())
+        finally:
+            lock_path.unlink()
+
+    def test_123_normal_completion_removes_execution_lock(self) -> None:
+        _, _, target, result, _ = self._run_success("lock_completion")
+        self.assertEqual((result["result"], result["stage"]), ("PASS", "COMPLETED"))
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_124_terminal_failure_removes_execution_lock(self) -> None:
+        root, name, target, _ = self._prepare("lock_terminal_failure")
+        backend, _ = self._backend([ProviderTransportError("provider_transport_failure", transient=False)])
+        with self.assertRaisesRegex(ProviderTransportError, "provider_transport_failure"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(read_json(target / "execution/real_execution_journal.json")["state"],
+                         "terminal_failure")
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_125_schema_failure_removes_execution_lock(self) -> None:
+        root, name, target, _ = self._prepare("lock_schema_failure")
+        invalid = valid_model_object()
+        del invalid["limitations"]
+        backend, _ = self._backend([provider_response(content=canonical_json(invalid))])
+        with self.assertRaisesRegex(ValueError, "model_output_schema_invalid"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(read_json(target / "execution/real_execution_journal.json")["state"],
+                         "terminal_failure")
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_126_missing_credential_removes_execution_lock(self) -> None:
+        root, name, target, _ = self._prepare("lock_missing_credential")
+        backend, transport = self._backend([])
+        with self.assertRaisesRegex(ValueError, "provider_credential_missing"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: None, backend=backend,
+            )
+        self.assertEqual(transport.calls, [])
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_127_keyboard_interrupt_releases_lock_and_stays_indeterminate(self) -> None:
+        root, name, target, _ = self._prepare("lock_keyboard_interrupt")
+        backend, _ = self._backend([KeyboardInterrupt()])
+        with self.assertRaises(KeyboardInterrupt):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "INDETERMINATE"))
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_128_system_exit_releases_lock_and_stays_indeterminate(self) -> None:
+        root, name, target, _ = self._prepare("lock_system_exit")
+        backend, _ = self._backend([SystemExit(23)])
+        with self.assertRaises(SystemExit) as raised:
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        self.assertEqual(raised.exception.code, 23)
+        audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "INDETERMINATE"))
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_129_stale_lock_is_not_automatically_deleted(self) -> None:
+        root, name, target, _ = self._prepare("stale_lock")
+        lock_path = target / "execution/real_execution.lock"
+        marker = b"manual-review-stale-lock\n"
+        descriptor = os.open(
+            lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0),
+        )
+        os.write(descriptor, marker)
+        os.close(descriptor)
+        try:
+            with self.assertRaisesRegex(ValueError, "real_execution_lock_held"):
+                run_real_execution(
+                    generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                    execute_real_api=False, authorization=None,
+                )
+            self.assertEqual(lock_path.read_bytes(), marker)
+        finally:
+            lock_path.unlink()
+
+    def test_130_completed_self_validation_tamper_fails_closed(self) -> None:
+        root, name, target, _ = self._prepare("self_validation_tamper")
+        backend, transport = self._backend([provider_response() for _ in range(7)])
+        credentials: list[str] = []
+        original_check = provider_execution_module.check_real_execution
+
+        def tampering_check(
+            *, generation_run_name: str, generation_root: str | Path,
+            require_completed: bool = False,
+        ) -> dict:
+            if require_completed:
+                candidate_path = target / "candidate_outputs/candidate_api_outputs.jsonl"
+                rows = read_jsonl(candidate_path)
+                rows[0]["response_sha256"] = "0" * 64
+                write_jsonl(candidate_path, rows)
+            return original_check(
+                generation_run_name=generation_run_name,
+                generation_root=generation_root,
+                require_completed=require_completed,
+            )
+
+        with mock.patch.object(provider_execution_module, "check_real_execution", tampering_check):
+            with self.assertRaisesRegex(ValueError, "completed_execution_self_validation_failed"):
+                run_real_execution(
+                    generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                    execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                    credential_reader=lambda key: credentials.append(key) or TEST_CREDENTIAL,
+                    backend=backend, sleep=lambda _: None,
+                )
+        self.assertEqual((credentials, len(transport.calls)),
+                         ([API_KEY_ENVIRONMENT_VARIABLE], 7))
+        self.assertFalse((target / "execution/real_execution.lock").exists())
+
+    def test_131_missing_provider_response_id_fails_before_terminal_success(self) -> None:
+        root, name, target, _ = self._prepare("missing_provider_response_id")
+        backend, transport = self._backend([provider_response(response_id="")])
+        with self.assertRaisesRegex(ValueError, "provider_response_id_missing"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual((journal["state"], journal["attempts"][0]["state"]),
+                         ("terminal_failure", "terminal_failure"))
+        self.assertEqual(read_jsonl(target / "candidate_outputs/candidate_api_outputs.jsonl"), [])
+        self.assertEqual(len(transport.calls), 1)
+
+    def test_132_finish_reason_length_fails_even_with_parseable_json(self) -> None:
+        root, name, target, _ = self._prepare("finish_reason_length")
+        backend, transport = self._backend([provider_response(finish_reason="length")])
+        with self.assertRaisesRegex(ValueError, "provider_finish_reason_not_complete"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+        journal = read_json(target / "execution/real_execution_journal.json")
+        self.assertEqual((journal["state"], journal["attempts"][0]["state"]),
+                         ("terminal_failure", "terminal_failure"))
+        self.assertEqual(read_jsonl(target / "candidate_outputs/candidate_api_outputs.jsonl"), [])
+        self.assertEqual(len(transport.calls), 1)
+
+    def test_133_offline_validator_rejects_blank_success_response_id(self) -> None:
+        root, name, target, _, _ = self._run_success("validator_blank_response_id")
+        self._sync_artifact_mutation(
+            target, relative_path="provider_raw/provider_raw_responses.jsonl",
+            journal_key="raw_response", mutate=lambda row: row.update(provider_response_id=" "),
+        )
+        audit = check_real_execution(
+            generation_run_name=name, generation_root=root, require_completed=True,
+        )
+        self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "CORRUPT"))
+        self.assertIn("raw[0]:provider_response_id_invalid", audit["errors"])
+
+    def test_134_offline_validator_rejects_incomplete_success_finish_reason(self) -> None:
+        root, name, target, _, _ = self._run_success("validator_finish_reason")
+        self._sync_artifact_mutation(
+            target, relative_path="provider_raw/provider_raw_responses.jsonl",
+            journal_key="raw_response", mutate=lambda row: row.update(finish_reason="tool_calls"),
+        )
+        audit = check_real_execution(
+            generation_run_name=name, generation_root=root, require_completed=True,
+        )
+        self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "CORRUPT"))
+        self.assertIn("raw[0]:finish_reason_not_complete", audit["errors"])
 
 
 if __name__ == "__main__":

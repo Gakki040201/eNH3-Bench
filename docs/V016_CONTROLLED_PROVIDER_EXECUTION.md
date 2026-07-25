@@ -19,7 +19,8 @@ the following are present and valid:
 5. an explicitly configured model and generation parameters;
 6. the approved seven-case B1B0 development selection, with zero holdout cases;
 7. hard logical-request, network-attempt, token-reservation, timeout, and retry limits;
-8. a credential available only after all preceding gates pass.
+8. an atomically acquired exclusive execution lock;
+9. a credential available only after all preceding gates pass.
 
 There is no implicit provider, default external model, environment-driven automatic
 execution, real-provider fallback, `--force` switch, or `--include-holdout` option.
@@ -46,7 +47,8 @@ are never added to the benchmark envelope or a serialized artifact.
 
 The credential environment variable is `ENH3BENCH_API_KEY`. Its value is read only inside
 the authorized execution function, after authorization, plan identity, endpoint identity,
-development-only selection, request binding, and budget validation have passed.
+development-only selection, request binding, budget validation, backend validation, and the
+locked runtime-state recheck have passed.
 
 The following operations never read the credential:
 
@@ -129,7 +131,28 @@ classified timeout/connection-reset failure. HTTP 400, 401, 403, 404, authorizat
 schema failures, and other permanent failures are not retried. Backoff is finite; tests inject
 a no-sleep function.
 
-## Durable journal and resume safety
+## Exclusive execution lock
+
+The runner atomically creates the external-runtime lock with OS-level exclusive creation:
+
+```text
+execution/real_execution.lock
+```
+
+The lock is acquired before authorization for every prepared runtime and retained across
+runtime reload, plan and development-contract validation, budget and backend validation,
+runtime-state recheck, the single credential read, all provider attempts, journal mutation,
+artifact materialization, and final strict self-validation. A concurrent or later runner that
+finds the lock fails immediately with `real_execution_lock_held`, before credential access or
+provider transport. It does not wait or retry.
+
+Normal Python exception paths release the lock in `finally`. `KeyboardInterrupt` and
+`SystemExit` also release it, but they do not convert an `attempt_started` journal record into
+a terminal state. A hard process crash can leave the lock in place. Any pre-existing or
+orphaned lock requires manual review: the runner never removes one based on PID, modification
+time, or age.
+
+## Durable journal, resume safety, and final validation
 
 The external runtime contains an atomic write-ahead authority:
 
@@ -151,16 +174,30 @@ Failed, indeterminate, partial, and corrupt states all fail closed before creden
 `require_completed=True` requires exactly seven successful receipts, seven safe raw responses,
 seven valid nonimported candidates, and no failed or indeterminate attempt.
 
+After writing journal state `completed`, the runner does not construct or return PASS directly.
+While it still owns the execution lock, it calls the strict offline validator with
+`require_completed=True`. It returns only when the validator reports both `result=PASS` and
+`stage=COMPLETED`; otherwise it raises `completed_execution_self_validation_failed`. This
+self-validation performs no additional credential read or provider call.
+
 ## Response and artifact boundaries
 
 Transport success is not benchmark success. B1B1 separately checks:
 
 1. transport and HTTP success;
-2. expected provider model identity and usage fields;
-3. a single response content string;
-4. a single JSON object with no Markdown fence;
-5. the exact closed B1B0 response, claim, and citation schemas;
-6. source-span, evidence-link, and claim-reference allowlists.
+2. a nonblank string provider response ID;
+3. an exact `finish_reason` of `stop`;
+4. expected provider model identity and usage fields;
+5. a single response content string;
+6. a single JSON object with no Markdown fence;
+7. the exact closed B1B0 response, claim, and citation schemas;
+8. source-span, evidence-link, and claim-reference allowlists.
+
+Missing or blank response IDs fail with `provider_response_id_missing`. Any incomplete or
+unknown finish reason—including `length`, `content_filter`, `tool_calls`, or an empty value—
+fails with `provider_finish_reason_not_complete`, even when the returned content is parseable
+JSON. The strict offline validator independently enforces both conditions for every successful
+raw response and retains the journal, receipt, raw-response, and candidate bindings.
 
 External runtime layers remain distinct:
 
