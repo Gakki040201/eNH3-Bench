@@ -11,6 +11,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.provider_execution import (  # noqa: E402
+    DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
+    GENERIC_OPENAI_COMPATIBLE_PROFILE,
     ExecutionBudget,
     ProviderConfiguration,
     prepare_real_execution,
@@ -25,8 +27,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pilot-root", type=Path, required=True)
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--model-id", required=True)
-    parser.add_argument("--temperature", type=float, required=True)
-    parser.add_argument("--top-p", type=float, required=True)
+    parser.add_argument(
+        "--provider-profile",
+        choices=(GENERIC_OPENAI_COMPATIBLE_PROFILE, DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE),
+        default=GENERIC_OPENAI_COMPATIBLE_PROFILE,
+    )
+    parser.add_argument("--thinking-mode", choices=("enabled", "disabled"))
+    parser.add_argument("--temperature", type=float)
+    parser.add_argument("--top-p", type=float)
     parser.add_argument("--max-output-tokens-per-request", type=int, required=True)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--response-format", choices=("json_schema", "json_object"), required=True)
@@ -55,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         seed=args.seed,
         response_format=args.response_format,
         reasoning_effort=args.reasoning_effort,
+        provider_profile=args.provider_profile,
+        thinking_mode=args.thinking_mode,
     )
     budget = ExecutionBudget(
         max_requests=args.max_requests,

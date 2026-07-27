@@ -15,16 +15,29 @@ from unittest import mock
 import uuid
 
 from enh3bench.e2e_eval_package import build_selective_eval_package
-from enh3bench.e2e_eval_schema import canonical_json, read_json, read_jsonl, write_json, write_jsonl
+from enh3bench.e2e_eval_schema import (
+    canonical_json,
+    read_json,
+    read_jsonl,
+    sha256_bytes,
+    write_json,
+    write_jsonl,
+)
 from enh3bench.generation_pilot import (
     RESPONSE_JSON_SCHEMA,
     build_development_pilot,
     prepare_generation_prompts,
     run_generation_dry_run,
+    validate_response_object,
 )
 from enh3bench.provider_execution import (
     API_KEY_ENVIRONMENT_VARIABLE,
     CANDIDATE_OUTPUT_SCHEMA_VERSION,
+    DEEPSEEK_V4_PRO_ENDPOINT,
+    DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+    DEEPSEEK_V4_PRO_MODEL_ID,
+    DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
+    GENERIC_OPENAI_COMPATIBLE_PROFILE,
     INPUT_TOKEN_RESERVATION_METHOD,
     MAX_ALLOWED_RETRIES,
     OPENAI_COMPATIBLE_BACKEND_NAME,
@@ -98,12 +111,16 @@ def provider_response(
     *, status: int = 200, model: str = MODEL_ID, content: str | None = None,
     prompt_tokens: int = 10, completion_tokens: int = 5,
     response_id: str | None = "test-response-id", finish_reason: str | None = "stop",
+    reasoning_content: str | None = None,
 ) -> TransportResponse:
+    message = {"role": "assistant", "content": content or canonical_json(valid_model_object())}
+    if reasoning_content is not None:
+        message["reasoning_content"] = reasoning_content
     body = {
         "id": response_id,
         "model": model,
         "choices": [{
-            "message": {"role": "assistant", "content": content or canonical_json(valid_model_object())},
+            "message": message,
             "finish_reason": finish_reason,
         }],
         "usage": {
@@ -172,6 +189,36 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         }
         values.update(overrides)
         return ProviderConfiguration(**values)  # type: ignore[arg-type]
+
+    def _deepseek_configuration(self, **overrides: object) -> ProviderConfiguration:
+        values: dict[str, object] = {
+            "endpoint": DEEPSEEK_V4_PRO_ENDPOINT,
+            "model_id": DEEPSEEK_V4_PRO_MODEL_ID,
+            "temperature": None,
+            "top_p": None,
+            "max_output_tokens": DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+            "seed": None,
+            "response_format": "json_object",
+            "reasoning_effort": "high",
+            "provider_profile": DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
+            "thinking_mode": "enabled",
+        }
+        values.update(overrides)
+        return ProviderConfiguration(**values)  # type: ignore[arg-type]
+
+    def _deepseek_budget(self) -> ExecutionBudget:
+        return self._budget(
+            max_input_tokens=1_000_000,
+            max_output_tokens=7 * DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+            max_total_tokens=1_000_000 + 7 * DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+        )
+
+    def _prepare_deepseek(self, prefix: str) -> tuple[Path, str, Path, dict]:
+        return self._prepare(
+            prefix,
+            configuration=self._deepseek_configuration(),
+            budget=self._deepseek_budget(),
+        )
 
     def _budget(self, **overrides: object) -> ExecutionBudget:
         values: dict[str, object] = {
@@ -272,16 +319,16 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         return root, name, target, transport
 
     def test_01_schema_and_backend_constants_are_versioned(self) -> None:
-        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.2")
+        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.3")
         self.assertEqual(REAL_EXECUTION_RECEIPT_SCHEMA_VERSION, "0.16-real-execution-receipt.1")
         self.assertEqual(CANDIDATE_OUTPUT_SCHEMA_VERSION, "0.16-candidate-api-output.1")
         self.assertEqual(PROVIDER_RAW_RESPONSE_SCHEMA_VERSION, "0.16-provider-raw-response.1")
-        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v2")
+        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v3")
         self.assertEqual(REAL_EXECUTION_JOURNAL_SCHEMA_VERSION, "0.16-real-execution-journal.1")
 
     def test_02_only_one_provider_backend_is_defined(self) -> None:
         self.assertEqual(OPENAI_COMPATIBLE_BACKEND_NAME, "openai-compatible-http")
-        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v2")
+        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v3")
 
     def test_03_backend_satisfies_provider_protocol(self) -> None:
         self.assertIsInstance(OpenAICompatibleHTTPBackend(endpoint=ENDPOINT), ProviderExecutionBackend)
@@ -1675,6 +1722,272 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         )
         self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "CORRUPT"))
         self.assertIn("raw[0]:finish_reason_not_complete", audit["errors"])
+
+    def test_135_deepseek_v4_profile_validates_and_records_effective_parameters(self) -> None:
+        configuration = self._deepseek_configuration()
+        configuration.validate()
+        _, _, _, plan = self._prepare_deepseek("deepseek_valid")
+        self.assertEqual(plan["provider_profile"], DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE)
+        self.assertEqual(plan["generation_parameters"], {
+            "thinking_mode": "enabled",
+            "reasoning_effort": "high",
+            "response_format": "json_object",
+            "max_output_tokens": 4096,
+            "temperature": None,
+            "top_p": None,
+            "seed": None,
+        })
+
+    def test_136_deepseek_wrong_endpoint_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_endpoint_contract_mismatch"):
+            self._deepseek_configuration(endpoint=ENDPOINT).validate()
+
+    def test_137_deepseek_wrong_model_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_model_contract_mismatch"):
+            self._deepseek_configuration(model_id="deepseek-chat").validate()
+
+    def test_138_deepseek_disabled_thinking_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_thinking_mode_required"):
+            self._deepseek_configuration(thinking_mode="disabled").validate()
+
+    def test_139_deepseek_medium_reasoning_is_not_normalized(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_reasoning_effort_not_canonical"):
+            self._deepseek_configuration(reasoning_effort="medium").validate()
+
+    def test_140_deepseek_max_reasoning_requires_a_separate_profile(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_reasoning_effort_not_canonical"):
+            self._deepseek_configuration(reasoning_effort="max").validate()
+
+    def test_141_deepseek_json_schema_response_format_fails_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_json_object_required"):
+            self._deepseek_configuration(response_format="json_schema").validate()
+
+    def test_142_deepseek_temperature_must_be_inactive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_inactive_sampling_parameter_present"):
+            self._deepseek_configuration(temperature=0.0).validate()
+
+    def test_143_deepseek_top_p_must_be_inactive(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_inactive_sampling_parameter_present"):
+            self._deepseek_configuration(top_p=1.0).validate()
+
+    def test_144_deepseek_seed_must_not_be_sent(self) -> None:
+        with self.assertRaisesRegex(ValueError, "deepseek_seed_not_supported_for_profile"):
+            self._deepseek_configuration(seed=17).validate()
+
+    def test_145_deepseek_payload_has_exact_provider_field_set(self) -> None:
+        _, _, target, _ = self._prepare_deepseek("deepseek_payload_fields")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        prepared = OpenAICompatibleHTTPBackend(endpoint=DEEPSEEK_V4_PRO_ENDPOINT).prepare_request(
+            prompt, envelope, self._deepseek_configuration(),
+        )
+        payload = prepared["provider_payload"]
+        self.assertEqual(set(payload), {
+            "model", "messages", "max_tokens", "response_format", "thinking",
+            "reasoning_effort",
+        })
+        self.assertEqual(payload["model"], "deepseek-v4-pro")
+        self.assertEqual(payload["max_tokens"], 4096)
+        self.assertEqual(payload["response_format"], {"type": "json_object"})
+        self.assertEqual(payload["thinking"], {"type": "enabled"})
+        self.assertEqual(payload["reasoning_effort"], "high")
+        self.assertEqual([row["role"] for row in payload["messages"]], ["system", "user"])
+
+    def test_146_deepseek_payload_omits_sampling_and_seed(self) -> None:
+        _, _, target, _ = self._prepare_deepseek("deepseek_payload_omissions")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
+        self.assertTrue({"temperature", "top_p", "seed"}.isdisjoint(payload))
+
+    def test_147_deepseek_provider_response_format_has_no_json_schema_or_strict(self) -> None:
+        _, _, target, _ = self._prepare_deepseek("deepseek_no_provider_schema")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
+        self.assertEqual(payload["response_format"], {"type": "json_object"})
+        self.assertNotIn("json_schema", payload["response_format"])
+        self.assertNotIn("strict", payload["response_format"])
+        self.assertNotIn("json_schema", payload)
+
+    def test_148_provider_profile_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_deepseek("deepseek_profile_identity")
+        changed = deepcopy(plan)
+        changed["provider_profile"] = GENERIC_OPENAI_COMPATIBLE_PROFILE
+        self.assertIn("execution_plan_identity_mismatch", validate_execution_plan(changed))
+
+    def test_149_thinking_mode_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_deepseek("deepseek_thinking_identity")
+        changed = deepcopy(plan)
+        changed["generation_parameters"]["thinking_mode"] = "disabled"
+        self.assertIn("execution_plan_identity_mismatch", validate_execution_plan(changed))
+
+    def test_150_reasoning_effort_change_changes_execution_identity(self) -> None:
+        _, _, _, plan_none = self._prepare(
+            "generic_reasoning_none", configuration=self._configuration(reasoning_effort=None),
+        )
+        _, _, _, plan_high = self._prepare(
+            "generic_reasoning_high", configuration=self._configuration(reasoning_effort="high"),
+        )
+        self.assertNotEqual(plan_none["execution_plan_id"], plan_high["execution_plan_id"])
+
+    def test_151_deepseek_provider_request_sha256_is_stable(self) -> None:
+        _, _, target, _ = self._prepare_deepseek("deepseek_request_sha")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        backend = OpenAICompatibleHTTPBackend(endpoint=DEEPSEEK_V4_PRO_ENDPOINT)
+        first = backend.prepare_request(prompt, envelope, self._deepseek_configuration())
+        second = backend.prepare_request(prompt, envelope, self._deepseek_configuration())
+        self.assertEqual(first["provider_request_sha256"], second["provider_request_sha256"])
+        self.assertEqual(
+            first["provider_request_sha256"],
+            "1ccf5452721d80bc73c5e6abfec39ef75b06f1ac3f2e7aca8d7e5f1cac850004",
+        )
+
+    def test_152_deepseek_reservation_uses_exact_provider_payload(self) -> None:
+        _, _, target, plan = self._prepare_deepseek("deepseek_exact_reservation")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
+        exact_bytes = len(canonical_json(payload).encode("utf-8"))
+        self.assertEqual(reserve_request_input_tokens(prompt, self._deepseek_configuration()), exact_bytes)
+        self.assertEqual(plan["reserved_input_tokens_per_request"][0], exact_bytes)
+
+    def test_153_internal_response_schema_is_byte_logically_unchanged(self) -> None:
+        digest = sha256_bytes(canonical_json(RESPONSE_JSON_SCHEMA).encode("utf-8"))
+        self.assertEqual(digest, "80422d27959af89ed713e446138e8f5eccac402aa3e1db2fa09c30ac373c476a")
+
+    def test_154_internal_duplicate_claim_and_citation_ids_are_rejected(self) -> None:
+        root, name, target, _ = self._prepare("duplicate_internal_ids")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        source_span_id = prompt["allowed_source_span_ids"][0]
+        claim = {
+            "claim_id": "claim-1", "claim_text": "Test claim",
+            "claim_type": "author_result", "supporting_source_span_ids": [source_span_id],
+            "supporting_evidence_link_ids": [], "support_status": "supported",
+        }
+        citation = {
+            "citation_id": "citation-1", "claim_ids": ["claim-1"],
+            "source_span_ids": [source_span_id], "evidence_link_ids": [],
+        }
+        value = valid_model_object()
+        value.update(answer_status="answered", claims=[claim, deepcopy(claim)],
+                     citations=[citation, deepcopy(citation)])
+        backend, _ = self._backend([provider_response(content=canonical_json(value))])
+        with self.assertRaisesRegex(ValueError, "duplicate_citation_id;duplicate_claim_id"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+
+    def test_155_internal_citation_still_requires_source_or_link(self) -> None:
+        value = valid_model_object()
+        value["citations"] = [{
+            "citation_id": "citation-1", "claim_ids": [],
+            "source_span_ids": [], "evidence_link_ids": [],
+        }]
+        self.assertIn("citation[0]:source_or_link_required", validate_response_object(value))
+
+    def test_156_deepseek_reasoning_content_is_ignored_by_normalization(self) -> None:
+        sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_DISAPPEAR"
+        content = canonical_json(valid_model_object())
+        normalized = OpenAICompatibleHTTPBackend(
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+        ).normalize_provider_response(
+            provider_response(
+                model=DEEPSEEK_V4_PRO_MODEL_ID, content=content, reasoning_content=sentinel,
+            ),
+            expected_model_id=DEEPSEEK_V4_PRO_MODEL_ID,
+        )
+        self.assertEqual(normalized["response_content"], content)
+        self.assertNotIn(sentinel, canonical_json(normalized))
+
+    def test_157_message_content_is_the_only_persisted_scientific_output(self) -> None:
+        root, name, target, _ = self._prepare_deepseek("deepseek_content_only")
+        sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_NEVER_PERSIST"
+        content = canonical_json(valid_model_object())
+        responses = [
+            provider_response(
+                model=DEEPSEEK_V4_PRO_MODEL_ID,
+                content=content,
+                reasoning_content=f"{sentinel}-{index}",
+                response_id=f"deepseek-test-response-{index}",
+            )
+            for index in range(7)
+        ]
+        transport = QueueTransport(responses)
+        backend = OpenAICompatibleHTTPBackend(
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT, transport=transport,
+        )
+        result = run_real_execution(
+            generation_run_name=name, generation_root=root,
+            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+            execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+            credential_reader=lambda _: TEST_CREDENTIAL, backend=backend, sleep=lambda _: None,
+        )
+        self.assertEqual(result["result"], "PASS")
+        candidates = read_jsonl(target / "candidate_outputs/candidate_api_outputs.jsonl")
+        self.assertTrue(all(row["response_object"] == valid_model_object() for row in candidates))
+        serialized = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in target.rglob("*") if path.is_file() and path.suffix in {".json", ".jsonl"}
+        )
+        self.assertNotIn(sentinel, serialized)
+
+    def test_158_real_execution_plan_dot_two_fails_closed_under_dot_three(self) -> None:
+        _, _, _, plan = self._prepare("old_plan_schema")
+        old = deepcopy(plan)
+        old["schema_version"] = "0.16-real-execution-plan.2"
+        old["provider_interface_version"] = "provider-execution-v2"
+        old["provider_backend_version"] = "openai-compatible-chat-completions-v2"
+        del old["provider_profile"]
+        old["generation_parameters"].pop("thinking_mode")
+        errors = validate_execution_plan(old)
+        self.assertIn("execution_plan_missing:provider_profile", errors)
+
+    def test_159_deepseek_prepare_and_check_never_read_credential(self) -> None:
+        original_get = os.environ.get
+        def guarded_get(key: str, default: object = None) -> object:
+            if key == API_KEY_ENVIRONMENT_VARIABLE:
+                raise AssertionError("credential read")
+            return original_get(key, default)
+        with mock.patch.object(os._Environ, "get", side_effect=guarded_get):
+            root, name, _, _ = self._prepare_deepseek("deepseek_no_credential")
+            audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
+
+    def test_160_deepseek_prepare_cli_and_check_are_offline(self) -> None:
+        root, name, target = self._copy_baseline("deepseek_cli_offline")
+        argv = [
+            "--generation-run-name", name, "--pilot-root", str(root),
+            "--provider-profile", DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
+            "--endpoint", DEEPSEEK_V4_PRO_ENDPOINT,
+            "--model-id", DEEPSEEK_V4_PRO_MODEL_ID,
+            "--thinking-mode", "enabled", "--reasoning-effort", "high",
+            "--response-format", "json_object",
+            "--max-output-tokens-per-request", "4096",
+            "--max-requests", "7", "--max-network-attempts", "7",
+            "--max-input-tokens", "1000000", "--max-output-tokens", "28672",
+            "--max-total-tokens", "1028672", "--timeout-seconds", "60",
+            "--max-retries", "2",
+        ]
+        with mock.patch.object(
+            socket, "create_connection", side_effect=AssertionError("public network")
+        ), mock.patch(
+            "enh3bench.provider_execution.urllib_request.urlopen",
+            side_effect=AssertionError("public network"),
+        ), redirect_stdout(io.StringIO()):
+            self.assertEqual(prepare_cli.main(argv), 0)
+            audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
+        self.assertTrue((target / "execution/real_execution_plan.json").is_file())
 
 
 if __name__ == "__main__":

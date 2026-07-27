@@ -1,7 +1,7 @@
 # v0.16 Controlled Provider Execution (Phase B1B1)
 
 Phase B1B1 is execution infrastructure, not scientific evaluation. It adds a small,
-provider-neutral execution boundary around the seven-case B1B0 development pilot. It does
+profile-explicit execution boundary around the seven-case B1B0 development pilot. It does
 not authorize a model run, import an API output, judge an answer, collect a human label,
 freeze an evaluation package, or release holdout material.
 
@@ -34,7 +34,9 @@ execution, real-provider fallback, `--force` switch, or `--include-holdout` opti
 - normalization of the provider response.
 
 B1B1 implements one backend: a minimal Python standard-library HTTPS transport for the
-OpenAI-compatible `/v1/chat/completions` endpoint. No provider SDK, agent framework, or
+OpenAI-compatible `/v1/chat/completions` endpoint. The generic profile is
+`generic-openai-compatible-v1`; the separately fail-closed DeepSeek commissioning profile is
+documented in `V016_DEEPSEEK_V4_PROVIDER_PROFILE.md`. No provider SDK, agent framework, or
 vendor-specific orchestration dependency is used. The provider payload is constructed only
 from the compiled B1B0 prompt instance; the executor does not reread a paper or regenerate a
 prompt.
@@ -88,16 +90,19 @@ Offline preparation writes this external-runtime artifact:
 execution/real_execution_plan.json
 ```
 
-Its schema is `0.16-real-execution-plan.2`. The stable `RE16_...` identity binds the B1B0
+Its schema is `0.16-real-execution-plan.3`. The stable `RE16_...` identity binds the B1B0
 generation and selection identities, backend name and version, model, safe endpoint hash,
-approved request set, logical-request and network-attempt caps, hard token-reservation
+provider profile, approved request set, logical-request and network-attempt caps, hard token-reservation
 method and bounds, timeout, retry policy, authorization scope, and every recorded generation
 parameter. It deliberately excludes creation time, absolute paths, runtime root, and
 credentials.
 
-Every result-affecting configured parameter is recorded: model, temperature, top-p, maximum
-output tokens per request, optional seed, response format, and optional reasoning effort.
-Unsupported parameters are not invented.
+Every result-affecting configured parameter is recorded: model, provider profile, thinking
+mode, temperature, top-p, maximum output tokens per request, optional seed, response format,
+and optional reasoning effort. Inactive parameters are recorded as null and omitted from the
+actual provider payload. Unsupported parameters are not invented. The provider interface is
+`provider-execution-v3`; the backend version is
+`openai-compatible-chat-completions-v3`.
 
 ## Hard budgets, timeout, and retry
 
