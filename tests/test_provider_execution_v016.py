@@ -33,10 +33,6 @@ from enh3bench.generation_pilot import (
 from enh3bench.provider_execution import (
     API_KEY_ENVIRONMENT_VARIABLE,
     CANDIDATE_OUTPUT_SCHEMA_VERSION,
-    DEEPSEEK_V4_PRO_ENDPOINT,
-    DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
-    DEEPSEEK_V4_PRO_MODEL_ID,
-    DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
     GENERIC_OPENAI_COMPATIBLE_PROFILE,
     INPUT_TOKEN_RESERVATION_METHOD,
     MAX_ALLOWED_RETRIES,
@@ -49,6 +45,10 @@ from enh3bench.provider_execution import (
     REAL_EXECUTION_PLAN_SCHEMA_VERSION,
     REAL_EXECUTION_RECEIPT_SCHEMA_VERSION,
     TRANSIENT_HTTP_STATUSES,
+    USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+    USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+    USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
+    USTC_LLM_GATEWAY_ENDPOINT,
     ExecutionBudget,
     OpenAICompatibleHTTPBackend,
     ProviderConfiguration,
@@ -190,34 +190,36 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         values.update(overrides)
         return ProviderConfiguration(**values)  # type: ignore[arg-type]
 
-    def _deepseek_configuration(self, **overrides: object) -> ProviderConfiguration:
+    def _ustc_configuration(self, **overrides: object) -> ProviderConfiguration:
         values: dict[str, object] = {
-            "endpoint": DEEPSEEK_V4_PRO_ENDPOINT,
-            "model_id": DEEPSEEK_V4_PRO_MODEL_ID,
+            "endpoint": USTC_LLM_GATEWAY_ENDPOINT,
+            "model_id": USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
             "temperature": None,
             "top_p": None,
-            "max_output_tokens": DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+            "max_output_tokens": USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
             "seed": None,
-            "response_format": "json_object",
-            "reasoning_effort": "high",
-            "provider_profile": DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
-            "thinking_mode": "enabled",
+            "response_format": None,
+            "reasoning_effort": None,
+            "provider_profile": USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+            "thinking_mode": None,
         }
         values.update(overrides)
         return ProviderConfiguration(**values)  # type: ignore[arg-type]
 
-    def _deepseek_budget(self) -> ExecutionBudget:
+    def _ustc_budget(self) -> ExecutionBudget:
         return self._budget(
             max_input_tokens=1_000_000,
-            max_output_tokens=7 * DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
-            max_total_tokens=1_000_000 + 7 * DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS,
+            max_output_tokens=7 * USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
+            max_total_tokens=(
+                1_000_000 + 7 * USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS
+            ),
         )
 
-    def _prepare_deepseek(self, prefix: str) -> tuple[Path, str, Path, dict]:
+    def _prepare_ustc(self, prefix: str) -> tuple[Path, str, Path, dict]:
         return self._prepare(
             prefix,
-            configuration=self._deepseek_configuration(),
-            budget=self._deepseek_budget(),
+            configuration=self._ustc_configuration(),
+            budget=self._ustc_budget(),
         )
 
     def _budget(self, **overrides: object) -> ExecutionBudget:
@@ -1723,147 +1725,164 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "CORRUPT"))
         self.assertIn("raw[0]:finish_reason_not_complete", audit["errors"])
 
-    def test_135_deepseek_v4_profile_validates_and_records_effective_parameters(self) -> None:
-        configuration = self._deepseek_configuration()
+    def test_135_ustc_profile_validates_and_records_only_effective_parameters(self) -> None:
+        configuration = self._ustc_configuration()
         configuration.validate()
-        _, _, _, plan = self._prepare_deepseek("deepseek_valid")
-        self.assertEqual(plan["provider_profile"], DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE)
+        _, _, _, plan = self._prepare_ustc("ustc_valid")
+        self.assertEqual(plan["provider_profile"], USTC_LLM_DEEPSEEK_V4_PRO_PROFILE)
+        self.assertEqual(plan["model_id"], USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID)
+        self.assertEqual(plan["endpoint_origin_hash"], endpoint_origin_hash(USTC_LLM_GATEWAY_ENDPOINT))
+        self.assertEqual(plan["authorization_scope"], "REAL_API_DEVELOPMENT_V016_B1B2_7CASE")
         self.assertEqual(plan["generation_parameters"], {
-            "thinking_mode": "enabled",
-            "reasoning_effort": "high",
-            "response_format": "json_object",
+            "thinking_mode": None,
+            "reasoning_effort": None,
+            "response_format": None,
             "max_output_tokens": 4096,
             "temperature": None,
             "top_p": None,
             "seed": None,
         })
 
-    def test_136_deepseek_wrong_endpoint_fails_closed(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_endpoint_contract_mismatch"):
-            self._deepseek_configuration(endpoint=ENDPOINT).validate()
+    def test_136_ustc_endpoint_is_required_and_direct_deepseek_is_rejected(self) -> None:
+        for endpoint in (ENDPOINT, "https://api.deepseek.com/v1/chat/completions"):
+            with self.subTest(endpoint=endpoint), self.assertRaisesRegex(
+                ValueError, "ustc_gateway_endpoint_contract_mismatch",
+            ):
+                self._ustc_configuration(endpoint=endpoint).validate()
 
-    def test_137_deepseek_wrong_model_fails_closed(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_model_contract_mismatch"):
-            self._deepseek_configuration(model_id="deepseek-chat").validate()
+    def test_137_ustc_profile_requires_one_explicit_model_without_alias_translation(self) -> None:
+        rejected = (
+            "smart/default", "smart/reasoning", "deepseek-v4-flash-ascend",
+            "deepseek-chat", "deepseek-reasoner", "other-model",
+        )
+        for model_id in rejected:
+            with self.subTest(model_id=model_id), self.assertRaisesRegex(
+                ValueError, "ustc_gateway_explicit_model_contract_mismatch",
+            ):
+                self._ustc_configuration(model_id=model_id).validate()
 
-    def test_138_deepseek_disabled_thinking_fails_closed(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_thinking_mode_required"):
-            self._deepseek_configuration(thinking_mode="disabled").validate()
+    def test_138_ustc_profile_rejects_unverified_thinking_parameter(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_reasoning_parameter_present"):
+            self._ustc_configuration(thinking_mode="enabled").validate()
 
-    def test_139_deepseek_medium_reasoning_is_not_normalized(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_reasoning_effort_not_canonical"):
-            self._deepseek_configuration(reasoning_effort="medium").validate()
+    def test_139_ustc_profile_rejects_unverified_reasoning_effort(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_reasoning_parameter_present"):
+            self._ustc_configuration(reasoning_effort="high").validate()
 
-    def test_140_deepseek_max_reasoning_requires_a_separate_profile(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_reasoning_effort_not_canonical"):
-            self._deepseek_configuration(reasoning_effort="max").validate()
+    def test_140_ustc_profile_rejects_unverified_provider_response_format(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_response_format_present"):
+            self._ustc_configuration(response_format="json_object").validate()
 
-    def test_141_deepseek_json_schema_response_format_fails_closed(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_json_object_required"):
-            self._deepseek_configuration(response_format="json_schema").validate()
+    def test_141_ustc_profile_rejects_unverified_temperature(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_sampling_parameter_present"):
+            self._ustc_configuration(temperature=0.0).validate()
 
-    def test_142_deepseek_temperature_must_be_inactive(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_inactive_sampling_parameter_present"):
-            self._deepseek_configuration(temperature=0.0).validate()
+    def test_142_ustc_profile_rejects_unverified_top_p(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_sampling_parameter_present"):
+            self._ustc_configuration(top_p=1.0).validate()
 
-    def test_143_deepseek_top_p_must_be_inactive(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_inactive_sampling_parameter_present"):
-            self._deepseek_configuration(top_p=1.0).validate()
+    def test_143_ustc_profile_rejects_unverified_seed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_seed_parameter_present"):
+            self._ustc_configuration(seed=17).validate()
 
-    def test_144_deepseek_seed_must_not_be_sent(self) -> None:
-        with self.assertRaisesRegex(ValueError, "deepseek_seed_not_supported_for_profile"):
-            self._deepseek_configuration(seed=17).validate()
+    def test_144_ustc_max_tokens_is_temporary_and_exact_for_a1(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unfinalized_max_output_tokens_mismatch"):
+            self._ustc_configuration(max_output_tokens=32768).validate()
 
-    def test_145_deepseek_payload_has_exact_provider_field_set(self) -> None:
-        _, _, target, _ = self._prepare_deepseek("deepseek_payload_fields")
+    def test_145_ustc_payload_has_exact_minimal_provider_field_set(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_payload_fields")
         prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
         envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
-        prepared = OpenAICompatibleHTTPBackend(endpoint=DEEPSEEK_V4_PRO_ENDPOINT).prepare_request(
-            prompt, envelope, self._deepseek_configuration(),
+        prepared = OpenAICompatibleHTTPBackend(endpoint=USTC_LLM_GATEWAY_ENDPOINT).prepare_request(
+            prompt, envelope, self._ustc_configuration(),
         )
         payload = prepared["provider_payload"]
-        self.assertEqual(set(payload), {
-            "model", "messages", "max_tokens", "response_format", "thinking",
-            "reasoning_effort",
-        })
+        self.assertEqual(set(payload), {"model", "messages", "max_tokens"})
         self.assertEqual(payload["model"], "deepseek-v4-pro")
         self.assertEqual(payload["max_tokens"], 4096)
-        self.assertEqual(payload["response_format"], {"type": "json_object"})
-        self.assertEqual(payload["thinking"], {"type": "enabled"})
-        self.assertEqual(payload["reasoning_effort"], "high")
         self.assertEqual([row["role"] for row in payload["messages"]], ["system", "user"])
 
-    def test_146_deepseek_payload_omits_sampling_and_seed(self) -> None:
-        _, _, target, _ = self._prepare_deepseek("deepseek_payload_omissions")
+    def test_146_ustc_payload_omits_unverified_direct_deepseek_parameters(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_payload_omissions")
         prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
         envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
         payload = OpenAICompatibleHTTPBackend(
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
-        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
-        self.assertTrue({"temperature", "top_p", "seed"}.isdisjoint(payload))
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._ustc_configuration())["provider_payload"]
+        self.assertTrue({
+            "thinking", "reasoning_effort", "response_format", "temperature", "top_p", "seed",
+        }.isdisjoint(payload))
 
-    def test_147_deepseek_provider_response_format_has_no_json_schema_or_strict(self) -> None:
-        _, _, target, _ = self._prepare_deepseek("deepseek_no_provider_schema")
-        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
-        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
-        payload = OpenAICompatibleHTTPBackend(
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
-        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
-        self.assertEqual(payload["response_format"], {"type": "json_object"})
-        self.assertNotIn("json_schema", payload["response_format"])
-        self.assertNotIn("strict", payload["response_format"])
-        self.assertNotIn("json_schema", payload)
+    def test_147_ustc_response_model_must_match_explicit_requested_model(self) -> None:
+        with self.assertRaisesRegex(ValueError, "provider_model_mismatch"):
+            OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+            ).normalize_provider_response(
+                provider_response(model="smart/reasoning"),
+                expected_model_id=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+            )
 
     def test_148_provider_profile_participates_in_re16_identity(self) -> None:
-        _, _, _, plan = self._prepare_deepseek("deepseek_profile_identity")
+        _, _, _, plan = self._prepare_ustc("ustc_profile_identity")
         changed = deepcopy(plan)
         changed["provider_profile"] = GENERIC_OPENAI_COMPATIBLE_PROFILE
         self.assertIn("execution_plan_identity_mismatch", validate_execution_plan(changed))
 
-    def test_149_thinking_mode_participates_in_re16_identity(self) -> None:
-        _, _, _, plan = self._prepare_deepseek("deepseek_thinking_identity")
+    def test_149_ustc_endpoint_hash_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_endpoint_identity")
         changed = deepcopy(plan)
-        changed["generation_parameters"]["thinking_mode"] = "disabled"
-        self.assertIn("execution_plan_identity_mismatch", validate_execution_plan(changed))
-
-    def test_150_reasoning_effort_change_changes_execution_identity(self) -> None:
-        _, _, _, plan_none = self._prepare(
-            "generic_reasoning_none", configuration=self._configuration(reasoning_effort=None),
+        changed["endpoint_origin_hash"] = endpoint_origin_hash(
+            "https://api.deepseek.com/v1/chat/completions"
         )
-        _, _, _, plan_high = self._prepare(
-            "generic_reasoning_high", configuration=self._configuration(reasoning_effort="high"),
-        )
-        self.assertNotEqual(plan_none["execution_plan_id"], plan_high["execution_plan_id"])
+        errors = validate_execution_plan(changed)
+        self.assertIn("ustc_gateway_endpoint_identity_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
 
-    def test_151_deepseek_provider_request_sha256_is_stable(self) -> None:
-        _, _, target, _ = self._prepare_deepseek("deepseek_request_sha")
+    def test_150_explicit_ustc_model_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_model_identity")
+        changed = deepcopy(plan)
+        changed["model_id"] = "smart/default"
+        errors = validate_execution_plan(changed)
+        self.assertIn("ustc_gateway_explicit_model_contract_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
+
+    def test_151_b1b2_authorization_scope_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_authorization_identity")
+        changed = deepcopy(plan)
+        changed["authorization_scope"] = "REAL_API_DEVELOPMENT_V016_B1B1"
+        errors = validate_execution_plan(changed)
+        self.assertIn("authorization_scope_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
+
+    def test_152_ustc_provider_request_sha256_is_stable(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_request_sha")
         prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
         envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
-        backend = OpenAICompatibleHTTPBackend(endpoint=DEEPSEEK_V4_PRO_ENDPOINT)
-        first = backend.prepare_request(prompt, envelope, self._deepseek_configuration())
-        second = backend.prepare_request(prompt, envelope, self._deepseek_configuration())
+        backend = OpenAICompatibleHTTPBackend(endpoint=USTC_LLM_GATEWAY_ENDPOINT)
+        first = backend.prepare_request(prompt, envelope, self._ustc_configuration())
+        second = backend.prepare_request(prompt, envelope, self._ustc_configuration())
         self.assertEqual(first["provider_request_sha256"], second["provider_request_sha256"])
         self.assertEqual(
             first["provider_request_sha256"],
-            "1ccf5452721d80bc73c5e6abfec39ef75b06f1ac3f2e7aca8d7e5f1cac850004",
+            "efba7544504ed8ab828a17dac1a9192e4d09831be798452f358db334ce337563",
         )
 
-    def test_152_deepseek_reservation_uses_exact_provider_payload(self) -> None:
-        _, _, target, plan = self._prepare_deepseek("deepseek_exact_reservation")
+    def test_153_ustc_reservation_uses_exact_provider_payload(self) -> None:
+        _, _, target, plan = self._prepare_ustc("ustc_exact_reservation")
         prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
         envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
         payload = OpenAICompatibleHTTPBackend(
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
-        ).prepare_request(prompt, envelope, self._deepseek_configuration())["provider_payload"]
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._ustc_configuration())["provider_payload"]
         exact_bytes = len(canonical_json(payload).encode("utf-8"))
-        self.assertEqual(reserve_request_input_tokens(prompt, self._deepseek_configuration()), exact_bytes)
+        self.assertEqual(reserve_request_input_tokens(prompt, self._ustc_configuration()), exact_bytes)
         self.assertEqual(plan["reserved_input_tokens_per_request"][0], exact_bytes)
 
-    def test_153_internal_response_schema_is_byte_logically_unchanged(self) -> None:
+    def test_154_internal_response_schema_is_byte_logically_unchanged(self) -> None:
         digest = sha256_bytes(canonical_json(RESPONSE_JSON_SCHEMA).encode("utf-8"))
         self.assertEqual(digest, "80422d27959af89ed713e446138e8f5eccac402aa3e1db2fa09c30ac373c476a")
 
-    def test_154_internal_duplicate_claim_and_citation_ids_are_rejected(self) -> None:
+    def test_155_internal_duplicate_claim_and_citation_ids_are_rejected(self) -> None:
         root, name, target, _ = self._prepare("duplicate_internal_ids")
         prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
         source_span_id = prompt["allowed_source_span_ids"][0]
@@ -1887,7 +1906,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
                 credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
             )
 
-    def test_155_internal_citation_still_requires_source_or_link(self) -> None:
+    def test_156_internal_citation_still_requires_source_or_link(self) -> None:
         value = valid_model_object()
         value["citations"] = [{
             "citation_id": "citation-1", "claim_ids": [],
@@ -1895,40 +1914,42 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         }]
         self.assertIn("citation[0]:source_or_link_required", validate_response_object(value))
 
-    def test_156_deepseek_reasoning_content_is_ignored_by_normalization(self) -> None:
+    def test_157_unrecognized_gateway_reasoning_content_is_ignored_by_normalization(self) -> None:
         sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_DISAPPEAR"
         content = canonical_json(valid_model_object())
         normalized = OpenAICompatibleHTTPBackend(
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
         ).normalize_provider_response(
             provider_response(
-                model=DEEPSEEK_V4_PRO_MODEL_ID, content=content, reasoning_content=sentinel,
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+                content=content,
+                reasoning_content=sentinel,
             ),
-            expected_model_id=DEEPSEEK_V4_PRO_MODEL_ID,
+            expected_model_id=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
         )
         self.assertEqual(normalized["response_content"], content)
         self.assertNotIn(sentinel, canonical_json(normalized))
 
-    def test_157_message_content_is_the_only_persisted_scientific_output(self) -> None:
-        root, name, target, _ = self._prepare_deepseek("deepseek_content_only")
+    def test_158_message_content_is_the_only_persisted_scientific_output(self) -> None:
+        root, name, target, _ = self._prepare_ustc("ustc_content_only")
         sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_NEVER_PERSIST"
         content = canonical_json(valid_model_object())
         responses = [
             provider_response(
-                model=DEEPSEEK_V4_PRO_MODEL_ID,
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
                 content=content,
                 reasoning_content=f"{sentinel}-{index}",
-                response_id=f"deepseek-test-response-{index}",
+                response_id=f"ustc-test-response-{index}",
             )
             for index in range(7)
         ]
         transport = QueueTransport(responses)
         backend = OpenAICompatibleHTTPBackend(
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT, transport=transport,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=transport,
         )
         result = run_real_execution(
             generation_run_name=name, generation_root=root,
-            endpoint=DEEPSEEK_V4_PRO_ENDPOINT,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
             execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
             credential_reader=lambda _: TEST_CREDENTIAL, backend=backend, sleep=lambda _: None,
         )
@@ -1941,7 +1962,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         )
         self.assertNotIn(sentinel, serialized)
 
-    def test_158_real_execution_plan_dot_two_fails_closed_under_dot_three(self) -> None:
+    def test_159_real_execution_plan_dot_two_fails_closed_under_dot_three(self) -> None:
         _, _, _, plan = self._prepare("old_plan_schema")
         old = deepcopy(plan)
         old["schema_version"] = "0.16-real-execution-plan.2"
@@ -1952,26 +1973,24 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         errors = validate_execution_plan(old)
         self.assertIn("execution_plan_missing:provider_profile", errors)
 
-    def test_159_deepseek_prepare_and_check_never_read_credential(self) -> None:
+    def test_160_ustc_prepare_and_check_never_read_credential(self) -> None:
         original_get = os.environ.get
         def guarded_get(key: str, default: object = None) -> object:
             if key == API_KEY_ENVIRONMENT_VARIABLE:
                 raise AssertionError("credential read")
             return original_get(key, default)
         with mock.patch.object(os._Environ, "get", side_effect=guarded_get):
-            root, name, _, _ = self._prepare_deepseek("deepseek_no_credential")
+            root, name, _, _ = self._prepare_ustc("ustc_no_credential")
             audit = check_real_execution(generation_run_name=name, generation_root=root)
         self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
 
-    def test_160_deepseek_prepare_cli_and_check_are_offline(self) -> None:
-        root, name, target = self._copy_baseline("deepseek_cli_offline")
+    def test_161_ustc_prepare_cli_and_check_are_offline(self) -> None:
+        root, name, target = self._copy_baseline("ustc_cli_offline")
         argv = [
             "--generation-run-name", name, "--pilot-root", str(root),
-            "--provider-profile", DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE,
-            "--endpoint", DEEPSEEK_V4_PRO_ENDPOINT,
-            "--model-id", DEEPSEEK_V4_PRO_MODEL_ID,
-            "--thinking-mode", "enabled", "--reasoning-effort", "high",
-            "--response-format", "json_object",
+            "--provider-profile", USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+            "--endpoint", USTC_LLM_GATEWAY_ENDPOINT,
+            "--model-id", USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
             "--max-output-tokens-per-request", "4096",
             "--max-requests", "7", "--max-network-attempts", "7",
             "--max-input-tokens", "1000000", "--max-output-tokens", "28672",
@@ -1988,6 +2007,28 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             audit = check_real_execution(generation_run_name=name, generation_root=root)
         self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
         self.assertTrue((target / "execution/real_execution_plan.json").is_file())
+
+    def test_162_old_b1b1_scope_fails_before_credential_and_transport(self) -> None:
+        root, name, _, _ = self._prepare_ustc("old_b1b1_scope")
+        backend_transport = QueueTransport([
+            provider_response(model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID),
+        ])
+        backend = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=backend_transport,
+        )
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "real_api_execution_not_authorized"):
+            run_real_execution(
+                generation_run_name=name,
+                generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+                execute_real_api=True,
+                authorization="REAL_API_DEVELOPMENT_V016_B1B1",
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+                backend=backend,
+            )
+        self.assertEqual(credential_calls, [])
+        self.assertEqual(backend_transport.calls, [])
 
 
 if __name__ == "__main__":

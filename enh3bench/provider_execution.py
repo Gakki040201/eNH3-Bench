@@ -47,11 +47,11 @@ PROVIDER_EXECUTION_INTERFACE_VERSION = "provider-execution-v3"
 OPENAI_COMPATIBLE_BACKEND_NAME = "openai-compatible-http"
 OPENAI_COMPATIBLE_BACKEND_VERSION = "openai-compatible-chat-completions-v3"
 GENERIC_OPENAI_COMPATIBLE_PROFILE = "generic-openai-compatible-v1"
-DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE = "deepseek-v4-pro-thinking-json-v1"
-DEEPSEEK_V4_PRO_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
-DEEPSEEK_V4_PRO_MODEL_ID = "deepseek-v4-pro"
-DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS = 4096
-REAL_API_AUTHORIZATION_SCOPE = "REAL_API_DEVELOPMENT_V016_B1B1"
+USTC_LLM_DEEPSEEK_V4_PRO_PROFILE = "ustc-llm-deepseek-v4-pro-v1"
+USTC_LLM_GATEWAY_ENDPOINT = "https://api.llm.ustc.edu.cn/v1/chat/completions"
+USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID = "deepseek-v4-pro"
+USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS = 4096
+REAL_API_AUTHORIZATION_SCOPE = "REAL_API_DEVELOPMENT_V016_B1B2_7CASE"
 API_KEY_ENVIRONMENT_VARIABLE = "ENH3BENCH_API_KEY"
 REAL_EXECUTION_PLAN_ID_PREFIX = "RE16"
 REAL_EXECUTION_RECEIPT_ID_PREFIX = "RR16"
@@ -151,7 +151,7 @@ class ProviderConfiguration:
     top_p: float | None
     max_output_tokens: int
     seed: int | None
-    response_format: str
+    response_format: str | None
     reasoning_effort: str | None = None
     provider_profile: str = GENERIC_OPENAI_COMPATIBLE_PROFILE
     thinking_mode: str | None = None
@@ -179,24 +179,22 @@ class ProviderConfiguration:
             if self.thinking_mode is not None:
                 raise ValueError("invalid_thinking_mode")
             return
-        if self.provider_profile != DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE:
+        if self.provider_profile != USTC_LLM_DEEPSEEK_V4_PRO_PROFILE:
             raise ValueError("invalid_provider_profile")
-        if endpoint_identity != DEEPSEEK_V4_PRO_ENDPOINT:
-            raise ValueError("deepseek_endpoint_contract_mismatch")
-        if self.model_id != DEEPSEEK_V4_PRO_MODEL_ID:
-            raise ValueError("deepseek_model_contract_mismatch")
-        if self.thinking_mode != "enabled":
-            raise ValueError("deepseek_thinking_mode_required")
-        if self.reasoning_effort != "high":
-            raise ValueError("deepseek_reasoning_effort_not_canonical")
-        if self.response_format != "json_object":
-            raise ValueError("deepseek_json_object_required")
+        if endpoint_identity != USTC_LLM_GATEWAY_ENDPOINT:
+            raise ValueError("ustc_gateway_endpoint_contract_mismatch")
+        if self.model_id != USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID:
+            raise ValueError("ustc_gateway_explicit_model_contract_mismatch")
+        if self.thinking_mode is not None or self.reasoning_effort is not None:
+            raise ValueError("ustc_gateway_unverified_reasoning_parameter_present")
+        if self.response_format is not None:
+            raise ValueError("ustc_gateway_unverified_response_format_present")
         if self.temperature is not None or self.top_p is not None:
-            raise ValueError("deepseek_inactive_sampling_parameter_present")
+            raise ValueError("ustc_gateway_unverified_sampling_parameter_present")
         if self.seed is not None:
-            raise ValueError("deepseek_seed_not_supported_for_profile")
-        if self.max_output_tokens != DEEPSEEK_V4_PRO_MAX_OUTPUT_TOKENS:
-            raise ValueError("deepseek_max_output_tokens_contract_mismatch")
+            raise ValueError("ustc_gateway_unverified_seed_parameter_present")
+        if self.max_output_tokens != USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS:
+            raise ValueError("ustc_gateway_unfinalized_max_output_tokens_mismatch")
 
 
 @dataclass(frozen=True)
@@ -290,12 +288,7 @@ def _provider_payload(prompt: dict[str, Any], configuration: ProviderConfigurati
         ],
         "max_tokens": configuration.max_output_tokens,
     }
-    if configuration.provider_profile == DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE:
-        payload.update({
-            "response_format": {"type": "json_object"},
-            "thinking": {"type": "enabled"},
-            "reasoning_effort": "high",
-        })
+    if configuration.provider_profile == USTC_LLM_DEEPSEEK_V4_PRO_PROFILE:
         return payload
     payload["temperature"] = float(configuration.temperature)  # type: ignore[arg-type]
     payload["top_p"] = float(configuration.top_p)  # type: ignore[arg-type]
@@ -700,8 +693,8 @@ def validate_execution_plan(plan: dict[str, Any]) -> list[str]:
             errors.append("generation_parameters_contract_mismatch")
         else:
             validation_endpoint = (
-                DEEPSEEK_V4_PRO_ENDPOINT
-                if plan["provider_profile"] == DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE
+                USTC_LLM_GATEWAY_ENDPOINT
+                if plan["provider_profile"] == USTC_LLM_DEEPSEEK_V4_PRO_PROFILE
                 else "https://offline-validation.invalid/v1/chat/completions"
             )
             ProviderConfiguration(
@@ -717,10 +710,10 @@ def validate_execution_plan(plan: dict[str, Any]) -> list[str]:
                 thinking_mode=parameters["thinking_mode"],
             ).validate()
             if (
-                plan["provider_profile"] == DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE
-                and plan["endpoint_origin_hash"] != endpoint_origin_hash(DEEPSEEK_V4_PRO_ENDPOINT)
+                plan["provider_profile"] == USTC_LLM_DEEPSEEK_V4_PRO_PROFILE
+                and plan["endpoint_origin_hash"] != endpoint_origin_hash(USTC_LLM_GATEWAY_ENDPOINT)
             ):
-                errors.append("deepseek_endpoint_identity_mismatch")
+                errors.append("ustc_gateway_endpoint_identity_mismatch")
     except (KeyError, TypeError, ValueError) as exc:
         errors.append(str(exc))
     try:
@@ -1050,8 +1043,8 @@ def _configuration_parameters_from_plan(plan: dict[str, Any]) -> ProviderConfigu
     parameters = plan["generation_parameters"]
     return ProviderConfiguration(
         endpoint=(
-            DEEPSEEK_V4_PRO_ENDPOINT
-            if plan["provider_profile"] == DEEPSEEK_V4_PRO_THINKING_JSON_PROFILE
+            USTC_LLM_GATEWAY_ENDPOINT
+            if plan["provider_profile"] == USTC_LLM_DEEPSEEK_V4_PRO_PROFILE
             else "https://offline-validation.invalid/v1/chat/completions"
         ),
         model_id=plan["model_id"], temperature=parameters["temperature"],
