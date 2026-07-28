@@ -47,7 +47,6 @@ from enh3bench.provider_execution import (
     TRANSIENT_HTTP_STATUSES,
     USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
     USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
-    USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
     USTC_LLM_GATEWAY_ENDPOINT,
     ExecutionBudget,
     OpenAICompatibleHTTPBackend,
@@ -76,6 +75,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = "https://example.invalid/v1/chat/completions"
 MODEL_ID = "test-compatible-model-v1"
 TEST_CREDENTIAL = "TEST_ONLY_NOT_A_REAL_SECRET"
+USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS = 4096
 
 
 class QueueTransport:
@@ -196,7 +196,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             "model_id": USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
             "temperature": None,
             "top_p": None,
-            "max_output_tokens": USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
+            "max_output_tokens": USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS,
             "seed": None,
             "response_format": None,
             "reasoning_effort": None,
@@ -206,13 +206,13 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         values.update(overrides)
         return ProviderConfiguration(**values)  # type: ignore[arg-type]
 
-    def _ustc_budget(self) -> ExecutionBudget:
+    def _ustc_budget(
+        self, *, max_output_tokens_per_request: int = USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS,
+    ) -> ExecutionBudget:
         return self._budget(
             max_input_tokens=1_000_000,
-            max_output_tokens=7 * USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS,
-            max_total_tokens=(
-                1_000_000 + 7 * USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS
-            ),
+            max_output_tokens=7 * max_output_tokens_per_request,
+            max_total_tokens=1_000_000 + 7 * max_output_tokens_per_request,
         )
 
     def _prepare_ustc(self, prefix: str) -> tuple[Path, str, Path, dict]:
@@ -1785,9 +1785,10 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_seed_parameter_present"):
             self._ustc_configuration(seed=17).validate()
 
-    def test_144_ustc_max_tokens_is_temporary_and_exact_for_a1(self) -> None:
-        with self.assertRaisesRegex(ValueError, "ustc_gateway_unfinalized_max_output_tokens_mismatch"):
-            self._ustc_configuration(max_output_tokens=32768).validate()
+    def test_144_ustc_max_tokens_is_positive_and_not_fixed_by_profile(self) -> None:
+        for max_output_tokens in (4096, 8192, 16384):
+            with self.subTest(max_output_tokens=max_output_tokens):
+                self._ustc_configuration(max_output_tokens=max_output_tokens).validate()
 
     def test_145_ustc_payload_has_exact_minimal_provider_field_set(self) -> None:
         _, _, target, _ = self._prepare_ustc("ustc_payload_fields")
@@ -1986,27 +1987,40 @@ class ProviderExecutionV016Tests(unittest.TestCase):
 
     def test_161_ustc_prepare_cli_and_check_are_offline(self) -> None:
         root, name, target = self._copy_baseline("ustc_cli_offline")
+        selected_max_output_tokens = 8192
         argv = [
             "--generation-run-name", name, "--pilot-root", str(root),
             "--provider-profile", USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
             "--endpoint", USTC_LLM_GATEWAY_ENDPOINT,
             "--model-id", USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
-            "--max-output-tokens-per-request", "4096",
+            "--max-output-tokens-per-request", str(selected_max_output_tokens),
             "--max-requests", "7", "--max-network-attempts", "7",
-            "--max-input-tokens", "1000000", "--max-output-tokens", "28672",
-            "--max-total-tokens", "1028672", "--timeout-seconds", "60",
+            "--max-input-tokens", "1000000", "--max-output-tokens", "57344",
+            "--max-total-tokens", "1057344", "--timeout-seconds", "60",
             "--max-retries", "2",
         ]
+        original_get = os.environ.get
+
+        def guarded_get(key: str, default: object = None) -> object:
+            if key == API_KEY_ENVIRONMENT_VARIABLE:
+                raise AssertionError("credential read")
+            return original_get(key, default)
         with mock.patch.object(
             socket, "create_connection", side_effect=AssertionError("public network")
         ), mock.patch(
             "enh3bench.provider_execution.urllib_request.urlopen",
             side_effect=AssertionError("public network"),
+        ), mock.patch.object(
+            os._Environ, "get", side_effect=guarded_get,
         ), redirect_stdout(io.StringIO()):
             self.assertEqual(prepare_cli.main(argv), 0)
             audit = check_real_execution(generation_run_name=name, generation_root=root)
         self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
-        self.assertTrue((target / "execution/real_execution_plan.json").is_file())
+        plan = read_json(target / "execution/real_execution_plan.json")
+        self.assertEqual(
+            plan["generation_parameters"]["max_output_tokens"], selected_max_output_tokens,
+        )
+        self.assertEqual(plan["reserved_output_tokens_total"], 7 * selected_max_output_tokens)
 
     def test_162_old_b1b1_scope_fails_before_credential_and_transport(self) -> None:
         root, name, _, _ = self._prepare_ustc("old_b1b1_scope")
@@ -2029,6 +2043,61 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             )
         self.assertEqual(credential_calls, [])
         self.assertEqual(backend_transport.calls, [])
+
+    def test_163_ustc_nonpositive_max_tokens_still_fail(self) -> None:
+        for max_output_tokens in (0, -1):
+            with self.subTest(max_output_tokens=max_output_tokens), self.assertRaisesRegex(
+                ValueError, "invalid_generation_max_output_tokens",
+            ):
+                self._ustc_configuration(max_output_tokens=max_output_tokens).validate()
+
+    def test_164_selected_ustc_max_tokens_binds_payload_reservations_and_re16(self) -> None:
+        shared_budget = self._ustc_budget(max_output_tokens_per_request=16384)
+        observations: dict[int, dict[str, object]] = {}
+        for max_output_tokens in (4096, 16384):
+            configuration = self._ustc_configuration(max_output_tokens=max_output_tokens)
+            _, _, target, plan = self._prepare(
+                f"ustc_selected_max_{max_output_tokens}",
+                configuration=configuration,
+                budget=shared_budget,
+            )
+            prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+            envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+            prepared = OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+            ).prepare_request(prompt, envelope, configuration)
+            payload = prepared["provider_payload"]
+            self.assertEqual(set(payload), {"model", "messages", "max_tokens"})
+            self.assertEqual(payload["max_tokens"], max_output_tokens)
+            self.assertEqual(
+                plan["generation_parameters"]["max_output_tokens"], max_output_tokens,
+            )
+            self.assertEqual(
+                plan["reserved_output_tokens_total"],
+                max_output_tokens * shared_budget.max_network_attempts,
+            )
+            self.assertEqual(
+                plan["reserved_total_tokens"],
+                plan["reserved_input_tokens_total"] + plan["reserved_output_tokens_total"],
+            )
+            observations[max_output_tokens] = {
+                "execution_plan_id": plan["execution_plan_id"],
+                "provider_payload": payload,
+                "provider_request_sha256": prepared["provider_request_sha256"],
+                "reserved_input_tokens_total": plan["reserved_input_tokens_total"],
+                "reserved_output_tokens_total": plan["reserved_output_tokens_total"],
+                "reserved_total_tokens": plan["reserved_total_tokens"],
+            }
+        for field in (
+            "execution_plan_id",
+            "provider_payload",
+            "provider_request_sha256",
+            "reserved_input_tokens_total",
+            "reserved_output_tokens_total",
+            "reserved_total_tokens",
+        ):
+            with self.subTest(field=field):
+                self.assertNotEqual(observations[4096][field], observations[16384][field])
 
 
 if __name__ == "__main__":

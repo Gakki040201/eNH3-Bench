@@ -50,7 +50,6 @@ GENERIC_OPENAI_COMPATIBLE_PROFILE = "generic-openai-compatible-v1"
 USTC_LLM_DEEPSEEK_V4_PRO_PROFILE = "ustc-llm-deepseek-v4-pro-v1"
 USTC_LLM_GATEWAY_ENDPOINT = "https://api.llm.ustc.edu.cn/v1/chat/completions"
 USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID = "deepseek-v4-pro"
-USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS = 4096
 REAL_API_AUTHORIZATION_SCOPE = "REAL_API_DEVELOPMENT_V016_B1B2_7CASE"
 API_KEY_ENVIRONMENT_VARIABLE = "ENH3BENCH_API_KEY"
 REAL_EXECUTION_PLAN_ID_PREFIX = "RE16"
@@ -193,8 +192,6 @@ class ProviderConfiguration:
             raise ValueError("ustc_gateway_unverified_sampling_parameter_present")
         if self.seed is not None:
             raise ValueError("ustc_gateway_unverified_seed_parameter_present")
-        if self.max_output_tokens != USTC_LLM_DEEPSEEK_V4_PRO_UNFINALIZED_MAX_OUTPUT_TOKENS:
-            raise ValueError("ustc_gateway_unfinalized_max_output_tokens_mismatch")
 
 
 @dataclass(frozen=True)

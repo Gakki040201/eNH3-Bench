@@ -30,7 +30,8 @@ Scientific attribution requires one explicit model ID. The profile therefore rej
 
 ## Minimal verified provider payload
 
-The USTC profile sends exactly three top-level fields:
+The USTC profile sends exactly three top-level fields. This A1 example uses the non-canonical
+reference fixture value `4096`:
 
 ```json
 {
@@ -73,11 +74,16 @@ benchmark output and is never serialized or persisted.
 
 ## Temporary max_tokens and A2 boundary
 
-The A1 compatibility profile temporarily retains `max_tokens=4096` so offline payload,
-reservation, and identity tests remain deterministic. This is not a claim about the USTC
-gateway ceiling and is not the final A2 execution value. Phase B1B2-A2 must independently
-check the USTC model-service contract and gateway behavior, verify the key-visible model
-list, and then freeze the final per-request ceiling in a fresh external execution plan.
+The A1 compatibility tests may use `max_tokens=4096` as a deterministic reference fixture.
+`4096` is not canonical and is not enforced by the provider profile. The profile requires
+only a positive integer; A1 does not select the final execution ceiling and makes no claim
+about a USTC maximum output-token limit.
+
+Phase B1B2-A2 must independently check the USTC model-service contract and gateway behavior,
+verify the key-visible model list, and freeze exactly one per-request `max_tokens` value in a
+fresh external execution plan. That selected value is recorded in
+`generation_parameters.max_output_tokens`, used verbatim by the provider payload, included in
+the output and total token reservations, and bound into the RE16 identity.
 
 ## Execution identity and superseded artifact
 

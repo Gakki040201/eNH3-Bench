@@ -104,6 +104,11 @@ omitted from the actual provider payload. Unsupported parameters are not invente
 `provider-execution-v3`; the backend version is
 `openai-compatible-chat-completions-v3`.
 
+For the USTC profile, A1's `4096` value is only an offline reference fixture and is not a
+provider-profile constant or a claimed gateway limit. A2 must freeze exactly one reviewed
+positive `max_tokens` value; the payload, token reservations, and RE16 identity bind that
+selected value.
+
 ## Hard budgets, timeout, and retry
 
 Preparation requires explicit hard limits for:
