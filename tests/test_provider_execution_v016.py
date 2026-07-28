@@ -15,16 +15,25 @@ from unittest import mock
 import uuid
 
 from enh3bench.e2e_eval_package import build_selective_eval_package
-from enh3bench.e2e_eval_schema import canonical_json, read_json, read_jsonl, write_json, write_jsonl
+from enh3bench.e2e_eval_schema import (
+    canonical_json,
+    read_json,
+    read_jsonl,
+    sha256_bytes,
+    write_json,
+    write_jsonl,
+)
 from enh3bench.generation_pilot import (
     RESPONSE_JSON_SCHEMA,
     build_development_pilot,
     prepare_generation_prompts,
     run_generation_dry_run,
+    validate_response_object,
 )
 from enh3bench.provider_execution import (
     API_KEY_ENVIRONMENT_VARIABLE,
     CANDIDATE_OUTPUT_SCHEMA_VERSION,
+    GENERIC_OPENAI_COMPATIBLE_PROFILE,
     INPUT_TOKEN_RESERVATION_METHOD,
     MAX_ALLOWED_RETRIES,
     OPENAI_COMPATIBLE_BACKEND_NAME,
@@ -36,6 +45,9 @@ from enh3bench.provider_execution import (
     REAL_EXECUTION_PLAN_SCHEMA_VERSION,
     REAL_EXECUTION_RECEIPT_SCHEMA_VERSION,
     TRANSIENT_HTTP_STATUSES,
+    USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+    USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+    USTC_LLM_GATEWAY_ENDPOINT,
     ExecutionBudget,
     OpenAICompatibleHTTPBackend,
     ProviderConfiguration,
@@ -63,6 +75,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = "https://example.invalid/v1/chat/completions"
 MODEL_ID = "test-compatible-model-v1"
 TEST_CREDENTIAL = "TEST_ONLY_NOT_A_REAL_SECRET"
+USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS = 4096
 
 
 class QueueTransport:
@@ -98,12 +111,16 @@ def provider_response(
     *, status: int = 200, model: str = MODEL_ID, content: str | None = None,
     prompt_tokens: int = 10, completion_tokens: int = 5,
     response_id: str | None = "test-response-id", finish_reason: str | None = "stop",
+    reasoning_content: str | None = None,
 ) -> TransportResponse:
+    message = {"role": "assistant", "content": content or canonical_json(valid_model_object())}
+    if reasoning_content is not None:
+        message["reasoning_content"] = reasoning_content
     body = {
         "id": response_id,
         "model": model,
         "choices": [{
-            "message": {"role": "assistant", "content": content or canonical_json(valid_model_object())},
+            "message": message,
             "finish_reason": finish_reason,
         }],
         "usage": {
@@ -172,6 +189,38 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         }
         values.update(overrides)
         return ProviderConfiguration(**values)  # type: ignore[arg-type]
+
+    def _ustc_configuration(self, **overrides: object) -> ProviderConfiguration:
+        values: dict[str, object] = {
+            "endpoint": USTC_LLM_GATEWAY_ENDPOINT,
+            "model_id": USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+            "temperature": None,
+            "top_p": None,
+            "max_output_tokens": USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS,
+            "seed": None,
+            "response_format": None,
+            "reasoning_effort": None,
+            "provider_profile": USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+            "thinking_mode": None,
+        }
+        values.update(overrides)
+        return ProviderConfiguration(**values)  # type: ignore[arg-type]
+
+    def _ustc_budget(
+        self, *, max_output_tokens_per_request: int = USTC_A1_REFERENCE_MAX_OUTPUT_TOKENS,
+    ) -> ExecutionBudget:
+        return self._budget(
+            max_input_tokens=1_000_000,
+            max_output_tokens=7 * max_output_tokens_per_request,
+            max_total_tokens=1_000_000 + 7 * max_output_tokens_per_request,
+        )
+
+    def _prepare_ustc(self, prefix: str) -> tuple[Path, str, Path, dict]:
+        return self._prepare(
+            prefix,
+            configuration=self._ustc_configuration(),
+            budget=self._ustc_budget(),
+        )
 
     def _budget(self, **overrides: object) -> ExecutionBudget:
         values: dict[str, object] = {
@@ -272,16 +321,16 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         return root, name, target, transport
 
     def test_01_schema_and_backend_constants_are_versioned(self) -> None:
-        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.2")
+        self.assertEqual(REAL_EXECUTION_PLAN_SCHEMA_VERSION, "0.16-real-execution-plan.3")
         self.assertEqual(REAL_EXECUTION_RECEIPT_SCHEMA_VERSION, "0.16-real-execution-receipt.1")
         self.assertEqual(CANDIDATE_OUTPUT_SCHEMA_VERSION, "0.16-candidate-api-output.1")
         self.assertEqual(PROVIDER_RAW_RESPONSE_SCHEMA_VERSION, "0.16-provider-raw-response.1")
-        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v2")
+        self.assertEqual(PROVIDER_EXECUTION_INTERFACE_VERSION, "provider-execution-v3")
         self.assertEqual(REAL_EXECUTION_JOURNAL_SCHEMA_VERSION, "0.16-real-execution-journal.1")
 
     def test_02_only_one_provider_backend_is_defined(self) -> None:
         self.assertEqual(OPENAI_COMPATIBLE_BACKEND_NAME, "openai-compatible-http")
-        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v2")
+        self.assertEqual(OPENAI_COMPATIBLE_BACKEND_VERSION, "openai-compatible-chat-completions-v3")
 
     def test_03_backend_satisfies_provider_protocol(self) -> None:
         self.assertIsInstance(OpenAICompatibleHTTPBackend(endpoint=ENDPOINT), ProviderExecutionBackend)
@@ -1675,6 +1724,380 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         )
         self.assertEqual((audit["result"], audit["stage"]), ("FAIL", "CORRUPT"))
         self.assertIn("raw[0]:finish_reason_not_complete", audit["errors"])
+
+    def test_135_ustc_profile_validates_and_records_only_effective_parameters(self) -> None:
+        configuration = self._ustc_configuration()
+        configuration.validate()
+        _, _, _, plan = self._prepare_ustc("ustc_valid")
+        self.assertEqual(plan["provider_profile"], USTC_LLM_DEEPSEEK_V4_PRO_PROFILE)
+        self.assertEqual(plan["model_id"], USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID)
+        self.assertEqual(plan["endpoint_origin_hash"], endpoint_origin_hash(USTC_LLM_GATEWAY_ENDPOINT))
+        self.assertEqual(plan["authorization_scope"], "REAL_API_DEVELOPMENT_V016_B1B2_7CASE")
+        self.assertEqual(plan["generation_parameters"], {
+            "thinking_mode": None,
+            "reasoning_effort": None,
+            "response_format": None,
+            "max_output_tokens": 4096,
+            "temperature": None,
+            "top_p": None,
+            "seed": None,
+        })
+
+    def test_136_ustc_endpoint_is_required_and_direct_deepseek_is_rejected(self) -> None:
+        for endpoint in (ENDPOINT, "https://api.deepseek.com/v1/chat/completions"):
+            with self.subTest(endpoint=endpoint), self.assertRaisesRegex(
+                ValueError, "ustc_gateway_endpoint_contract_mismatch",
+            ):
+                self._ustc_configuration(endpoint=endpoint).validate()
+
+    def test_137_ustc_profile_requires_one_explicit_model_without_alias_translation(self) -> None:
+        rejected = (
+            "smart/default", "smart/reasoning", "deepseek-v4-flash-ascend",
+            "deepseek-chat", "deepseek-reasoner", "other-model",
+        )
+        for model_id in rejected:
+            with self.subTest(model_id=model_id), self.assertRaisesRegex(
+                ValueError, "ustc_gateway_explicit_model_contract_mismatch",
+            ):
+                self._ustc_configuration(model_id=model_id).validate()
+
+    def test_138_ustc_profile_rejects_unverified_thinking_parameter(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_reasoning_parameter_present"):
+            self._ustc_configuration(thinking_mode="enabled").validate()
+
+    def test_139_ustc_profile_rejects_unverified_reasoning_effort(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_reasoning_parameter_present"):
+            self._ustc_configuration(reasoning_effort="high").validate()
+
+    def test_140_ustc_profile_rejects_unverified_provider_response_format(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_response_format_present"):
+            self._ustc_configuration(response_format="json_object").validate()
+
+    def test_141_ustc_profile_rejects_unverified_temperature(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_sampling_parameter_present"):
+            self._ustc_configuration(temperature=0.0).validate()
+
+    def test_142_ustc_profile_rejects_unverified_top_p(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_sampling_parameter_present"):
+            self._ustc_configuration(top_p=1.0).validate()
+
+    def test_143_ustc_profile_rejects_unverified_seed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "ustc_gateway_unverified_seed_parameter_present"):
+            self._ustc_configuration(seed=17).validate()
+
+    def test_144_ustc_max_tokens_is_positive_and_not_fixed_by_profile(self) -> None:
+        for max_output_tokens in (4096, 8192, 16384):
+            with self.subTest(max_output_tokens=max_output_tokens):
+                self._ustc_configuration(max_output_tokens=max_output_tokens).validate()
+
+    def test_145_ustc_payload_has_exact_minimal_provider_field_set(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_payload_fields")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        prepared = OpenAICompatibleHTTPBackend(endpoint=USTC_LLM_GATEWAY_ENDPOINT).prepare_request(
+            prompt, envelope, self._ustc_configuration(),
+        )
+        payload = prepared["provider_payload"]
+        self.assertEqual(set(payload), {"model", "messages", "max_tokens"})
+        self.assertEqual(payload["model"], "deepseek-v4-pro")
+        self.assertEqual(payload["max_tokens"], 4096)
+        self.assertEqual([row["role"] for row in payload["messages"]], ["system", "user"])
+
+    def test_146_ustc_payload_omits_unverified_direct_deepseek_parameters(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_payload_omissions")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._ustc_configuration())["provider_payload"]
+        self.assertTrue({
+            "thinking", "reasoning_effort", "response_format", "temperature", "top_p", "seed",
+        }.isdisjoint(payload))
+
+    def test_147_ustc_response_model_must_match_explicit_requested_model(self) -> None:
+        with self.assertRaisesRegex(ValueError, "provider_model_mismatch"):
+            OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+            ).normalize_provider_response(
+                provider_response(model="smart/reasoning"),
+                expected_model_id=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+            )
+
+    def test_148_provider_profile_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_profile_identity")
+        changed = deepcopy(plan)
+        changed["provider_profile"] = GENERIC_OPENAI_COMPATIBLE_PROFILE
+        self.assertIn("execution_plan_identity_mismatch", validate_execution_plan(changed))
+
+    def test_149_ustc_endpoint_hash_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_endpoint_identity")
+        changed = deepcopy(plan)
+        changed["endpoint_origin_hash"] = endpoint_origin_hash(
+            "https://api.deepseek.com/v1/chat/completions"
+        )
+        errors = validate_execution_plan(changed)
+        self.assertIn("ustc_gateway_endpoint_identity_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
+
+    def test_150_explicit_ustc_model_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_model_identity")
+        changed = deepcopy(plan)
+        changed["model_id"] = "smart/default"
+        errors = validate_execution_plan(changed)
+        self.assertIn("ustc_gateway_explicit_model_contract_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
+
+    def test_151_b1b2_authorization_scope_participates_in_re16_identity(self) -> None:
+        _, _, _, plan = self._prepare_ustc("ustc_authorization_identity")
+        changed = deepcopy(plan)
+        changed["authorization_scope"] = "REAL_API_DEVELOPMENT_V016_B1B1"
+        errors = validate_execution_plan(changed)
+        self.assertIn("authorization_scope_mismatch", errors)
+        self.assertIn("execution_plan_identity_mismatch", errors)
+
+    def test_152_ustc_provider_request_sha256_is_stable(self) -> None:
+        _, _, target, _ = self._prepare_ustc("ustc_request_sha")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        backend = OpenAICompatibleHTTPBackend(endpoint=USTC_LLM_GATEWAY_ENDPOINT)
+        first = backend.prepare_request(prompt, envelope, self._ustc_configuration())
+        second = backend.prepare_request(prompt, envelope, self._ustc_configuration())
+        self.assertEqual(first["provider_request_sha256"], second["provider_request_sha256"])
+        self.assertEqual(
+            first["provider_request_sha256"],
+            "efba7544504ed8ab828a17dac1a9192e4d09831be798452f358db334ce337563",
+        )
+
+    def test_153_ustc_reservation_uses_exact_provider_payload(self) -> None:
+        _, _, target, plan = self._prepare_ustc("ustc_exact_reservation")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).prepare_request(prompt, envelope, self._ustc_configuration())["provider_payload"]
+        exact_bytes = len(canonical_json(payload).encode("utf-8"))
+        self.assertEqual(reserve_request_input_tokens(prompt, self._ustc_configuration()), exact_bytes)
+        self.assertEqual(plan["reserved_input_tokens_per_request"][0], exact_bytes)
+
+    def test_154_internal_response_schema_is_byte_logically_unchanged(self) -> None:
+        digest = sha256_bytes(canonical_json(RESPONSE_JSON_SCHEMA).encode("utf-8"))
+        self.assertEqual(digest, "80422d27959af89ed713e446138e8f5eccac402aa3e1db2fa09c30ac373c476a")
+
+    def test_155_internal_duplicate_claim_and_citation_ids_are_rejected(self) -> None:
+        root, name, target, _ = self._prepare("duplicate_internal_ids")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        source_span_id = prompt["allowed_source_span_ids"][0]
+        claim = {
+            "claim_id": "claim-1", "claim_text": "Test claim",
+            "claim_type": "author_result", "supporting_source_span_ids": [source_span_id],
+            "supporting_evidence_link_ids": [], "support_status": "supported",
+        }
+        citation = {
+            "citation_id": "citation-1", "claim_ids": ["claim-1"],
+            "source_span_ids": [source_span_id], "evidence_link_ids": [],
+        }
+        value = valid_model_object()
+        value.update(answer_status="answered", claims=[claim, deepcopy(claim)],
+                     citations=[citation, deepcopy(citation)])
+        backend, _ = self._backend([provider_response(content=canonical_json(value))])
+        with self.assertRaisesRegex(ValueError, "duplicate_citation_id;duplicate_claim_id"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root, endpoint=ENDPOINT,
+                execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL, backend=backend,
+            )
+
+    def test_156_internal_citation_still_requires_source_or_link(self) -> None:
+        value = valid_model_object()
+        value["citations"] = [{
+            "citation_id": "citation-1", "claim_ids": [],
+            "source_span_ids": [], "evidence_link_ids": [],
+        }]
+        self.assertIn("citation[0]:source_or_link_required", validate_response_object(value))
+
+    def test_157_unrecognized_gateway_reasoning_content_is_ignored_by_normalization(self) -> None:
+        sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_DISAPPEAR"
+        content = canonical_json(valid_model_object())
+        normalized = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).normalize_provider_response(
+            provider_response(
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+                content=content,
+                reasoning_content=sentinel,
+            ),
+            expected_model_id=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+        )
+        self.assertEqual(normalized["response_content"], content)
+        self.assertNotIn(sentinel, canonical_json(normalized))
+
+    def test_158_message_content_is_the_only_persisted_scientific_output(self) -> None:
+        root, name, target, _ = self._prepare_ustc("ustc_content_only")
+        sentinel = "TEST_ONLY_PRIVATE_REASONING_MUST_NEVER_PERSIST"
+        content = canonical_json(valid_model_object())
+        responses = [
+            provider_response(
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+                content=content,
+                reasoning_content=f"{sentinel}-{index}",
+                response_id=f"ustc-test-response-{index}",
+            )
+            for index in range(7)
+        ]
+        transport = QueueTransport(responses)
+        backend = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=transport,
+        )
+        result = run_real_execution(
+            generation_run_name=name, generation_root=root,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+            execute_real_api=True, authorization=REAL_API_AUTHORIZATION_SCOPE,
+            credential_reader=lambda _: TEST_CREDENTIAL, backend=backend, sleep=lambda _: None,
+        )
+        self.assertEqual(result["result"], "PASS")
+        candidates = read_jsonl(target / "candidate_outputs/candidate_api_outputs.jsonl")
+        self.assertTrue(all(row["response_object"] == valid_model_object() for row in candidates))
+        serialized = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in target.rglob("*") if path.is_file() and path.suffix in {".json", ".jsonl"}
+        )
+        self.assertNotIn(sentinel, serialized)
+
+    def test_159_real_execution_plan_dot_two_fails_closed_under_dot_three(self) -> None:
+        _, _, _, plan = self._prepare("old_plan_schema")
+        old = deepcopy(plan)
+        old["schema_version"] = "0.16-real-execution-plan.2"
+        old["provider_interface_version"] = "provider-execution-v2"
+        old["provider_backend_version"] = "openai-compatible-chat-completions-v2"
+        del old["provider_profile"]
+        old["generation_parameters"].pop("thinking_mode")
+        errors = validate_execution_plan(old)
+        self.assertIn("execution_plan_missing:provider_profile", errors)
+
+    def test_160_ustc_prepare_and_check_never_read_credential(self) -> None:
+        original_get = os.environ.get
+        def guarded_get(key: str, default: object = None) -> object:
+            if key == API_KEY_ENVIRONMENT_VARIABLE:
+                raise AssertionError("credential read")
+            return original_get(key, default)
+        with mock.patch.object(os._Environ, "get", side_effect=guarded_get):
+            root, name, _, _ = self._prepare_ustc("ustc_no_credential")
+            audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
+
+    def test_161_ustc_prepare_cli_and_check_are_offline(self) -> None:
+        root, name, target = self._copy_baseline("ustc_cli_offline")
+        selected_max_output_tokens = 8192
+        argv = [
+            "--generation-run-name", name, "--pilot-root", str(root),
+            "--provider-profile", USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+            "--endpoint", USTC_LLM_GATEWAY_ENDPOINT,
+            "--model-id", USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+            "--max-output-tokens-per-request", str(selected_max_output_tokens),
+            "--max-requests", "7", "--max-network-attempts", "7",
+            "--max-input-tokens", "1000000", "--max-output-tokens", "57344",
+            "--max-total-tokens", "1057344", "--timeout-seconds", "60",
+            "--max-retries", "2",
+        ]
+        original_get = os.environ.get
+
+        def guarded_get(key: str, default: object = None) -> object:
+            if key == API_KEY_ENVIRONMENT_VARIABLE:
+                raise AssertionError("credential read")
+            return original_get(key, default)
+        with mock.patch.object(
+            socket, "create_connection", side_effect=AssertionError("public network")
+        ), mock.patch(
+            "enh3bench.provider_execution.urllib_request.urlopen",
+            side_effect=AssertionError("public network"),
+        ), mock.patch.object(
+            os._Environ, "get", side_effect=guarded_get,
+        ), redirect_stdout(io.StringIO()):
+            self.assertEqual(prepare_cli.main(argv), 0)
+            audit = check_real_execution(generation_run_name=name, generation_root=root)
+        self.assertEqual((audit["result"], audit["stage"]), ("PASS", "PREPARED"))
+        plan = read_json(target / "execution/real_execution_plan.json")
+        self.assertEqual(
+            plan["generation_parameters"]["max_output_tokens"], selected_max_output_tokens,
+        )
+        self.assertEqual(plan["reserved_output_tokens_total"], 7 * selected_max_output_tokens)
+
+    def test_162_old_b1b1_scope_fails_before_credential_and_transport(self) -> None:
+        root, name, _, _ = self._prepare_ustc("old_b1b1_scope")
+        backend_transport = QueueTransport([
+            provider_response(model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID),
+        ])
+        backend = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=backend_transport,
+        )
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "real_api_execution_not_authorized"):
+            run_real_execution(
+                generation_run_name=name,
+                generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+                execute_real_api=True,
+                authorization="REAL_API_DEVELOPMENT_V016_B1B1",
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+                backend=backend,
+            )
+        self.assertEqual(credential_calls, [])
+        self.assertEqual(backend_transport.calls, [])
+
+    def test_163_ustc_nonpositive_max_tokens_still_fail(self) -> None:
+        for max_output_tokens in (0, -1):
+            with self.subTest(max_output_tokens=max_output_tokens), self.assertRaisesRegex(
+                ValueError, "invalid_generation_max_output_tokens",
+            ):
+                self._ustc_configuration(max_output_tokens=max_output_tokens).validate()
+
+    def test_164_selected_ustc_max_tokens_binds_payload_reservations_and_re16(self) -> None:
+        shared_budget = self._ustc_budget(max_output_tokens_per_request=16384)
+        observations: dict[int, dict[str, object]] = {}
+        for max_output_tokens in (4096, 16384):
+            configuration = self._ustc_configuration(max_output_tokens=max_output_tokens)
+            _, _, target, plan = self._prepare(
+                f"ustc_selected_max_{max_output_tokens}",
+                configuration=configuration,
+                budget=shared_budget,
+            )
+            prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+            envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+            prepared = OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+            ).prepare_request(prompt, envelope, configuration)
+            payload = prepared["provider_payload"]
+            self.assertEqual(set(payload), {"model", "messages", "max_tokens"})
+            self.assertEqual(payload["max_tokens"], max_output_tokens)
+            self.assertEqual(
+                plan["generation_parameters"]["max_output_tokens"], max_output_tokens,
+            )
+            self.assertEqual(
+                plan["reserved_output_tokens_total"],
+                max_output_tokens * shared_budget.max_network_attempts,
+            )
+            self.assertEqual(
+                plan["reserved_total_tokens"],
+                plan["reserved_input_tokens_total"] + plan["reserved_output_tokens_total"],
+            )
+            observations[max_output_tokens] = {
+                "execution_plan_id": plan["execution_plan_id"],
+                "provider_payload": payload,
+                "provider_request_sha256": prepared["provider_request_sha256"],
+                "reserved_input_tokens_total": plan["reserved_input_tokens_total"],
+                "reserved_output_tokens_total": plan["reserved_output_tokens_total"],
+                "reserved_total_tokens": plan["reserved_total_tokens"],
+            }
+        for field in (
+            "execution_plan_id",
+            "provider_payload",
+            "provider_request_sha256",
+            "reserved_input_tokens_total",
+            "reserved_output_tokens_total",
+            "reserved_total_tokens",
+        ):
+            with self.subTest(field=field):
+                self.assertNotEqual(observations[4096][field], observations[16384][field])
 
 
 if __name__ == "__main__":

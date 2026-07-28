@@ -11,6 +11,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.provider_execution import (  # noqa: E402
+    GENERIC_OPENAI_COMPATIBLE_PROFILE,
+    USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
     ExecutionBudget,
     ProviderConfiguration,
     prepare_real_execution,
@@ -19,17 +21,23 @@ from enh3bench.provider_execution import (  # noqa: E402
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Prepare an offline, development-only B1B1 real-execution plan."
+        description="Prepare an offline, development-only B1B2 seven-case execution plan."
     )
     parser.add_argument("--generation-run-name", required=True)
     parser.add_argument("--pilot-root", type=Path, required=True)
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--model-id", required=True)
-    parser.add_argument("--temperature", type=float, required=True)
-    parser.add_argument("--top-p", type=float, required=True)
+    parser.add_argument(
+        "--provider-profile",
+        choices=(GENERIC_OPENAI_COMPATIBLE_PROFILE, USTC_LLM_DEEPSEEK_V4_PRO_PROFILE),
+        default=GENERIC_OPENAI_COMPATIBLE_PROFILE,
+    )
+    parser.add_argument("--thinking-mode", choices=("enabled", "disabled"))
+    parser.add_argument("--temperature", type=float)
+    parser.add_argument("--top-p", type=float)
     parser.add_argument("--max-output-tokens-per-request", type=int, required=True)
     parser.add_argument("--seed", type=int)
-    parser.add_argument("--response-format", choices=("json_schema", "json_object"), required=True)
+    parser.add_argument("--response-format", choices=("json_schema", "json_object"))
     parser.add_argument("--reasoning-effort", choices=("low", "medium", "high"))
     parser.add_argument("--max-requests", type=int, required=True)
     parser.add_argument("--max-network-attempts", type=int, required=True)
@@ -55,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         seed=args.seed,
         response_format=args.response_format,
         reasoning_effort=args.reasoning_effort,
+        provider_profile=args.provider_profile,
+        thinking_mode=args.thinking_mode,
     )
     budget = ExecutionBudget(
         max_requests=args.max_requests,
