@@ -66,6 +66,17 @@ MAX_ALLOWED_RETRIES = 2
 INPUT_TOKEN_RESERVATION_METHOD = "utf8_payload_byte_upper_bound_v1"
 USTC_RECOVERY_TIMEOUT_SECONDS = 900.0
 USTC_RECOVERY_MAX_OUTPUT_TOKENS = 8192
+USTC_RECOVERY_GENERATION_RUN_ID = "GR16_C9D719692BE1DE6DBF2A"
+USTC_RECOVERY_PILOT_SELECTION_ID = "PS16_AB353BA2BE4E7CC83737"
+USTC_RECOVERY_APPROVED_CASE_IDS = (
+    "EC16_CEEE6E048F7B34D28600",
+    "EC16_019B2E986566533635D0",
+    "EC16_F1CE2281BF67967C6F5F",
+    "EC16_EB62B436C9FD7F8D1242",
+    "EC16_47CBB413B6F7B9E4FE62",
+    "EC16_7263EBEC21D9DF523A7D",
+    "EC16_83242FA9E17F52D12567",
+)
 
 REAL_EXECUTION_PLAN_RELATIVE_PATH = Path("execution/real_execution_plan.json")
 REAL_EXECUTION_JOURNAL_RELATIVE_PATH = Path("execution/real_execution_journal.json")
@@ -561,6 +572,8 @@ def _recovery_scope_contract_errors(plan: dict[str, Any]) -> list[str]:
 
     errors: list[str] = []
     exact_fields = {
+        "generation_run_id": USTC_RECOVERY_GENERATION_RUN_ID,
+        "pilot_selection_id": USTC_RECOVERY_PILOT_SELECTION_ID,
         "provider_profile": USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
         "model_id": USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
         "endpoint_origin_hash": endpoint_origin_hash(USTC_LLM_GATEWAY_ENDPOINT),
@@ -575,6 +588,12 @@ def _recovery_scope_contract_errors(plan: dict[str, Any]) -> list[str]:
         value = plan.get(field)
         if value != expected or (isinstance(expected, int) and type(value) is not int):
             errors.append(f"recovery_scope_contract_mismatch:{field}")
+    approved_case_ids = plan.get("approved_case_ids")
+    if (
+        type(approved_case_ids) is not list
+        or approved_case_ids != list(USTC_RECOVERY_APPROVED_CASE_IDS)
+    ):
+        errors.append("recovery_scope_contract_mismatch:approved_case_ids")
     timeout = plan.get("timeout_seconds")
     if (
         type(timeout) not in {int, float}
