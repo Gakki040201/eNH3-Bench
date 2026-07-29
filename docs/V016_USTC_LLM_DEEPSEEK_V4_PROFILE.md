@@ -16,7 +16,8 @@ The fail-closed provider profile is `ustc-llm-deepseek-v4-pro-v1`.
 | Gateway provider | USTC Large Model Public Service Platform |
 | Gateway endpoint | `https://api.llm.ustc.edu.cn/v1/chat/completions` |
 | Requested underlying model | `deepseek-v4-pro` |
-| Authorization scope | `REAL_API_DEVELOPMENT_V016_B1B2_7CASE` |
+| Original commissioning authorization scope | `REAL_API_DEVELOPMENT_V016_B1B2_7CASE` |
+| Timeout-recovery authorization scope | `REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900` |
 
 `ENH3BENCH_API_KEY` contains a USTC platform project API key. It is not described or
 treated as a DeepSeek official API key. The USTC key may authorize multiple models; the
@@ -85,6 +86,11 @@ fresh external execution plan. That selected value is recorded in
 `generation_parameters.max_output_tokens`, used verbatim by the provider payload, included in
 the output and total token reservations, and bound into the RE16 identity.
 
+The later timeout-recovery authorization scope is intentionally narrower: it accepts only
+`max_tokens=8192`, a 900-second client timeout, zero retries, and seven total network
+attempts for the same seven development cases. This does not change the general USTC profile's
+historical A1 fixtures and does not claim that 900 seconds is a USTC service guarantee.
+
 ## Execution identity and superseded artifact
 
 The execution-plan schema is `0.16-real-execution-plan.3`, the provider interface is
@@ -98,18 +104,30 @@ must not be executed, resumed, deleted, overwritten, or mutated. A2 must create 
 gateway plan only after this patch is merged and separately authorized. B1B2-B remains
 blocked.
 
+The first USTC commissioning plan `RE16_E4174709F5F9EAAE50F1` is also preserved and
+immutable after a locally observed 180-second timeout. Its classification is
+`client_observed_timeout_after_request_dispatch`; provider-side completion remains unknown.
+It must never be resumed. Recovery requires a new external runtime, a new RE16, and the exact
+recovery authorization scope. See `V016_USTC_TIMEOUT_RECOVERY.md`.
+
 ## Future offline preparation shape
 
-After merge and separate A2 authorization, the provider portion of the offline preparation
-command is expected to use:
+After merge and separate recovery authorization, the provider portion of any future offline
+recovery preparation command must use:
 
 ```powershell
 --provider-profile ustc-llm-deepseek-v4-pro-v1 `
+--authorization-scope REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900 `
 --endpoint https://api.llm.ustc.edu.cn/v1/chat/completions `
 --model-id deepseek-v4-pro `
---max-output-tokens-per-request <A2-verified-value>
+--max-output-tokens-per-request 8192 `
+--max-requests 7 `
+--max-network-attempts 7 `
+--timeout-seconds 900 `
+--max-retries 0
 ```
 
 It must not use `smart/default` or `smart/reasoning`. Until separately verified, it must
 also omit `--thinking-mode`, `--reasoning-effort`, `--response-format`, `--temperature`,
-`--top-p`, and `--seed`. No execution plan or real request is created by B1B2-A1.
+`--top-p`, and `--seed`. This is a future preparation shape only; BR1 creates no recovery
+runtime, execution plan, or provider request.

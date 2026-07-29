@@ -51,6 +51,11 @@ USTC_LLM_DEEPSEEK_V4_PRO_PROFILE = "ustc-llm-deepseek-v4-pro-v1"
 USTC_LLM_GATEWAY_ENDPOINT = "https://api.llm.ustc.edu.cn/v1/chat/completions"
 USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID = "deepseek-v4-pro"
 REAL_API_AUTHORIZATION_SCOPE = "REAL_API_DEVELOPMENT_V016_B1B2_7CASE"
+REAL_API_RECOVERY_AUTHORIZATION_SCOPE = "REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900"
+ALLOWED_REAL_API_AUTHORIZATION_SCOPES = frozenset({
+    REAL_API_AUTHORIZATION_SCOPE,
+    REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
+})
 API_KEY_ENVIRONMENT_VARIABLE = "ENH3BENCH_API_KEY"
 REAL_EXECUTION_PLAN_ID_PREFIX = "RE16"
 REAL_EXECUTION_RECEIPT_ID_PREFIX = "RR16"
@@ -59,6 +64,8 @@ TRANSIENT_HTTP_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
 MAX_REAL_REQUESTS = 7
 MAX_ALLOWED_RETRIES = 2
 INPUT_TOKEN_RESERVATION_METHOD = "utf8_payload_byte_upper_bound_v1"
+USTC_RECOVERY_TIMEOUT_SECONDS = 900.0
+USTC_RECOVERY_MAX_OUTPUT_TOKENS = 8192
 
 REAL_EXECUTION_PLAN_RELATIVE_PATH = Path("execution/real_execution_plan.json")
 REAL_EXECUTION_JOURNAL_RELATIVE_PATH = Path("execution/real_execution_journal.json")
@@ -549,17 +556,64 @@ def _plan_identity_payload(plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _recovery_scope_contract_errors(plan: dict[str, Any]) -> list[str]:
+    """Return exact fail-closed recovery-scope contract violations."""
+
+    errors: list[str] = []
+    exact_fields = {
+        "provider_profile": USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+        "model_id": USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+        "endpoint_origin_hash": endpoint_origin_hash(USTC_LLM_GATEWAY_ENDPOINT),
+        "request_count": PILOT_CASE_COUNT,
+        "development_case_count": PILOT_CASE_COUNT,
+        "holdout_case_count": 0,
+        "max_requests": PILOT_CASE_COUNT,
+        "max_network_attempts": PILOT_CASE_COUNT,
+        "max_retries": 0,
+    }
+    for field, expected in exact_fields.items():
+        value = plan.get(field)
+        if value != expected or (isinstance(expected, int) and type(value) is not int):
+            errors.append(f"recovery_scope_contract_mismatch:{field}")
+    timeout = plan.get("timeout_seconds")
+    if (
+        type(timeout) not in {int, float}
+        or not math.isfinite(timeout)
+        or float(timeout) != USTC_RECOVERY_TIMEOUT_SECONDS
+    ):
+        errors.append("recovery_scope_contract_mismatch:timeout_seconds")
+    parameters = plan.get("generation_parameters")
+    if not isinstance(parameters, dict):
+        errors.append("recovery_scope_contract_mismatch:generation_parameters")
+        return errors
+    max_output_tokens = parameters.get("max_output_tokens")
+    if type(max_output_tokens) is not int or max_output_tokens != USTC_RECOVERY_MAX_OUTPUT_TOKENS:
+        errors.append("recovery_scope_contract_mismatch:generation_parameters.max_output_tokens")
+    for field in (
+        "temperature", "top_p", "seed", "response_format", "reasoning_effort", "thinking_mode",
+    ):
+        if parameters.get(field) is not None:
+            errors.append(f"recovery_scope_contract_mismatch:generation_parameters.{field}")
+    return errors
+
+
 def prepare_real_execution(
     *,
     generation_run_name: str,
     generation_root: str | Path,
     configuration: ProviderConfiguration,
     budget: ExecutionBudget,
+    authorization_scope: str = REAL_API_AUTHORIZATION_SCOPE,
     resume: bool = False,
     created_at_utc: str | None = None,
 ) -> dict[str, Any]:
     """Prepare the stable execution plan without reading credentials or using a network."""
 
+    if (
+        not isinstance(authorization_scope, str)
+        or authorization_scope not in ALLOWED_REAL_API_AUTHORIZATION_SCOPES
+    ):
+        raise ValueError("real_api_execution_not_authorized")
     configuration.validate()
     budget.validate(request_count=PILOT_CASE_COUNT)
     run_dir = resolve_external_run_target(generation_root, generation_run_name)
@@ -608,11 +662,14 @@ def prepare_real_execution(
         "currency": budget.currency,
         "timeout_seconds": float(budget.timeout_seconds),
         "max_retries": budget.max_retries,
-        "authorization_scope": REAL_API_AUTHORIZATION_SCOPE,
+        "authorization_scope": authorization_scope,
         "generation_parameters": _generation_parameters(configuration),
         "created_at_utc": created_at_utc or _utc_now(),
     }
     plan["execution_plan_id"] = _stable_id(REAL_EXECUTION_PLAN_ID_PREFIX, _plan_identity_payload(plan))
+    plan_errors = validate_execution_plan(plan)
+    if plan_errors:
+        raise ValueError("invalid_real_execution_plan:" + ";".join(plan_errors))
     plan_path = run_dir / REAL_EXECUTION_PLAN_RELATIVE_PATH
     journal_path = run_dir / REAL_EXECUTION_JOURNAL_RELATIVE_PATH
     if plan_path.exists():
@@ -670,8 +727,13 @@ def validate_execution_plan(plan: dict[str, Any]) -> list[str]:
         errors.append("provider_backend_name_mismatch")
     if plan["provider_backend_version"] != OPENAI_COMPATIBLE_BACKEND_VERSION:
         errors.append("provider_backend_version_mismatch")
-    if plan["authorization_scope"] != REAL_API_AUTHORIZATION_SCOPE:
+    if (
+        not isinstance(plan["authorization_scope"], str)
+        or plan["authorization_scope"] not in ALLOWED_REAL_API_AUTHORIZATION_SCOPES
+    ):
         errors.append("authorization_scope_mismatch")
+    elif plan["authorization_scope"] == REAL_API_RECOVERY_AUTHORIZATION_SCOPE:
+        errors.extend(_recovery_scope_contract_errors(plan))
     if plan["request_count"] != PILOT_CASE_COUNT or plan["development_case_count"] != PILOT_CASE_COUNT:
         errors.append("development_request_count_mismatch")
     if plan["holdout_case_count"] != 0:
@@ -785,8 +847,17 @@ def _configuration_from_plan(endpoint: str, plan: dict[str, Any]) -> ProviderCon
 def authorize_real_execution(
     *, execute_real_api: bool, authorization: str | None,
 ) -> None:
-    if not execute_real_api or authorization != REAL_API_AUTHORIZATION_SCOPE:
+    if (
+        not execute_real_api
+        or not isinstance(authorization, str)
+        or authorization not in ALLOWED_REAL_API_AUTHORIZATION_SCOPES
+    ):
         raise ValueError("real_api_execution_not_authorized")
+
+
+def _authorize_execution_plan(*, authorization: str | None, plan: dict[str, Any]) -> None:
+    if authorization != plan["authorization_scope"]:
+        raise ValueError("real_api_authorization_scope_plan_mismatch")
 
 
 def _parse_candidate_response(content: str, prompt: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -1291,6 +1362,7 @@ def _run_real_execution_under_lock(
     plan_errors = validate_execution_plan(plan)
     if plan_errors:
         raise ValueError("invalid_real_execution_plan:" + ";".join(plan_errors))
+    _authorize_execution_plan(authorization=authorization, plan=plan)
     configuration = _configuration_from_plan(endpoint, plan)
     manifest, selection, prompts, envelopes = _load_development_contract(run_dir, generation_run_name)
     if plan["generation_run_id"] != manifest["generation_run_id"]:
