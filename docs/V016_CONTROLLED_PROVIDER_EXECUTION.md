@@ -167,6 +167,14 @@ seed, response format, reasoning effort, and thinking mode must all remain null.
 payload remains exactly `model`, `messages`, and `max_tokens`. The 900-second timeout is only
 a client waiting ceiling, not a USTC service guarantee.
 
+That recovery scope is also bound to generation run
+`GR16_C9D719692BE1DE6DBF2A`, pilot selection `PS16_AB353BA2BE4E7CC83737`,
+and the exact canonical ordered `approved_case_ids` listed in
+`V016_USTC_TIMEOUT_RECOVERY.md`. Exact list equality is required: another seven-case package
+or a reordering of the approved cases is not authorized. These identity restrictions apply
+only to the recovery scope; the original commissioning scope and existing schema `.3`
+commissioning plans remain unchanged.
+
 ## Exclusive execution lock
 
 The runner atomically creates the external-runtime lock with OS-level exclusive creation:

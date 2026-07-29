@@ -88,8 +88,11 @@ the output and total token reservations, and bound into the RE16 identity.
 
 The later timeout-recovery authorization scope is intentionally narrower: it accepts only
 `max_tokens=8192`, a 900-second client timeout, zero retries, and seven total network
-attempts for the same seven development cases. This does not change the general USTC profile's
-historical A1 fixtures and does not claim that 900 seconds is a USTC service guarantee.
+attempts for the exact frozen generation run `GR16_C9D719692BE1DE6DBF2A`, pilot selection
+`PS16_AB353BA2BE4E7CC83737`, and canonical ordered `approved_case_ids` listed in
+`V016_USTC_TIMEOUT_RECOVERY.md`. Another seven-case package, or the same cases in a different
+order, is not authorized. This does not change the general USTC profile's historical A1
+fixtures and does not claim that 900 seconds is a USTC service guarantee.
 
 ## Execution identity and superseded artifact
 
