@@ -12,8 +12,7 @@ and do not open a network connection. The run entry point refuses execution unle
 the following are present and valid:
 
 1. the explicit `--execute-real-api` flag;
-2. the exact versioned authorization scope
-   `REAL_API_DEVELOPMENT_V016_B1B2_7CASE`;
+2. one exact versioned authorization scope from the fail-closed allowlist;
 3. a previously prepared and internally consistent execution plan;
 4. an explicitly configured OpenAI-compatible HTTPS chat-completions endpoint;
 5. an explicitly configured model and generation parameters;
@@ -21,6 +20,11 @@ the following are present and valid:
 7. hard logical-request, network-attempt, token-reservation, timeout, and retry limits;
 8. an atomically acquired exclusive execution lock;
 9. a credential available only after all preceding gates pass.
+
+The allowlist contains exactly the original commissioning scope
+`REAL_API_DEVELOPMENT_V016_B1B2_7CASE` and the timeout-recovery scope
+`REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900`. Matching is case-sensitive equality:
+there are no aliases, prefixes, substring matches, or fallbacks.
 
 There is no implicit provider, default external model, environment-driven automatic
 execution, real-provider fallback, `--force` switch, or `--include-holdout` option.
@@ -46,6 +50,14 @@ The provider request retains the B1B0 `prompt_instance_id`, `compiled_prompt_sha
 are never added to the benchmark envelope or a serialized artifact.
 
 ## Authorization and credential lifecycle
+
+Authorization has two stages. Before the plan is read, the runner requires both
+`execute_real_api=true` and one exact allowlisted supplied scope. After the plan is safely
+loaded and validated, the runner requires exact equality between the supplied scope and the
+plan's serialized `authorization_scope`. A commissioning authorization cannot run a recovery
+plan, and a recovery authorization cannot run a commissioning plan. Unknown values and plan
+mismatches fail before credential access, backend construction, provider transport, or
+journal-attempt mutation; the supplied value is never replaced with a plan value.
 
 The credential environment variable is `ENH3BENCH_API_KEY`. Its value is read only inside
 the authorized execution function, after authorization, plan identity, endpoint identity,
@@ -97,6 +109,12 @@ method and bounds, timeout, retry policy, authorization scope, and every recorde
 parameter. It deliberately excludes creation time, absolute paths, runtime root, and
 credentials.
 
+Adding the second exact authorization value does not change the serialized shape. Existing
+schema `.3` commissioning plans remain valid, and the selected authorization scope continues
+to participate in the stable RE16 identity. Offline preparation accepts an explicit
+`--authorization-scope`; its backward-compatible default is the original commissioning
+scope.
+
 Every configured provider parameter is recorded: model, provider profile, thinking mode,
 temperature, top-p, maximum output tokens per request, optional seed, response format, and
 optional reasoning effort. Inactive or unverified USTC parameters are recorded as null and
@@ -140,6 +158,14 @@ Retries are bounded and apply only to HTTP 408, 429, 500, 502, 503, and 504, or 
 classified timeout/connection-reset failure. HTTP 400, 401, 403, 404, authorization failures,
 schema failures, and other permanent failures are not retried. Backoff is finite; tests inject
 a no-sleep function.
+
+The recovery scope is narrower than the general budget rules. It requires the exact USTC
+profile and endpoint identity, model `deepseek-v4-pro`, seven development requests, zero
+holdout requests, `max_requests=7`, `max_network_attempts=7`, `max_retries=0`, a 900-second
+client timeout, and `generation_parameters.max_output_tokens=8192`. Temperature, top-p,
+seed, response format, reasoning effort, and thinking mode must all remain null. The provider
+payload remains exactly `model`, `messages`, and `max_tokens`. The 900-second timeout is only
+a client waiting ceiling, not a USTC service guarantee.
 
 ## Exclusive execution lock
 
@@ -235,6 +261,7 @@ Prepare a plan outside the repository after substituting reviewed values:
 C:\Python314\python.exe scripts\prepare_real_execution.py `
   --generation-run-name <approved-development-run> `
   --pilot-root <external-runtime-root> `
+  --authorization-scope REAL_API_DEVELOPMENT_V016_B1B2_7CASE `
   --endpoint https://<reviewed-host>/v1/chat/completions `
   --model-id <reviewed-model> `
   --temperature 0 `
@@ -249,6 +276,12 @@ C:\Python314\python.exe scripts\prepare_real_execution.py `
   --timeout-seconds 60 `
   --max-retries 2
 ```
+
+Any future timeout-recovery preparation must instead explicitly pass
+`--authorization-scope REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900` together with the exact
+recovery contract documented in `V016_USTC_TIMEOUT_RECOVERY.md`. That future operation
+requires separate authorization and must create a new external runtime and new RE16; the
+preserved failed plan must never be resumed.
 
 Validate the prepared state offline:
 

@@ -31,6 +31,7 @@ from enh3bench.generation_pilot import (
     validate_response_object,
 )
 from enh3bench.provider_execution import (
+    ALLOWED_REAL_API_AUTHORIZATION_SCOPES,
     API_KEY_ENVIRONMENT_VARIABLE,
     CANDIDATE_OUTPUT_SCHEMA_VERSION,
     GENERIC_OPENAI_COMPATIBLE_PROFILE,
@@ -41,6 +42,7 @@ from enh3bench.provider_execution import (
     PROVIDER_EXECUTION_INTERFACE_VERSION,
     PROVIDER_RAW_RESPONSE_SCHEMA_VERSION,
     REAL_API_AUTHORIZATION_SCOPE,
+    REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
     REAL_EXECUTION_JOURNAL_SCHEMA_VERSION,
     REAL_EXECUTION_PLAN_SCHEMA_VERSION,
     REAL_EXECUTION_RECEIPT_SCHEMA_VERSION,
@@ -48,6 +50,8 @@ from enh3bench.provider_execution import (
     USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
     USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
     USTC_LLM_GATEWAY_ENDPOINT,
+    USTC_RECOVERY_MAX_OUTPUT_TOKENS,
+    USTC_RECOVERY_TIMEOUT_SECONDS,
     ExecutionBudget,
     OpenAICompatibleHTTPBackend,
     ProviderConfiguration,
@@ -215,11 +219,40 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             max_total_tokens=1_000_000 + 7 * max_output_tokens_per_request,
         )
 
+    def _recovery_configuration(self, **overrides: object) -> ProviderConfiguration:
+        return self._ustc_configuration(
+            max_output_tokens=USTC_RECOVERY_MAX_OUTPUT_TOKENS,
+            **overrides,
+        )
+
+    def _recovery_budget(self, **overrides: object) -> ExecutionBudget:
+        values: dict[str, object] = {
+            "max_requests": 7,
+            "max_network_attempts": 7,
+            "max_input_tokens": 1_000_000,
+            "max_output_tokens": 7 * USTC_RECOVERY_MAX_OUTPUT_TOKENS,
+            "max_total_tokens": 1_000_000 + 7 * USTC_RECOVERY_MAX_OUTPUT_TOKENS,
+            "timeout_seconds": USTC_RECOVERY_TIMEOUT_SECONDS,
+            "max_retries": 0,
+            "max_estimated_cost": None,
+            "currency": None,
+        }
+        values.update(overrides)
+        return ExecutionBudget(**values)  # type: ignore[arg-type]
+
     def _prepare_ustc(self, prefix: str) -> tuple[Path, str, Path, dict]:
         return self._prepare(
             prefix,
             configuration=self._ustc_configuration(),
             budget=self._ustc_budget(),
+        )
+
+    def _prepare_recovery(self, prefix: str) -> tuple[Path, str, Path, dict]:
+        return self._prepare(
+            prefix,
+            configuration=self._recovery_configuration(),
+            budget=self._recovery_budget(),
+            authorization_scope=REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
         )
 
     def _budget(self, **overrides: object) -> ExecutionBudget:
@@ -239,7 +272,9 @@ class ProviderExecutionV016Tests(unittest.TestCase):
 
     def _prepare(
         self, prefix: str, *, configuration: ProviderConfiguration | None = None,
-        budget: ExecutionBudget | None = None, created_at: str = "2026-07-24T00:00:00Z",
+        budget: ExecutionBudget | None = None,
+        authorization_scope: str = REAL_API_AUTHORIZATION_SCOPE,
+        created_at: str = "2026-07-24T00:00:00Z",
     ) -> tuple[Path, str, Path, dict]:
         root, name, target = self._copy_baseline(prefix)
         plan = prepare_real_execution(
@@ -247,6 +282,7 @@ class ProviderExecutionV016Tests(unittest.TestCase):
             generation_root=root,
             configuration=configuration or self._configuration(),
             budget=budget or self._budget(),
+            authorization_scope=authorization_scope,
             created_at_utc=created_at,
         )
         return root, name, target, plan
@@ -2098,6 +2134,337 @@ class ProviderExecutionV016Tests(unittest.TestCase):
         ):
             with self.subTest(field=field):
                 self.assertNotEqual(observations[4096][field], observations[16384][field])
+
+    def test_165_original_commissioning_scope_remains_valid(self) -> None:
+        _, _, _, plan = self._prepare_ustc("commissioning_scope_valid")
+        self.assertEqual(plan["authorization_scope"], REAL_API_AUTHORIZATION_SCOPE)
+        self.assertEqual(validate_execution_plan(plan), [])
+        self.assertEqual(ALLOWED_REAL_API_AUTHORIZATION_SCOPES, frozenset({
+            "REAL_API_DEVELOPMENT_V016_B1B2_7CASE",
+            "REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900",
+        }))
+
+    def test_166_exact_recovery_scope_plan_is_accepted(self) -> None:
+        _, _, _, plan = self._prepare_recovery("recovery_scope_valid")
+        self.assertEqual(plan["authorization_scope"], REAL_API_RECOVERY_AUTHORIZATION_SCOPE)
+        self.assertEqual(validate_execution_plan(plan), [])
+
+    def test_167_unknown_scope_is_rejected_without_alias_matching(self) -> None:
+        for scope in (
+            "REAL_API_RECOVERY_V016_B1B2_7CASE_TIMEOUT900_extra",
+            "real_api_recovery_v016_b1b2_7case_timeout900",
+        ):
+            with self.subTest(scope=scope), self.assertRaisesRegex(
+                ValueError, "real_api_execution_not_authorized",
+            ):
+                authorize_real_execution(execute_real_api=True, authorization=scope)
+
+    def test_168_old_b1b1_scope_remains_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "real_api_execution_not_authorized"):
+            authorize_real_execution(
+                execute_real_api=True,
+                authorization="REAL_API_DEVELOPMENT_V016_B1B1",
+            )
+
+    def test_169_commissioning_scope_cannot_authorize_recovery_plan(self) -> None:
+        root, name, target, _ = self._prepare_recovery("commissioning_on_recovery")
+        journal_path = target / "execution/real_execution_journal.json"
+        before = read_json(journal_path)
+        with self.assertRaisesRegex(ValueError, "real_api_authorization_scope_plan_mismatch"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL,
+            )
+        self.assertEqual(read_json(journal_path), before)
+
+    def test_170_recovery_scope_cannot_authorize_commissioning_plan(self) -> None:
+        root, name, target, _ = self._prepare_ustc("recovery_on_commissioning")
+        journal_path = target / "execution/real_execution_journal.json"
+        before = read_json(journal_path)
+        with self.assertRaisesRegex(ValueError, "real_api_authorization_scope_plan_mismatch"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization=REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL,
+            )
+        self.assertEqual(read_json(journal_path), before)
+
+    def test_171_scope_mismatch_fails_before_credential_read(self) -> None:
+        root, name, _, _ = self._prepare_recovery("mismatch_no_credential")
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "real_api_authorization_scope_plan_mismatch"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda key: credential_calls.append(key) or TEST_CREDENTIAL,
+            )
+        self.assertEqual(credential_calls, [])
+
+    def test_172_scope_mismatch_fails_before_transport_construction(self) -> None:
+        root, name, _, _ = self._prepare_recovery("mismatch_no_transport")
+        with mock.patch.object(
+            provider_execution_module, "OpenAICompatibleHTTPBackend",
+            side_effect=AssertionError("transport constructed"),
+        ) as constructor, self.assertRaisesRegex(
+            ValueError, "real_api_authorization_scope_plan_mismatch",
+        ):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization=REAL_API_AUTHORIZATION_SCOPE,
+                credential_reader=lambda _: TEST_CREDENTIAL,
+            )
+        constructor.assert_not_called()
+
+    def test_173_unknown_scope_fails_before_credential_read(self) -> None:
+        root, name, _, _ = self._prepare_recovery("unknown_no_credential")
+        credential_calls: list[str] = []
+        with self.assertRaisesRegex(ValueError, "real_api_execution_not_authorized"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization="REAL_API_RECOVERY", credential_reader=lambda key: (
+                    credential_calls.append(key) or TEST_CREDENTIAL
+                ),
+            )
+        self.assertEqual(credential_calls, [])
+
+    def test_174_unknown_scope_fails_before_transport_construction(self) -> None:
+        root, name, _, _ = self._prepare_recovery("unknown_no_transport")
+        with mock.patch.object(
+            provider_execution_module, "OpenAICompatibleHTTPBackend",
+            side_effect=AssertionError("transport constructed"),
+        ) as constructor, self.assertRaisesRegex(ValueError, "real_api_execution_not_authorized"):
+            run_real_execution(
+                generation_run_name=name, generation_root=root,
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+                authorization="REAL_API_RECOVERY",
+                credential_reader=lambda _: TEST_CREDENTIAL,
+            )
+        constructor.assert_not_called()
+
+    def test_175_recovery_scope_rejects_timeout_180(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_timeout_180")
+        changed = deepcopy(plan)
+        changed["timeout_seconds"] = 180.0
+        self.assertIn(
+            "recovery_scope_contract_mismatch:timeout_seconds",
+            validate_execution_plan(changed),
+        )
+
+    def test_176_recovery_scope_rejects_timeout_899(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_timeout_899")
+        changed = deepcopy(plan)
+        changed["timeout_seconds"] = 899.0
+        self.assertIn(
+            "recovery_scope_contract_mismatch:timeout_seconds",
+            validate_execution_plan(changed),
+        )
+
+    def test_177_recovery_scope_rejects_timeout_901(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_timeout_901")
+        changed = deepcopy(plan)
+        changed["timeout_seconds"] = 901.0
+        self.assertIn(
+            "recovery_scope_contract_mismatch:timeout_seconds",
+            validate_execution_plan(changed),
+        )
+
+    def test_178_recovery_scope_rejects_retry(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_retry")
+        changed = deepcopy(plan)
+        changed["max_retries"] = 1
+        self.assertIn("recovery_scope_contract_mismatch:max_retries", validate_execution_plan(changed))
+
+    def test_179_recovery_scope_rejects_nonseven_max_requests(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_max_requests")
+        changed = deepcopy(plan)
+        changed["max_requests"] = 6
+        self.assertIn("recovery_scope_contract_mismatch:max_requests", validate_execution_plan(changed))
+
+    def test_180_recovery_scope_rejects_nonseven_network_attempts(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_network_attempts")
+        changed = deepcopy(plan)
+        changed["max_network_attempts"] = 8
+        self.assertIn(
+            "recovery_scope_contract_mismatch:max_network_attempts",
+            validate_execution_plan(changed),
+        )
+
+    def test_181_recovery_scope_rejects_non8192_max_tokens(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_max_tokens")
+        changed = deepcopy(plan)
+        changed["generation_parameters"]["max_output_tokens"] = 4096
+        self.assertIn(
+            "recovery_scope_contract_mismatch:generation_parameters.max_output_tokens",
+            validate_execution_plan(changed),
+        )
+
+    def test_182_recovery_scope_rejects_holdout_case(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_holdout")
+        changed = deepcopy(plan)
+        changed["holdout_case_count"] = 1
+        errors = validate_execution_plan(changed)
+        self.assertIn("holdout_execution_forbidden", errors)
+        self.assertIn("recovery_scope_contract_mismatch:holdout_case_count", errors)
+
+    def test_183_recovery_scope_rejects_other_model(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_model")
+        changed = deepcopy(plan)
+        changed["model_id"] = "smart/reasoning"
+        self.assertIn("recovery_scope_contract_mismatch:model_id", validate_execution_plan(changed))
+
+    def test_184_recovery_scope_rejects_other_provider_profile(self) -> None:
+        _, _, _, plan = self._prepare_recovery("reject_profile")
+        changed = deepcopy(plan)
+        changed["provider_profile"] = GENERIC_OPENAI_COMPATIBLE_PROFILE
+        self.assertIn(
+            "recovery_scope_contract_mismatch:provider_profile",
+            validate_execution_plan(changed),
+        )
+
+    def test_185_changing_only_authorization_scope_changes_re16(self) -> None:
+        common = {
+            "configuration": self._recovery_configuration(),
+            "budget": self._recovery_budget(),
+        }
+        _, _, _, commissioning = self._prepare(
+            "identity_commissioning", authorization_scope=REAL_API_AUTHORIZATION_SCOPE, **common,
+        )
+        _, _, _, recovery = self._prepare(
+            "identity_recovery", authorization_scope=REAL_API_RECOVERY_AUTHORIZATION_SCOPE, **common,
+        )
+        left = deepcopy(commissioning)
+        right = deepcopy(recovery)
+        for row in (left, right):
+            row.pop("execution_plan_id")
+            row.pop("authorization_scope")
+        self.assertEqual(left, right)
+        self.assertNotEqual(commissioning["execution_plan_id"], recovery["execution_plan_id"])
+
+    def test_186_changing_timeout_changes_re16(self) -> None:
+        _, _, _, first = self._prepare(
+            "identity_timeout_899", configuration=self._recovery_configuration(),
+            budget=self._recovery_budget(timeout_seconds=899.0),
+        )
+        _, _, _, second = self._prepare(
+            "identity_timeout_900", configuration=self._recovery_configuration(),
+            budget=self._recovery_budget(timeout_seconds=900.0),
+        )
+        left = deepcopy(first)
+        right = deepcopy(second)
+        for row in (left, right):
+            row.pop("execution_plan_id")
+            row.pop("timeout_seconds")
+        self.assertEqual(left, right)
+        self.assertNotEqual(first["execution_plan_id"], second["execution_plan_id"])
+
+    def test_187_offline_recovery_preparation_reads_no_credential(self) -> None:
+        original_get = os.environ.get
+
+        def guarded_get(key: str, default: object = None) -> object:
+            if key == API_KEY_ENVIRONMENT_VARIABLE:
+                raise AssertionError("credential read")
+            return original_get(key, default)
+
+        with mock.patch.object(os._Environ, "get", side_effect=guarded_get):
+            _, _, _, plan = self._prepare_recovery("offline_no_credential")
+        self.assertEqual(plan["authorization_scope"], REAL_API_RECOVERY_AUTHORIZATION_SCOPE)
+
+    def test_188_offline_recovery_cli_makes_no_network_call(self) -> None:
+        root, name, target = self._copy_baseline("offline_no_network")
+        argv = [
+            "--generation-run-name", name, "--pilot-root", str(root),
+            "--authorization-scope", REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
+            "--provider-profile", USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
+            "--endpoint", USTC_LLM_GATEWAY_ENDPOINT,
+            "--model-id", USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+            "--max-output-tokens-per-request", "8192",
+            "--max-requests", "7", "--max-network-attempts", "7",
+            "--max-input-tokens", "1000000", "--max-output-tokens", "57344",
+            "--max-total-tokens", "1057344", "--timeout-seconds", "900",
+            "--max-retries", "0",
+        ]
+        with mock.patch.object(
+            socket, "create_connection", side_effect=AssertionError("public network"),
+        ), mock.patch(
+            "enh3bench.provider_execution.urllib_request.urlopen",
+            side_effect=AssertionError("public network"),
+        ), redirect_stdout(io.StringIO()):
+            self.assertEqual(prepare_cli.main(argv), 0)
+        plan = read_json(target / "execution/real_execution_plan.json")
+        self.assertEqual(plan["authorization_scope"], REAL_API_RECOVERY_AUTHORIZATION_SCOPE)
+
+    def test_189_exact_recovery_authorization_succeeds_with_fake_transport(self) -> None:
+        root, name, _, _ = self._prepare_recovery("fake_recovery_success")
+        transport = QueueTransport([
+            provider_response(
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+                response_id=f"recovery-test-response-{index}",
+            )
+            for index in range(7)
+        ])
+        result = run_real_execution(
+            generation_run_name=name, generation_root=root,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+            authorization=REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
+            credential_reader=lambda _: TEST_CREDENTIAL,
+            backend=OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=transport,
+            ),
+            sleep=lambda _: None,
+        )
+        self.assertEqual((result["result"], result["stage"]), ("PASS", "COMPLETED"))
+        self.assertEqual(len(transport.calls), 7)
+        self.assertTrue(all(call[3] == 900.0 for call in transport.calls))
+
+    def test_190_fake_recovery_candidates_remain_not_imported(self) -> None:
+        root, name, target, _ = self._prepare_recovery("fake_recovery_not_imported")
+        transport = QueueTransport([
+            provider_response(
+                model=USTC_LLM_DEEPSEEK_V4_PRO_MODEL_ID,
+                response_id=f"recovery-not-imported-{index}",
+            )
+            for index in range(7)
+        ])
+        run_real_execution(
+            generation_run_name=name, generation_root=root,
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT, execute_real_api=True,
+            authorization=REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
+            credential_reader=lambda _: TEST_CREDENTIAL,
+            backend=OpenAICompatibleHTTPBackend(
+                endpoint=USTC_LLM_GATEWAY_ENDPOINT, transport=transport,
+            ),
+            sleep=lambda _: None,
+        )
+        candidates = read_jsonl(target / "candidate_outputs/candidate_api_outputs.jsonl")
+        self.assertEqual(len(candidates), 7)
+        self.assertTrue(all(row["import_status"] == "not_imported" for row in candidates))
+
+    def test_191_preserved_commissioning_plan_format_remains_valid_dot_three(self) -> None:
+        _, _, _, plan = self._prepare_ustc("preserved_dot_three")
+        self.assertEqual(plan["schema_version"], "0.16-real-execution-plan.3")
+        self.assertEqual(plan["provider_interface_version"], "provider-execution-v3")
+        self.assertEqual(
+            plan["provider_backend_version"], "openai-compatible-chat-completions-v3",
+        )
+        self.assertEqual(validate_execution_plan(plan), [])
+
+    def test_192_recovery_provider_payload_remains_exactly_three_fields(self) -> None:
+        _, _, target, _ = self._prepare_recovery("recovery_payload_fields")
+        prompt = read_jsonl(target / "prompts/compiled_prompt_instances.jsonl")[0]
+        envelope = read_jsonl(target / "execution/request_envelopes.jsonl")[0]
+        payload = OpenAICompatibleHTTPBackend(
+            endpoint=USTC_LLM_GATEWAY_ENDPOINT,
+        ).prepare_request(
+            prompt, envelope, self._recovery_configuration(),
+        )["provider_payload"]
+        self.assertEqual(set(payload), {"model", "messages", "max_tokens"})
+        self.assertEqual(payload["max_tokens"], 8192)
 
 
 if __name__ == "__main__":

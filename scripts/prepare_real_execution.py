@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path:
 
 from enh3bench.provider_execution import (  # noqa: E402
     GENERIC_OPENAI_COMPATIBLE_PROFILE,
+    REAL_API_AUTHORIZATION_SCOPE,
+    REAL_API_RECOVERY_AUTHORIZATION_SCOPE,
     USTC_LLM_DEEPSEEK_V4_PRO_PROFILE,
     ExecutionBudget,
     ProviderConfiguration,
@@ -25,6 +27,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--generation-run-name", required=True)
     parser.add_argument("--pilot-root", type=Path, required=True)
+    parser.add_argument(
+        "--authorization-scope",
+        choices=(REAL_API_AUTHORIZATION_SCOPE, REAL_API_RECOVERY_AUTHORIZATION_SCOPE),
+        default=REAL_API_AUTHORIZATION_SCOPE,
+    )
     parser.add_argument("--endpoint", required=True)
     parser.add_argument("--model-id", required=True)
     parser.add_argument(
@@ -83,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
             generation_root=args.pilot_root,
             configuration=configuration,
             budget=budget,
+            authorization_scope=args.authorization_scope,
             resume=args.resume,
         )
     except (OSError, ValueError) as exc:
