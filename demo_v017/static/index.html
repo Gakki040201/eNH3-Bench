@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>eNH3-Bench M017 Demo</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">M017 · LOCAL RESEARCH DEMO</p>
+      <h1>eNH3-Bench M017 Demo</h1>
+      <p class="subtitle">Electrochemical Ammonia Synthesis Evidence-Grounded Assistant</p>
+    </div>
+    <div class="header-status" aria-label="服务器配置">
+      <span id="server-status" class="status-dot">正在连接</span>
+      <span id="model-chip" class="chip">model —</span>
+      <span id="mode-chip" class="chip chip-muted">FIXTURE ONLY</span>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="case-sidebar" aria-labelledby="case-list-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">FROZEN DEVELOPMENT SET</p>
+          <h2 id="case-list-title">七个开发案例</h2>
+        </div>
+        <span id="case-count" class="count-badge">0</span>
+      </div>
+      <nav id="case-list" class="case-list" aria-label="开发案例"></nav>
+    </aside>
+
+    <section class="main-column">
+      <article class="case-panel panel" aria-labelledby="question-title">
+        <div class="case-meta-row">
+          <div>
+            <p id="case-id" class="mono identifier">请选择案例</p>
+            <p id="paper-id" class="muted mono">paper —</p>
+          </div>
+          <div class="badge-row">
+            <span id="task-type" class="badge">task —</span>
+            <span id="answerability" class="badge badge-answer">answerability —</span>
+          </div>
+        </div>
+        <h2 id="question-title">科学问题</h2>
+        <p id="question" class="question-text">正在加载冻结案例包…</p>
+        <div class="evidence-heading">
+          <h3>有界证据</h3>
+          <span id="evidence-count" class="muted">0 blocks</span>
+        </div>
+        <div id="evidence-list" class="evidence-grid"></div>
+      </article>
+
+      <section class="control-panel panel" aria-labelledby="run-title">
+        <div class="panel-heading compact">
+          <div>
+            <p class="section-kicker">SINGLE-CASE EXECUTION</p>
+            <h2 id="run-title">运行演示</h2>
+          </div>
+          <span id="run-state-badge" class="state-badge state-idle">IDLE</span>
+        </div>
+        <div class="controls-grid">
+          <fieldset class="mode-selector">
+            <legend>执行模式</legend>
+            <label>
+              <input type="radio" name="mode" value="fixture" checked>
+              <span><strong>FIXTURE</strong><small>确定性、离线、非科学输出</small></span>
+            </label>
+            <label id="live-label">
+              <input id="live-mode" type="radio" name="mode" value="live" disabled>
+              <span><strong>LIVE API</strong><small>仅显式启动并通过模型权限检查后可用</small></span>
+            </label>
+          </fieldset>
+          <div class="action-stack">
+            <button id="preflight-button" class="button button-secondary" type="button" disabled>
+              检查新 Key 的模型权限
+            </button>
+            <button id="run-button" class="button button-primary" type="button" disabled>
+              运行所选案例
+            </button>
+          </div>
+        </div>
+        <div class="progress-row" aria-live="polite">
+          <span id="run-status-text">尚未运行</span>
+          <span id="elapsed-time" class="mono">00:00</span>
+        </div>
+          <div id="preflight-result" class="preflight-result" aria-live="polite">模型权限检查不会发送 chat-completion 请求。</div>
+      </section>
+
+      <section class="result-layout" aria-label="运行结果">
+        <article class="result-panel panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="section-kicker">SANITIZED RESULT</p>
+              <h2>结果</h2>
+            </div>
+            <div class="badge-row">
+              <span id="result-mode" class="badge badge-fixture">FIXTURE</span>
+              <span id="parse-level" class="badge">NOT RUN</span>
+            </div>
+          </div>
+          <div id="result-empty" class="empty-state">运行 fixture 后，可在此查看完整的浏览器渲染路径。</div>
+          <div id="result-content" hidden>
+            <h3 id="answer-heading">演示结果</h3>
+            <p id="answer-text" class="answer-text"></p>
+            <div class="result-section">
+              <h3>Claims</h3>
+              <div id="claims-list" class="structured-list"></div>
+            </div>
+            <div class="result-section">
+              <h3>Citations</h3>
+              <div id="citations-list" class="structured-list"></div>
+            </div>
+            <div class="result-section warning-section">
+              <h3>Warnings</h3>
+              <ul id="warnings-list"></ul>
+            </div>
+            <div id="error-box" class="error-box" hidden></div>
+          </div>
+        </article>
+
+        <aside class="metadata-panel panel" aria-labelledby="provider-meta-title">
+          <p class="section-kicker">PROVIDER METADATA</p>
+          <h2 id="provider-meta-title">安全元数据</h2>
+          <dl id="provider-metadata" class="metadata-list">
+            <div><dt>Provider</dt><dd id="metadata-provider">—</dd></div>
+            <div><dt>Configured Live model</dt><dd id="metadata-configured-model">—</dd></div>
+            <div><dt>Reported model</dt><dd id="metadata-reported-model">—</dd></div>
+            <div><dt>Response ID</dt><dd id="metadata-response-id">—</dd></div>
+            <div><dt>HTTP status</dt><dd id="metadata-http-status">—</dd></div>
+            <div><dt>Finish reason</dt><dd id="metadata-finish-reason">—</dd></div>
+            <div><dt>Latency</dt><dd id="metadata-latency">—</dd></div>
+            <div><dt>Usage</dt><dd id="metadata-usage">—</dd></div>
+            <div><dt>Live timeout configuration</dt><dd id="metadata-timeout">—</dd></div>
+            <div><dt>Live max_tokens configuration</dt><dd id="metadata-max-tokens">—</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="history-panel panel" aria-labelledby="history-title">
+        <div class="panel-heading compact">
+          <div>
+            <p class="section-kicker">EXTERNAL LOCAL RECORDS</p>
+            <h2 id="history-title">最近运行</h2>
+          </div>
+          <button id="refresh-history" class="text-button" type="button">刷新</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>Case ID</th><th>模式</th><th>状态</th><th>延迟</th></tr></thead>
+            <tbody id="history-body"><tr><td colspan="5" class="empty-cell">暂无运行记录</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <span>M017 demo outputs are not automatically accepted into the benchmark.</span>
+    <span class="mono">LOCAL · NO ANALYTICS</span>
+  </footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
