@@ -90,6 +90,37 @@
           <div id="preflight-result" class="preflight-result" aria-live="polite">模型权限检查不会发送 chat-completion 请求。</div>
       </section>
 
+      <section class="batch-panel panel" aria-labelledby="batch-title">
+        <div class="panel-heading compact">
+          <div>
+            <p class="section-kicker">SEQUENTIAL DEVELOPMENT-SET EXECUTION</p>
+            <h2 id="batch-title">七案例批量运行</h2>
+            <p class="muted">Sequential development-set execution</p>
+          </div>
+          <span id="batch-state-badge" class="state-badge state-idle">IDLE</span>
+        </div>
+        <div class="batch-actions">
+          <button id="fixture-batch-button" class="button button-secondary" type="button">运行 Fixture 批次</button>
+          <button id="live-batch-button" class="button button-primary" type="button" disabled>运行 Live 批次</button>
+        </div>
+        <div class="progress-row" aria-live="polite">
+          <span id="batch-status-text">尚未运行批次</span>
+          <span><strong id="batch-counter">0 / 7 completed</strong> · <span id="batch-elapsed-time" class="mono">00:00</span></span>
+        </div>
+        <div class="table-wrap batch-progress-wrap">
+          <table id="batch-progress-table">
+            <thead><tr><th>#</th><th>Case ID</th><th>Task type</th><th>Status</th><th>Parse level</th><th>Latency</th><th>Prompt tokens</th><th>Completion tokens</th><th>Total tokens</th><th>Error</th></tr></thead>
+            <tbody id="batch-progress-body"><tr><td colspan="10" class="empty-cell">正在加载七个规范案例</td></tr></tbody>
+          </table>
+        </div>
+        <div id="batch-summary" class="batch-summary" hidden>
+          <h3>Batch summary</h3>
+          <div id="batch-summary-grid" class="summary-grid"></div>
+          <p id="fixture-batch-notice" class="fixture-notice" hidden><strong>No provider request occurred</strong></p>
+          <button id="open-batch-report" class="button button-secondary" type="button" hidden>打开批次报告</button>
+        </div>
+      </section>
+
       <section class="result-layout" aria-label="运行结果">
         <article class="result-panel panel">
           <div class="panel-heading compact">
@@ -152,6 +183,22 @@
           <table>
             <thead><tr><th>时间</th><th>Case ID</th><th>模式</th><th>状态</th><th>延迟</th></tr></thead>
             <tbody id="history-body"><tr><td colspan="5" class="empty-cell">暂无运行记录</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="history-panel panel" aria-labelledby="batch-history-title">
+        <div class="panel-heading compact">
+          <div>
+            <p class="section-kicker">EXTERNAL LOCAL BATCH RECORDS</p>
+            <h2 id="batch-history-title">最近批次</h2>
+          </div>
+          <button id="refresh-batch-history" class="text-button" type="button">刷新</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>时间</th><th>Batch ID</th><th>模式</th><th>状态</th><th>成功 / 总数</th><th>失败</th><th>延迟</th><th>Total tokens</th></tr></thead>
+            <tbody id="batch-history-body"><tr><td colspan="8" class="empty-cell">暂无批次记录</td></tr></tbody>
           </table>
         </div>
       </section>

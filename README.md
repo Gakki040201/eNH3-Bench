@@ -3,10 +3,12 @@
 ## M017 local web demo
 
 M017 provides a runnable local browser demo for the seven frozen development cases, with a
-zero-network fixture mode and an explicitly enabled single-case USTC live mode. Start with
+zero-network fixture mode and explicitly enabled single-case or sequential seven-case USTC
+live modes. Start with
 `powershell -ExecutionPolicy Bypass -File scripts\start_demo_v017.ps1 -Fixture`, then open
 `http://127.0.0.1:8765`. See [docs/V017_DEMO.md](docs/V017_DEMO.md) for the safety boundary,
-live-key flow, API, parser levels, and troubleshooting.
+live-key flow, API, parser levels, and troubleshooting, and
+[docs/V017_BATCH_DEMO.md](docs/V017_BATCH_DEMO.md) for D2 batch execution and reports.
 
 ## v0.15 Clean-Room Document-First Pipeline
 

@@ -7,6 +7,11 @@ seven frozen B1B0 development cases, their questions, and their bounded evidence
 deterministic fixture by default; and can optionally send one selected case to the configured
 USTC model after an explicitly live-enabled startup.
 
+D1 provides the single-case workflow. D2 adds canonical seven-case sequential Fixture and
+Live batches, progress monitoring, aggregate metrics, child-result reopening, external DB17
+records, and portable local HTML reports. See
+[V017_BATCH_DEMO.md](V017_BATCH_DEMO.md) for the complete D2 contract and operator flow.
+
 This is a product demonstration, not a benchmark release. Fixture output is not scientific
 output. Live output is not automatically accepted into the benchmark.
 
@@ -36,6 +41,8 @@ The vertical slice intentionally has few moving parts:
 - `demo_v017/static/`: vanilla HTML, CSS, and JavaScript;
 - `demo_v017/fixtures/fixture_outputs.json`: seven deterministic non-scientific fixtures;
 - `<demo-root>/runs/`: one sanitized JSON record per run, outside Git.
+- `<demo-root>/batches/`: one sanitized JSON record per seven-case batch, outside Git;
+- `<demo-root>/reports/`: self-contained local HTML batch reports, outside Git.
 
 The server uses `ThreadingHTTPServer` for local HTTP handling and
 `ThreadPoolExecutor(max_workers=1)` for the execution queue. Browser run creation returns
@@ -143,6 +150,10 @@ and `max_tokens`. The default requested model is `deepseek-v4-pro`; the default
 | `POST /api/runs` | Queue one fixture or live run; returns HTTP 202 |
 | `GET /api/runs/{run_id}` | Complete sanitized run record |
 | `GET /api/runs?limit=20` | Newest-first sanitized history |
+| `POST /api/batches` | Queue the exact sequential seven-case batch; returns HTTP 202 |
+| `GET /api/batches/{batch_id}` | Complete sanitized batch record |
+| `GET /api/batches?limit=20` | Newest-first sanitized batch history |
+| `GET /api/batches/{batch_id}/report` | Terminal self-contained HTML batch report |
 | `GET /` | Web application |
 | `GET /static/app.js` | Local JavaScript |
 | `GET /static/styles.css` | Local CSS |
@@ -212,6 +223,8 @@ executor shuts down, and live launcher cleanup removes the process environment v
 - It is a single-user local demo with one execution worker.
 - There is no cancellation endpoint for an in-flight provider request.
 - Run history is local JSON, not a database.
+- The server must remain running and the browser must not be refreshed during an active Live batch.
+- Manually rerunning a Live batch may create up to seven new provider requests.
 - Tolerant parsing improves display continuity but does not constitute benchmark validation.
 - The UI does not import, score, judge, or review results.
 - A client timeout cannot determine whether a provider completed work server-side.

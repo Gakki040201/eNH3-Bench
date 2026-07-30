@@ -10,10 +10,24 @@ const state = {
   runStartedAt: null,
   preflightPassed: false,
   runInProgress: false,
+  currentBatch: null,
+  batchInProgress: false,
+  batchPollTimer: null,
+  batchElapsedTimer: null,
+  batchStartedAt: null,
 };
 
 const $ = (id) => document.getElementById(id);
 const terminalStates = new Set(["succeeded_structured", "succeeded_unstructured", "failed"]);
+const terminalBatchStates = new Set(["completed", "completed_with_failures", "failed"]);
+
+function setSubmissionControls() {
+  const busy = state.runInProgress || state.batchInProgress;
+  $("run-button").disabled = busy || !state.selectedCase;
+  $("fixture-batch-button").disabled = busy;
+  $("live-batch-button").disabled = busy || !state.config?.live_enabled || !state.preflightPassed;
+  $("preflight-button").disabled = busy || !state.config?.live_enabled;
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -61,7 +75,7 @@ function renderConfig(config) {
   $("model-chip").textContent = `model ${config.model}`;
   $("mode-chip").textContent = config.live_enabled ? "FIXTURE + LIVE API" : "FIXTURE ONLY";
   $("live-mode").disabled = true;
-  $("preflight-button").disabled = !config.live_enabled;
+  setSubmissionControls();
 }
 
 function renderCaseList() {
@@ -98,7 +112,7 @@ async function selectCase(caseId) {
     state.selectedCase = await api(`/api/cases/${encodeURIComponent(caseId)}`);
     renderCaseList();
     renderCaseDetail(state.selectedCase);
-    $("run-button").disabled = state.runInProgress;
+    setSubmissionControls();
   } catch (error) {
     showStatus(`案例加载失败：${error.message}`, "failed");
   }
@@ -155,7 +169,7 @@ function stopElapsed() {
 }
 
 async function runSelectedCase() {
-  if (!state.selectedCase || state.runInProgress) return;
+  if (!state.selectedCase || state.runInProgress || state.batchInProgress) return;
   const mode = selectedMode();
   if (mode === "live" && (!state.config.live_enabled || !state.preflightPassed || $("live-mode").disabled)) return;
   if (mode === "live") {
@@ -166,12 +180,12 @@ async function runSelectedCase() {
     );
     if (!confirmed) {
       state.runInProgress = false;
-      $("run-button").disabled = false;
+      setSubmissionControls();
       return;
     }
   }
   state.runInProgress = true;
-  $("run-button").disabled = true;
+  setSubmissionControls();
   showStatus("正在创建本地运行记录…", "active");
   startElapsed();
   try {
@@ -186,7 +200,7 @@ async function runSelectedCase() {
     stopElapsed();
     state.runInProgress = false;
     showStatus(`运行创建失败：${error.message}`, "failed");
-    $("run-button").disabled = false;
+    setSubmissionControls();
   }
 }
 
@@ -201,7 +215,7 @@ async function pollRun(url) {
       state.runInProgress = false;
       renderRun(record);
       showStatus(record.status === "failed" ? "failed" : `completed · ${record.status}`, record.status === "failed" ? "failed" : "success");
-      $("run-button").disabled = false;
+      setSubmissionControls();
       await loadHistory();
       return;
     }
@@ -210,7 +224,7 @@ async function pollRun(url) {
     stopElapsed();
     state.runInProgress = false;
     showStatus(`轮询失败：${error.message}`, "failed");
-    $("run-button").disabled = false;
+    setSubmissionControls();
   }
 }
 
@@ -319,7 +333,7 @@ async function runPreflight() {
       safe_error_code: error.payload?.safe_error_code || "preflight_request_failed",
     }, false);
   } finally {
-    button.disabled = !state.config.live_enabled;
+    setSubmissionControls();
   }
 }
 
@@ -367,6 +381,188 @@ async function openHistory(runId) {
   }
 }
 
+function showBatchStatus(text, kind = "idle") {
+  $("batch-status-text").textContent = text;
+  const badge = $("batch-state-badge");
+  badge.className = "state-badge";
+  badge.classList.add(kind === "failed" ? "state-failed" : kind === "success" ? "state-success" : kind === "active" ? "state-active" : "state-idle");
+  badge.textContent = kind === "failed" ? "FAILED" : kind === "success" ? "COMPLETED" : kind === "active" ? "RUNNING" : "IDLE";
+}
+
+function startBatchElapsed() {
+  stopBatchElapsed();
+  state.batchStartedAt = Date.now();
+  const update = () => {
+    const elapsed = Math.floor((Date.now() - state.batchStartedAt) / 1000);
+    const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
+    const seconds = String(elapsed % 60).padStart(2, "0");
+    $("batch-elapsed-time").textContent = `${minutes}:${seconds}`;
+  };
+  update();
+  state.batchElapsedTimer = window.setInterval(update, 1000);
+}
+
+function stopBatchElapsed() {
+  if (state.batchElapsedTimer) window.clearInterval(state.batchElapsedTimer);
+  state.batchElapsedTimer = null;
+}
+
+function renderPendingBatch() {
+  const body = $("batch-progress-body");
+  body.replaceChildren();
+  state.cases.forEach((item) => {
+    const row = element("tr");
+    [item.case_number, item.case_id, item.task_type, "pending", "—", "—", "—", "—", "—", "—"]
+      .forEach((value, index) => row.append(element("td", index === 1 ? "mono" : "", value)));
+    body.append(row);
+  });
+  $("batch-counter").textContent = `0 / ${state.cases.length || 7} completed`;
+}
+
+function renderBatch(record) {
+  state.currentBatch = record.batch_id;
+  $("batch-counter").textContent = `${record.completed_case_count} / 7 completed`;
+  const body = $("batch-progress-body");
+  body.replaceChildren();
+  (record.items || []).forEach((item) => {
+    const row = element("tr", item.status === "running" ? "active-batch-row" : "");
+    const values = [
+      item.case_number, item.case_id, item.task_type, item.status, item.parse_level || "—",
+      item.latency_seconds == null ? "—" : `${item.latency_seconds}s`,
+      item.prompt_tokens ?? "—", item.completion_tokens ?? "—", item.total_tokens ?? "—",
+    ];
+    values.forEach((value, index) => row.append(element("td", index === 1 ? "mono" : "", value)));
+    const errorCell = element("td", item.safe_error_code ? "batch-error" : "", item.safe_error_code || "—");
+    if (item.run_id && terminalStates.has(item.status)) {
+      const openButton = element("button", "text-button child-result-button", "打开案例结果");
+      openButton.type = "button";
+      openButton.addEventListener("click", () => openHistory(item.run_id));
+      errorCell.append(document.createElement("br"), openButton);
+    }
+    row.append(errorCell);
+    body.append(row);
+  });
+  const terminal = terminalBatchStates.has(record.status);
+  showBatchStatus(
+    `${record.status} · ${record.completed_case_count} / 7 completed`,
+    terminal ? (record.status === "failed" ? "failed" : "success") : "active",
+  );
+  if (terminal && record.latency_seconds != null) $("batch-elapsed-time").textContent = `${record.latency_seconds}s`;
+  const summary = $("batch-summary");
+  summary.hidden = !terminal;
+  if (terminal) {
+    const usage = record.aggregate_usage || {};
+    $("batch-summary-grid").replaceChildren(...[
+      ["Batch status", record.status], ["Mode", record.mode],
+      ["Completed cases", `${record.completed_case_count} / 7`], ["Successful cases", record.succeeded_case_count],
+      ["Failed cases", record.failed_case_count], ["Batch wall-clock latency", `${record.latency_seconds ?? "—"}s`],
+      ["Summed child latency", `${record.aggregate_child_latency_seconds ?? "—"}s`],
+      ["Aggregate prompt tokens", usage.prompt_tokens ?? 0],
+      ["Aggregate completion tokens", usage.completion_tokens ?? 0], ["Aggregate total tokens", usage.total_tokens ?? 0],
+    ].map(([label, value]) => {
+      const cell = element("div", "summary-metric");
+      cell.append(element("span", "muted", label), element("strong", "mono", value));
+      return cell;
+    }));
+    $("fixture-batch-notice").hidden = record.mode !== "fixture";
+    $("open-batch-report").hidden = !record.report_filename;
+  }
+}
+
+async function submitBatch(mode) {
+  if (state.runInProgress || state.batchInProgress) return;
+  if (mode === "live") {
+    if (!state.config.live_enabled || !state.preflightPassed) return;
+    const confirmed = window.confirm(
+      `Seven cases will be attempted sequentially.\nModel = ${state.config.model}.\n` +
+      `max_tokens per case = ${state.config.max_output_tokens}; timeout per case = ${state.config.timeout_seconds}s.\n` +
+      "Maximum POST attempts = 7. Automatic retries are disabled.\n" +
+      "Individual failures will not stop the remaining cases. USTC project tokens may be consumed. Continue?",
+    );
+    if (!confirmed) return;
+  }
+  state.batchInProgress = true;
+  setSubmissionControls();
+  showBatchStatus("queued · creating external batch record", "active");
+  startBatchElapsed();
+  try {
+    const queued = await api("/api/batches", {method: "POST", body: JSON.stringify({mode})});
+    state.currentBatch = queued.batch_id;
+    await pollBatch(queued.poll_url);
+  } catch (error) {
+    stopBatchElapsed();
+    state.batchInProgress = false;
+    setSubmissionControls();
+    showBatchStatus(`Batch creation failed: ${error.message}`, "failed");
+  }
+}
+
+async function pollBatch(url) {
+  if (state.batchPollTimer) window.clearTimeout(state.batchPollTimer);
+  try {
+    const record = await api(url);
+    renderBatch(record);
+    if (terminalBatchStates.has(record.status)) {
+      stopBatchElapsed();
+      state.batchInProgress = false;
+      setSubmissionControls();
+      await Promise.all([loadHistory(), loadBatchHistory()]);
+      return;
+    }
+    state.batchPollTimer = window.setTimeout(() => pollBatch(url), 750);
+  } catch (error) {
+    stopBatchElapsed();
+    state.batchInProgress = false;
+    setSubmissionControls();
+    showBatchStatus(`Batch polling failed: ${error.message}`, "failed");
+  }
+}
+
+async function loadBatchHistory() {
+  const body = $("batch-history-body");
+  try {
+    const result = await api("/api/batches?limit=20");
+    body.replaceChildren();
+    if (!result.batches.length) {
+      const row = element("tr");
+      const cell = element("td", "empty-cell", "暂无批次记录");
+      cell.colSpan = 8;
+      row.append(cell);
+      body.append(row);
+      return;
+    }
+    result.batches.forEach((batch) => {
+      const row = element("tr");
+      row.dataset.batchId = batch.batch_id;
+      [new Date(batch.created_at_utc).toLocaleString(), batch.batch_id, batch.mode.toUpperCase(), batch.status,
+        `${batch.succeeded_case_count} / 7`, batch.failed_case_count,
+        batch.latency_seconds == null ? "—" : `${batch.latency_seconds}s`, batch.total_tokens ?? 0]
+        .forEach((value, index) => row.append(element("td", index === 1 ? "mono" : "", value)));
+      row.tabIndex = 0;
+      row.addEventListener("click", () => openBatchHistory(batch.batch_id));
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") openBatchHistory(batch.batch_id);
+      });
+      body.append(row);
+    });
+  } catch (error) {
+    const row = element("tr");
+    const cell = element("td", "empty-cell", `批次历史加载失败：${error.message}`);
+    cell.colSpan = 8;
+    row.append(cell);
+    body.replaceChildren(row);
+  }
+}
+
+async function openBatchHistory(batchId) {
+  try {
+    const record = await api(`/api/batches/${encodeURIComponent(batchId)}`);
+    renderBatch(record);
+  } catch (error) {
+    showBatchStatus(`Batch history failed: ${error.message}`, "failed");
+  }
+}
+
 async function initialize() {
   try {
     const [health, config, cases] = await Promise.all([
@@ -376,8 +572,9 @@ async function initialize() {
     renderConfig(config);
     state.cases = cases.cases;
     renderCaseList();
+    renderPendingBatch();
     if (state.cases.length) await selectCase(state.cases[0].case_id);
-    await loadHistory();
+    await Promise.all([loadHistory(), loadBatchHistory()]);
   } catch (error) {
     setConnection(false);
     showStatus(`初始化失败：${error.message}`, "failed");
@@ -387,4 +584,10 @@ async function initialize() {
 $("run-button").addEventListener("click", runSelectedCase);
 $("preflight-button").addEventListener("click", runPreflight);
 $("refresh-history").addEventListener("click", loadHistory);
+$("fixture-batch-button").addEventListener("click", () => submitBatch("fixture"));
+$("live-batch-button").addEventListener("click", () => submitBatch("live"));
+$("refresh-batch-history").addEventListener("click", loadBatchHistory);
+$("open-batch-report").addEventListener("click", () => {
+  if (state.currentBatch) window.open(`/api/batches/${encodeURIComponent(state.currentBatch)}/report`, "_blank", "noopener");
+});
 initialize();
