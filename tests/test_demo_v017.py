@@ -34,6 +34,10 @@ from enh3bench.demo_v017 import (
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_ROOT = ROOT / "demo_v017/static"
 FIXTURE_PATH = ROOT / "demo_v017/fixtures/fixture_outputs.json"
+APP_PATH = STATIC_ROOT / "app.js"
+HTML_PATH = STATIC_ROOT / "index.html"
+STYLES_PATH = STATIC_ROOT / "styles.css"
+LAUNCHER_PATH = ROOT / "scripts/start_demo_v017.ps1"
 
 
 class FakeResponse:
@@ -508,6 +512,168 @@ class DemoV017Tests(unittest.TestCase):
         self.wait_terminal(service, queued["run_id"])
         self.assertEqual(sentinel.read_bytes(), before)
         self.assertEqual([path.name for path in (self.pilot_root / self.run_name).iterdir()], ["m016_sentinel.json"])
+
+    def test_36_global_hidden_rule_overrides_component_display(self) -> None:
+        css = STYLES_PATH.read_text(encoding="utf-8")
+        self.assertIn("[hidden] {\n  display: none !important;\n}", css)
+
+    def test_37_fixture_summary_is_chinese_primary_and_non_scientific(self) -> None:
+        fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+        summaries = {row["structured_output"]["summary"] for row in fixture["outputs"]}
+        self.assertEqual(summaries, {FIXTURE_MESSAGE})
+        self.assertIn("此内容不是模型生成的科学结论", FIXTURE_MESSAGE)
+
+    def test_38_all_fixture_claims_are_empty(self) -> None:
+        outputs = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["outputs"]
+        self.assertTrue(all(row["structured_output"]["claims"] == [] for row in outputs))
+
+    def test_39_all_fixture_citations_are_empty(self) -> None:
+        outputs = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["outputs"]
+        self.assertTrue(all(row["structured_output"]["citations"] == [] for row in outputs))
+
+    def test_40_all_fixture_warnings_and_display_flags_are_safe(self) -> None:
+        outputs = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))["outputs"]
+        for row in outputs:
+            self.assertIn(FIXTURE_WARNING, row["warnings"])
+            self.assertEqual(
+                row["structured_output"]["display_metadata"],
+                {"fixture": True, "scientific_conclusion": False},
+            )
+
+    def test_41_metadata_panel_contains_provider(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("<dt>Provider</dt>", html)
+
+    def test_42_metadata_values_have_explicit_ids(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        expected = {
+            "metadata-provider", "metadata-configured-model", "metadata-reported-model",
+            "metadata-response-id", "metadata-http-status", "metadata-finish-reason",
+            "metadata-latency", "metadata-usage", "metadata-timeout", "metadata-max-tokens",
+        }
+        self.assertTrue(all(f'id="{value}"' in html for value in expected))
+        self.assertNotIn('querySelectorAll("dd")', APP_PATH.read_text(encoding="utf-8"))
+
+    def test_43_fixture_configured_model_is_marked_not_called(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn("`${record.requested_model} · not called`", app)
+        self.assertIn('fixture ? "deterministic-fixture"', app)
+
+    def test_44_fixture_http_fields_say_no_provider_request(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('const noProviderRequest = "N/A · no provider request";', app)
+        self.assertIn('$("metadata-response-id").textContent = fixture ? noProviderRequest', app)
+        self.assertIn('$("metadata-http-status").textContent = fixture ? noProviderRequest', app)
+        self.assertIn('$("metadata-finish-reason").textContent = fixture ? noProviderRequest', app)
+        self.assertIn('$("metadata-usage").textContent = fixture ? noProviderRequest', app)
+
+    def test_45_fixture_timeout_and_max_tokens_are_marked_not_used(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn("`${record.timeout_seconds}s · not used by fixture`", app)
+        self.assertIn("`${record.max_output_tokens} · not used by fixture`", app)
+
+    def test_46_live_radio_starts_disabled_even_when_live_is_configured(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('id="live-mode" type="radio" name="mode" value="live" disabled', html)
+        self.assertIn('$("live-mode").disabled = true;', app)
+        self.assertNotIn('$("live-mode").disabled = !config.live_enabled;', app)
+
+    def test_47_successful_visible_preflight_enables_live(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        condition = (
+            'result.status === "succeeded" && result.http_status === 200 '
+            '&& result.target_model_visible === true'
+        )
+        self.assertIn(condition, app)
+        self.assertIn('$("live-mode").disabled = !passed;', app)
+        self.assertIn('preflight-success', app)
+
+    def test_48_target_invisible_preflight_keeps_live_disabled(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('if (!passed) selectFixtureMode();', app)
+        self.assertIn('if (!passed) lines.push("Live 执行仍处于禁用状态。");', app)
+
+    def test_49_failed_preflight_keeps_live_disabled_and_fixture_selected(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        catch_block = app.split('} catch (error) {', 3)[-1].split('} finally {', 1)[0]
+        self.assertIn('state.preflightPassed = false;', catch_block)
+        self.assertIn('$("live-mode").disabled = true;', catch_block)
+        self.assertIn('selectFixtureMode();', catch_block)
+
+    def test_50_refresh_requires_new_preflight_by_construction(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('preflightPassed: false,', app)
+        render_config = app.split("function renderConfig(config)", 1)[1].split("function renderCaseList", 1)[0]
+        self.assertIn('state.preflightPassed = false;', render_config)
+        self.assertNotIn("localStorage", app)
+
+    def test_51_live_confirmation_cancellation_sends_no_run_post(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        run_function = app.split("async function runSelectedCase()", 1)[1].split("async function pollRun", 1)[0]
+        cancel_block = run_function.split("if (!confirmed) {", 1)[1].split("}", 1)[0]
+        self.assertIn("return;", cancel_block)
+        self.assertNotIn('api("/api/runs"', cancel_block)
+        self.assertLess(run_function.index("if (!confirmed)"), run_function.index('api("/api/runs"'))
+
+    def test_52_live_confirmation_acceptance_has_exactly_one_run_post(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        run_function = app.split("async function runSelectedCase()", 1)[1].split("async function pollRun", 1)[0]
+        self.assertEqual(run_function.count('api("/api/runs"'), 1)
+        for required in (
+            "state.selectedCase.case_id", "state.config.model", "state.config.max_output_tokens",
+            "state.config.timeout_seconds", "一次 POST 请求", "不自动重试", "USTC 项目 Token",
+        ):
+            self.assertIn(required, run_function)
+
+    def test_53_fixture_run_requires_no_confirmation(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        run_function = app.split("async function runSelectedCase()", 1)[1].split("async function pollRun", 1)[0]
+        self.assertIn('if (mode === "live") {', run_function)
+        self.assertEqual(run_function.count("window.confirm("), 1)
+
+    def test_54_double_click_protection_prevents_duplicate_submission(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        run_function = app.split("async function runSelectedCase()", 1)[1].split("async function pollRun", 1)[0]
+        self.assertIn("if (!state.selectedCase || state.runInProgress) return;", run_function)
+        self.assertIn("state.runInProgress = true;", run_function)
+        self.assertLess(run_function.index("state.runInProgress = true;"), run_function.index('api("/api/runs"'))
+        self.assertGreaterEqual(app.count("state.runInProgress = false;"), 4)
+
+    def test_55_truncated_case_metadata_has_title_and_aria_labels(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        for required in (
+            'node.title = text;', 'node.setAttribute("aria-label"', '"完整案例 ID"',
+            '"完整任务类型"', '"完整可回答性"', '"完整论文 ID"',
+            'locator.title = String(block.source_locator);', '完整证据来源定位',
+        ):
+            self.assertIn(required, app)
+
+    def test_56_launcher_has_ordered_python_fallbacks(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        positions = [
+            script.index('"C:\\Python314\\python.exe"'),
+            script.index("Get-Command python.exe"),
+            script.index("Get-Command python "),
+            script.index("Get-Command py "),
+        ]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('$PythonPrefixArguments = @("-3")', script)
+        self.assertIn('if ($PythonVersion -lt [version]"3.10")', script)
+
+    def test_57_launcher_clears_process_key_and_bstr_in_finally(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        finally_block = script.split("    finally {", 1)[1]
+        self.assertIn("Remove-Item Env:ENH3BENCH_API_KEY", finally_block)
+        self.assertIn("Remove-Variable ProcessKey", finally_block)
+        self.assertIn("ZeroFreeBSTR($KeyPointer)", finally_block)
+
+    def test_58_fixture_launcher_branch_has_no_credential_operation(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        fixture_branch = script.rsplit("else {", 1)[1]
+        self.assertIn("& $PythonCommand @PythonPrefixArguments @Arguments", fixture_branch)
+        self.assertNotIn("ENH3BENCH_API_KEY", fixture_branch)
+        self.assertNotIn("Read-Host", fixture_branch)
 
 
 if __name__ == "__main__":

@@ -54,8 +54,8 @@ API_KEY_ENVIRONMENT_VARIABLE = "ENH3BENCH_API_KEY"
 REQUEST_BODY_SIZE_LIMIT = 16 * 1024
 FIXTURE_WARNING = "DEMO_FIXTURE_NOT_MODEL_OUTPUT"
 FIXTURE_MESSAGE = (
-    "This fixture confirms the complete demonstration path. "
-    "It is not a model-generated scientific conclusion."
+    "Fixture 已验证案例加载、异步执行、结果持久化、浏览器轮询和界面渲染的完整链路。"
+    "此内容不是模型生成的科学结论。"
 )
 
 EXPECTED_CASE_IDS = (

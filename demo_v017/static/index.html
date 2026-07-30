@@ -71,7 +71,7 @@
             </label>
             <label id="live-label">
               <input id="live-mode" type="radio" name="mode" value="live" disabled>
-              <span><strong>LIVE API</strong><small>仅显式启动后可用</small></span>
+              <span><strong>LIVE API</strong><small>仅显式启动并通过模型权限检查后可用</small></span>
             </label>
           </fieldset>
           <div class="action-stack">
@@ -87,7 +87,7 @@
           <span id="run-status-text">尚未运行</span>
           <span id="elapsed-time" class="mono">00:00</span>
         </div>
-        <div id="preflight-result" class="preflight-result" aria-live="polite"></div>
+          <div id="preflight-result" class="preflight-result" aria-live="polite">模型权限检查不会发送 chat-completion 请求。</div>
       </section>
 
       <section class="result-layout" aria-label="运行结果">
@@ -104,7 +104,7 @@
           </div>
           <div id="result-empty" class="empty-state">运行 fixture 后，可在此查看完整的浏览器渲染路径。</div>
           <div id="result-content" hidden>
-            <h3>回答</h3>
+            <h3 id="answer-heading">演示结果</h3>
             <p id="answer-text" class="answer-text"></p>
             <div class="result-section">
               <h3>Claims</h3>
@@ -126,15 +126,16 @@
           <p class="section-kicker">PROVIDER METADATA</p>
           <h2 id="provider-meta-title">安全元数据</h2>
           <dl id="provider-metadata" class="metadata-list">
-            <div><dt>Requested model</dt><dd>—</dd></div>
-            <div><dt>Reported model</dt><dd>—</dd></div>
-            <div><dt>Response ID</dt><dd>—</dd></div>
-            <div><dt>HTTP status</dt><dd>—</dd></div>
-            <div><dt>Finish reason</dt><dd>—</dd></div>
-            <div><dt>Latency</dt><dd>—</dd></div>
-            <div><dt>Usage</dt><dd>—</dd></div>
-            <div><dt>Timeout</dt><dd>—</dd></div>
-            <div><dt>max_tokens</dt><dd>—</dd></div>
+            <div><dt>Provider</dt><dd id="metadata-provider">—</dd></div>
+            <div><dt>Configured Live model</dt><dd id="metadata-configured-model">—</dd></div>
+            <div><dt>Reported model</dt><dd id="metadata-reported-model">—</dd></div>
+            <div><dt>Response ID</dt><dd id="metadata-response-id">—</dd></div>
+            <div><dt>HTTP status</dt><dd id="metadata-http-status">—</dd></div>
+            <div><dt>Finish reason</dt><dd id="metadata-finish-reason">—</dd></div>
+            <div><dt>Latency</dt><dd id="metadata-latency">—</dd></div>
+            <div><dt>Usage</dt><dd id="metadata-usage">—</dd></div>
+            <div><dt>Live timeout configuration</dt><dd id="metadata-timeout">—</dd></div>
+            <div><dt>Live max_tokens configuration</dt><dd id="metadata-max-tokens">—</dd></div>
           </dl>
         </aside>
       </section>

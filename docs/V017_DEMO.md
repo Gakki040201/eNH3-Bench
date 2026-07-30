@@ -48,6 +48,10 @@ Fixture mode is the default and requires no credential. It performs no provider 
 Every case returns the same clearly marked path-confirmation message, empty claims and
 citations, and the warning `DEMO_FIXTURE_NOT_MODEL_OUTPUT`.
 
+The exact Fixture summary is:
+
+> Fixture 已验证案例加载、异步执行、结果持久化、浏览器轮询和界面渲染的完整链路。此内容不是模型生成的科学结论。
+
 Exact launcher command:
 
 ```powershell
@@ -66,6 +70,9 @@ C:\Python314\python.exe scripts\run_demo_v017.py `
 ```
 
 Open <http://127.0.0.1:8765> after the server starts.
+
+The PowerShell launcher selects Python in this order: `C:\Python314\python.exe` when
+present, `python.exe`, `python`, then `py -3`. It rejects versions older than Python 3.10.
 
 ## Live mode
 
@@ -100,7 +107,9 @@ is not a provider service guarantee.
    `https://api.llm.ustc.edu.cn/v1/models`.
 4. The browser receives only status, HTTP status, model count, target-model visibility,
    latency, timestamp, and a safe error code.
-5. A successful preflight does not automatically send a chat completion.
+5. Live remains disabled unless status is `succeeded`, HTTP status is 200, and the target
+   model is visible. This browser-session state resets on refresh.
+6. A successful preflight does not automatically send a chat completion.
 
 Preflight is never invoked automatically at startup.
 
@@ -110,10 +119,12 @@ Preflight is never invoked automatically at startup.
 2. Inspect its question and bounded evidence.
 3. Select **LIVE API**.
 4. Click **运行所选案例**.
-5. The server persists a queued record and returns HTTP 202.
-6. The single worker reads the key, builds the frozen case payload, and makes exactly one POST
+5. Confirm the native browser dialog showing the selected case, model, `max_tokens`, timeout,
+   one-request/no-retry policy, and possible project-token consumption.
+6. Only after confirmation, the server persists a queued record and returns HTTP 202.
+7. The single worker reads the key, builds the frozen case payload, and makes exactly one POST
    to the configured `/v1/chat/completions` endpoint.
-7. The UI polls until the run is structured, unstructured, or failed.
+8. The UI polls until the run is structured, unstructured, or failed.
 
 There is no arbitrary prompt input. The live payload contains exactly `model`, `messages`,
 and `max_tokens`. The default requested model is `deepseek-v4-pro`; the default
@@ -217,8 +228,9 @@ frozen runtime.
 **`demo_root_must_be_outside_repository`:** choose an external directory such as
 `F:\eNH3_Bench_API\v017_demo_runtime`.
 
-**Live controls are disabled:** stop the fixture server and restart with `-Live`. The browser
-cannot elevate fixture-only startup.
+**Live controls are disabled:** stop the fixture server and restart with `-Live`, then complete
+a successful explicit model preflight. The browser cannot elevate fixture-only startup, and
+each page refresh requires another preflight.
 
 **`credential_missing`:** stop the server and use the secure `-Live` launcher again. Do not
 place the key in a command or file.
