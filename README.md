@@ -1,5 +1,13 @@
 # eNH3-Bench
 
+## M017 local web demo
+
+M017 provides a runnable local browser demo for the seven frozen development cases, with a
+zero-network fixture mode and an explicitly enabled single-case USTC live mode. Start with
+`powershell -ExecutionPolicy Bypass -File scripts\start_demo_v017.ps1 -Fixture`, then open
+`http://127.0.0.1:8765`. See [docs/V017_DEMO.md](docs/V017_DEMO.md) for the safety boundary,
+live-key flow, API, parser levels, and troubleshooting.
+
 ## v0.15 Clean-Room Document-First Pipeline
 
 The `document_first_cleanroom_v1` profile is an independent, deterministic pipeline that starts from complete Markdown documents and creates new document, source-node, candidate, semantic, evidence-link, paper, review, validation, and database outputs. It uses schema `0.15-cleanroom.1`; it does not replace audit schema 0.13, legacy exports, historical `source_span_id` values, or authoritative Gold.
