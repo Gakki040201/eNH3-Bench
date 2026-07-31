@@ -10,7 +10,11 @@ param(
     [string]$GenerationRunName = "enrr_generation_pilot_v016_b1b0_20260722",
     [string]$DemoRoot = "F:\eNH3_Bench_API\v017_demo_runtime",
     [ValidateRange(1, 65535)]
-    [int]$Port = 8765
+    [int]$Port = 8765,
+    [ValidateRange(1, 2147483647)]
+    [int]$MaxOutputTokens = 4096,
+    [ValidateScript({ $_ -gt 0 -and -not [double]::IsNaN($_) -and -not [double]::IsInfinity($_) })]
+    [double]$TimeoutSeconds = 900
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,7 +55,9 @@ $Arguments = @(
     "--generation-run-name", $GenerationRunName,
     "--demo-root", $DemoRoot,
     "--host", "127.0.0.1",
-    "--port", "$Port"
+    "--port", "$Port",
+    "--max-output-tokens", "$MaxOutputTokens",
+    "--timeout-seconds", "$TimeoutSeconds"
 )
 
 $SelectedPythonDisplay = (@($PythonCommand) + $PythonPrefixArguments) -join " "
@@ -62,6 +68,8 @@ Write-Host "mode = $Mode"
 Write-Host "local URL = $Url"
 Write-Host "pilot root = $PilotRoot"
 Write-Host "demo root = $DemoRoot"
+Write-Host "Live max_tokens = $MaxOutputTokens"
+Write-Host "Live timeout seconds = $TimeoutSeconds"
 
 if ($Live) {
     $SecureKey = $null

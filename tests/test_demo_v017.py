@@ -17,6 +17,7 @@ from enh3bench.demo_v017 import (
     BATCH_ITEM_FIELDS,
     DEMO_BATCH_FIELDS,
     DEMO_BATCH_SCHEMA_VERSION,
+    DEMO_RUN_SCHEMA_VERSION,
     DEMO_RUN_FIELDS,
     EXPECTED_CASE_IDS,
     FIXTURE_MESSAGE,
@@ -33,6 +34,7 @@ from enh3bench.demo_v017 import (
     TERMINAL_RUN_STATES,
     USTC_MODELS_ENDPOINT,
     build_live_payload,
+    is_complete_demo_structured_response,
     parse_demo_content,
 )
 
@@ -291,6 +293,16 @@ class DemoV017Tests(unittest.TestCase):
             time.sleep(0.01)
         self.fail(f"batch did not become terminal: {batch_id}")
 
+    def live_record(self, body: dict) -> tuple[dict, FakeHTTPClient]:
+        client = FakeHTTPClient(post_result=FakeResponse(200, body))
+        service = self.service(
+            live_enabled=True,
+            http_client=client,
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="live")
+        return self.wait_terminal(service, queued["run_id"]), client
+
     def test_01_exact_seven_case_order_is_loaded(self) -> None:
         self.assertEqual([row["case_id"] for row in self.cases().summaries()], list(EXPECTED_CASE_IDS))
 
@@ -359,16 +371,18 @@ class DemoV017Tests(unittest.TestCase):
         self.assertNotIn("hidden nested reasoning", text)
 
     def test_11_strict_json_parsing(self) -> None:
-        result = parse_demo_content('{"answer_text":"strict","citations":[]}')
+        result = parse_demo_content('{"answer_text":"strict","claims":[],"citations":[]}')
         self.assertEqual((result["parse_level"], result["answer_text"]), ("strict_json", "strict"))
 
     def test_12_fenced_json_parsing(self) -> None:
-        result = parse_demo_content('```json\n{"answer_text":"fenced","citations":[]}\n```')
+        result = parse_demo_content('```json\n{"answer_text":"fenced","claims":[],"citations":[]}\n```')
         self.assertEqual(result["parse_level"], "fenced_json")
         self.assertIn("DEMO_TOLERANT_PARSE_FENCED_JSON", result["warnings"])
 
     def test_13_balanced_json_extraction(self) -> None:
-        result = parse_demo_content('Preface {"answer_text":"extracted","nested":{"x":"}"}} suffix')
+        result = parse_demo_content(
+            'Preface {"answer_text":"extracted","claims":[],"citations":[],"nested":{"x":"}"}} suffix'
+        )
         self.assertEqual((result["parse_level"], result["answer_text"]), ("extracted_json", "extracted"))
 
     def test_14_unstructured_text_is_preserved(self) -> None:
@@ -1022,6 +1036,253 @@ class DemoV017Tests(unittest.TestCase):
         self.wait_batch_terminal(service, queued["batch_id"])
         self.assertEqual(sentinel.read_bytes(), before)
         self.assertEqual(sorted(path.name for path in (self.pilot_root / self.run_name).iterdir()), [sentinel.name])
+
+    def test_99_complete_answer_text_top_level_remains_strict_json(self) -> None:
+        content = json.dumps({"answer_text": "complete", "claims": [], "citations": [], "extra": True})
+        result = parse_demo_content(content)
+        self.assertEqual(result["parse_level"], "strict_json")
+        self.assertTrue(is_complete_demo_structured_response(result["structured_output"]))
+
+    def test_100_complete_summary_top_level_remains_strict_json(self) -> None:
+        content = json.dumps({"summary": "complete summary", "claims": [], "citations": []})
+        result = parse_demo_content(content)
+        self.assertEqual((result["parse_level"], result["answer_text"]), ("strict_json", "complete summary"))
+
+    def test_101_nested_claim_json_is_not_complete_top_level_response(self) -> None:
+        content = json.dumps({"claim_id": "C1", "claim_text": "nested fragment"})
+        result = parse_demo_content(content)
+        self.assertEqual(result["parse_level"], "unstructured_text")
+        self.assertIn("DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE", result["warnings"])
+
+    def test_102_nested_citation_json_is_not_complete_top_level_response(self) -> None:
+        content = json.dumps({"citation_id": "CIT1", "source_span_id": "S001"})
+        result = parse_demo_content(content)
+        self.assertIsNone(result["structured_output"])
+        self.assertEqual(result["citations"], [])
+
+    def test_103_extracted_nested_claim_is_unstructured_not_structured_success(self) -> None:
+        content = 'partial prefix {"claim_id":"C1","claim_text":"fragment"} trailing text'
+        body = successful_body(content)
+        record, _ = self.live_record(body)
+        self.assertEqual((record["status"], record["parse_level"]), ("succeeded_unstructured", "unstructured_text"))
+        self.assertEqual(record["answer_text"], content)
+
+    def test_104_fenced_nested_fragment_preserves_complete_provider_text(self) -> None:
+        content = '```json\n{"citation_id":"CIT1","source_span_id":"S001"}\n```'
+        result = parse_demo_content(content)
+        self.assertEqual(result["answer_text"], content)
+        self.assertIn("DEMO_TOLERANT_PARSE_FENCED_JSON", result["warnings"])
+
+    def test_105_finish_reason_length_produces_truncated_error_code(self) -> None:
+        body = successful_body('{"claim_id":"C1","claim_text":"partial"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_output_truncated")
+        self.assertEqual(
+            record["safe_error_message"],
+            "Provider output reached the configured token limit before a complete answer was returned.",
+        )
+
+    def test_106_finish_reason_length_produces_failed_status(self) -> None:
+        body = successful_body("Readable partial provider output")
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["status"], "failed")
+        self.assertIn("DEMO_PROVIDER_OUTPUT_TRUNCATED_LENGTH", record["warnings"])
+
+    def test_107_truncated_readable_content_is_preserved(self) -> None:
+        partial = "Readable partial provider output that ends abruptly"
+        body = successful_body(partial)
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual((record["parse_level"], record["answer_text"]), ("unstructured_text", partial))
+
+    def test_108_truncated_invalid_fragment_does_not_fabricate_claims(self) -> None:
+        body = successful_body('{"claim_id":"C1","claim_text":"partial"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertIsNone(record["structured_output"])
+
+    def test_109_truncated_invalid_fragment_does_not_fabricate_citations(self) -> None:
+        body = successful_body('{"citation_id":"CIT1","source_span_id":"S001"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["citations"], [])
+
+    def test_110_truncated_valid_top_level_json_preserves_safe_structure(self) -> None:
+        content = json.dumps({
+            "answer_text": "complete-shaped but provider-truncated",
+            "claims": [{"claim_id": "C1"}],
+            "citations": [{"source_span_id": "S001"}],
+        })
+        body = successful_body(content)
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["structured_output"]["claims"], [{"claim_id": "C1"}])
+        self.assertEqual(record["citations"], [{"source_span_id": "S001"}])
+        self.assertEqual(record["status"], "failed")
+
+    def test_111_http_status_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["http_status"], 200)
+
+    def test_112_response_id_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = None
+        record, _ = self.live_record(body)
+        self.assertEqual(record["provider_response_id"], "provider-response-1")
+
+    def test_113_reported_model_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = " "
+        record, _ = self.live_record(body)
+        self.assertEqual(record["reported_model"], "deepseek-v4-pro")
+
+    def test_114_finish_reason_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["finish_reason"], "stop")
+
+    def test_115_usage_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["usage"], {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18})
+
+    def test_116_reasoning_content_is_discarded_when_final_content_is_empty(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"].update({"content": "", "reasoning_content": "private fake chain"})
+        record, _ = self.live_record(body)
+        persisted = (self.demo_root / "runs" / f"{record['run_id']}.json").read_text(encoding="utf-8")
+        self.assertNotIn("reasoning_content", persisted)
+        self.assertNotIn("private fake chain", persisted)
+
+    def test_117_reasoning_content_is_not_used_as_answer_text(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"].update({"content": "", "reasoning_content": "private fake chain"})
+        record, _ = self.live_record(body)
+        self.assertEqual(record["answer_text"], "")
+        self.assertEqual(record["safe_error_code"], "provider_empty_content")
+
+    def test_118_empty_final_content_warning_is_present(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertIn("DEMO_FINAL_CONTENT_EMPTY", record["warnings"])
+
+    def test_119_batch_child_truncation_produces_completed_with_failures(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial batch output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[3] = FakeResponse(200, truncated)
+        service = self.service(
+            live_enabled=True,
+            http_client=SequencedHTTPClient(results),
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(record["status"], "completed_with_failures")
+        self.assertEqual(record["items"][3]["safe_error_code"], "provider_output_truncated")
+
+    def test_120_later_batch_cases_execute_after_truncation(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial batch output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[1] = FakeResponse(200, truncated)
+        client = SequencedHTTPClient(results)
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(len(client.post_calls), 7)
+        self.assertTrue(record["items"][6]["status"].startswith("succeeded_"))
+
+    def test_121_batch_report_marks_truncated_output_as_incomplete(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial report output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[0] = FakeResponse(200, truncated)
+        service = self.service(
+            live_enabled=True,
+            http_client=SequencedHTTPClient(results),
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_batch(mode="live")
+        batch = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / batch["report_filename"]).read_text(encoding="utf-8")
+        self.assertIn("Partial provider output preserved", report)
+        self.assertIn("Not a complete scientific answer", report)
+        self.assertIn("Readable partial report output", report)
+
+    def test_122_old_demo_run_schema_history_remains_readable(self) -> None:
+        service = self.service()
+        run_id = service._create_run_record(case_id=EXPECTED_CASE_IDS[0], mode="fixture")
+        stored = service.get_run(run_id)
+        self.assertEqual(stored["schema_version"], "0.17-demo-run.1")
+        self.assertEqual(DEMO_RUN_SCHEMA_VERSION, "0.17-demo-run.1")
+        self.assertEqual(service.history(1)[0]["run_id"], run_id)
+
+    def test_123_launcher_accepts_max_output_tokens(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        self.assertIn("[int]$MaxOutputTokens = 4096", script)
+        self.assertIn('"--max-output-tokens", "$MaxOutputTokens"', script)
+        self.assertIn('Write-Host "Live max_tokens = $MaxOutputTokens"', script)
+
+    def test_124_launcher_accepts_timeout_seconds(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        self.assertIn("[double]$TimeoutSeconds = 900", script)
+        self.assertIn('"--timeout-seconds", "$TimeoutSeconds"', script)
+        self.assertIn("[double]::IsInfinity($_)", script)
+
+    def test_125_launcher_still_clears_key_in_finally_after_new_parameters(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        finally_block = script.split("    finally {", 1)[1]
+        self.assertIn("Remove-Item Env:ENH3BENCH_API_KEY", finally_block)
+        self.assertIn("ZeroFreeBSTR($KeyPointer)", finally_block)
+
+    def test_126_fixture_behavior_remains_unchanged_after_hardening(self) -> None:
+        service = self.service()
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="fixture")
+        record = self.wait_terminal(service, queued["run_id"])
+        self.assertEqual((record["status"], record["answer_text"]), ("succeeded_structured", FIXTURE_MESSAGE))
+        self.assertIn(FIXTURE_WARNING, record["warnings"])
+
+    def test_127_existing_successful_fake_live_response_remains_successful(self) -> None:
+        record, client = self.live_record(successful_body())
+        self.assertEqual((record["status"], record["parse_level"]), ("succeeded_structured", "strict_json"))
+        self.assertEqual(len(client.post_calls), 1)
+
+    def test_128_truncation_does_not_introduce_automatic_retry(self) -> None:
+        body = successful_body("Readable partial provider output")
+        body["choices"][0]["finish_reason"] = "length"
+        record, client = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_output_truncated")
+        self.assertEqual(len(client.post_calls), 1)
+
+    def test_129_single_result_ui_contains_required_partial_and_empty_diagnostics(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        app = APP_PATH.read_text(encoding="utf-8")
+        for required in (
+            "Partial provider output preserved",
+            "Not a complete scientific answer",
+            "输出达到 max_tokens 上限，当前内容仅为不完整片段，不能作为完整科学回答。",
+        ):
+            self.assertIn(required, html)
+        self.assertIn("Provider 未返回可用的最终回答内容。系统未使用或显示隐藏推理内容。", app)
+        self.assertIn('const notSupplied = "N/A · not supplied by provider";', app)
+
+    def test_130_safe_body_metadata_survives_malformed_choices(self) -> None:
+        body = successful_body()
+        body["choices"] = []
+        record, _ = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_malformed_response")
+        self.assertEqual(record["http_status"], 200)
+        self.assertEqual(record["provider_response_id"], "provider-response-1")
+        self.assertEqual(record["reported_model"], "deepseek-v4-pro")
+        self.assertEqual(record["usage"]["total_tokens"], 18)
 
 
 if __name__ == "__main__":

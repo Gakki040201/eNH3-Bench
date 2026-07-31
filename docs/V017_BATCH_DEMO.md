@@ -41,6 +41,28 @@ does not stop later cases. Automatic retries are disabled. A Live batch therefor
 most seven POST attempts—one per case. Manually rerunning a Live batch creates a new batch
 and may create up to seven new provider requests.
 
+## Response boundaries and failure diagnostics
+
+A structured child response must be a complete top-level object with a non-empty string
+`answer_text` or `summary`, `claims` as a list, and `citations` as a list. Additional fields
+are allowed. Nested claim or citation JSON fragments do not qualify. For a non-truncated
+child, readable provider text is preserved as `unstructured_text` with
+`DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE`; the Demo never fabricates claims or citations.
+
+`finish_reason=length` always produces a failed child with
+`provider_output_truncated` and `DEMO_PROVIDER_OUTPUT_TRUNCATED_LENGTH`. Readable partial
+content remains in its DR17 record and new batch reports show a prominent **Partial provider
+output preserved / Not a complete scientific answer** warning. The batch table shows the
+child as `failed`, its error column shows `provider_output_truncated`, later cases continue,
+and the terminal batch is `completed_with_failures` after all seven attempts.
+
+`provider_empty_content` remains a failed child and may include
+`DEMO_FINAL_CONTENT_EMPTY`. Safe HTTP status, reported model, response ID, finish reason,
+usage, and latency remain visible when supplied. Missing values are displayed as
+`N/A · not supplied by provider`. Any `reasoning_content` is discarded: it is never shown,
+persisted, or repurposed as an answer. Neither truncation nor empty final content triggers an
+automatic retry.
+
 The browser shows exact per-case states and an exact `n / 7 completed` counter; it does not
 show a fabricated percentage. Completed child rows provide **打开案例结果**, which reuses
 the D1 single-result renderer. Batch-history rows reopen the saved summary and progress
@@ -102,6 +124,10 @@ analytics, or network dependency. It includes aggregate metrics and escaped per-
 questions, answers, warnings, safe provider metadata, claims, and citations. Use **打开批次报告**
 or `GET /api/batches/{batch_id}/report` after it is ready.
 
+Existing `0.17-demo-run.1` DR17 and `0.17-demo-batch.1` DB17 records remain readable and
+are not migrated or rewritten. D2A adds no serialized field, so newly generated records
+retain those schema versions. Only newly generated reports use the improved warnings.
+
 ## HTTP API
 
 | Route | Purpose |
@@ -119,3 +145,18 @@ Malformed IDs and path traversal are rejected; there is no arbitrary filesystem 
 Use the same launcher documented in [V017_DEMO.md](V017_DEMO.md). Fixture is the safe
 default. Press `Ctrl+C` in the server terminal to stop it; the HTTP server and one-worker
 executor shut down cleanly.
+
+For a later targeted manual rerun with a larger per-case output limit, use the explicit Live
+flow and confirmation:
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File .\scripts\start_demo_v017.ps1 `
+  -Live `
+  -MaxOutputTokens 8192 `
+  -TimeoutSeconds 900
+```
+
+`MaxOutputTokens` must be a positive integer and `TimeoutSeconds` a positive finite number;
+their defaults remain `4096` and `900`. This command is documented for later manual use and
+does not imply a retry or resume mechanism.

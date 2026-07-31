@@ -55,6 +55,12 @@ USTC_MODELS_ENDPOINT = "https://api.llm.ustc.edu.cn/v1/models"
 API_KEY_ENVIRONMENT_VARIABLE = "ENH3BENCH_API_KEY"
 REQUEST_BODY_SIZE_LIMIT = 16 * 1024
 FIXTURE_WARNING = "DEMO_FIXTURE_NOT_MODEL_OUTPUT"
+JSON_FRAGMENT_WARNING = "DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE"
+TRUNCATED_OUTPUT_WARNING = "DEMO_PROVIDER_OUTPUT_TRUNCATED_LENGTH"
+EMPTY_CONTENT_WARNING = "DEMO_FINAL_CONTENT_EMPTY"
+TRUNCATED_OUTPUT_MESSAGE = (
+    "Provider output reached the configured token limit before a complete answer was returned."
+)
 FIXTURE_MESSAGE = (
     "Fixture 已验证案例加载、异步执行、结果持久化、浏览器轮询和界面渲染的完整链路。"
     "此内容不是模型生成的科学结论。"
@@ -298,11 +304,42 @@ def _answer_and_citations(structured: dict[str, Any]) -> tuple[str, list[Any]]:
     return answer, citations if isinstance(citations, list) else []
 
 
+def is_complete_demo_structured_response(value: Any) -> bool:
+    """Return whether a JSON value is a complete Demo top-level response."""
+
+    if not isinstance(value, dict):
+        return False
+    answer = value.get("answer_text")
+    summary = value.get("summary")
+    has_answer = (
+        isinstance(answer, str) and bool(answer.strip())
+    ) or (
+        isinstance(summary, str) and bool(summary.strip())
+    )
+    return (
+        has_answer
+        and isinstance(value.get("claims"), list)
+        and isinstance(value.get("citations"), list)
+    )
+
+
+def _unstructured_json_fragment(content: str, warnings: list[str]) -> dict[str, Any]:
+    return {
+        "parse_level": "unstructured_text",
+        "structured_output": None,
+        "answer_text": sanitize_for_record(content.strip()),
+        "citations": [],
+        "warnings": list(dict.fromkeys([*warnings, JSON_FRAGMENT_WARNING])),
+    }
+
+
 def parse_demo_content(content: str) -> dict[str, Any]:
     """Parse provider content progressively while preserving readable fallback text."""
 
     if not isinstance(content, str) or not content.strip():
-        raise DemoSafeError("provider_empty_content", "Provider response content was empty.")
+        raise DemoSafeError(
+            "provider_empty_content", "Provider returned no usable final answer content.",
+        )
     stripped = content.strip()
     try:
         parsed = json.loads(stripped)
@@ -310,6 +347,8 @@ def parse_demo_content(content: str) -> dict[str, Any]:
         parsed = None
     if isinstance(parsed, dict):
         structured = sanitize_for_record(parsed)
+        if not is_complete_demo_structured_response(structured):
+            return _unstructured_json_fragment(stripped, [])
         answer, citations = _answer_and_citations(structured)
         return {
             "parse_level": "strict_json", "structured_output": structured,
@@ -324,6 +363,10 @@ def parse_demo_content(content: str) -> dict[str, Any]:
             parsed = None
         if isinstance(parsed, dict):
             structured = sanitize_for_record(parsed)
+            if not is_complete_demo_structured_response(structured):
+                return _unstructured_json_fragment(
+                    stripped, ["DEMO_TOLERANT_PARSE_FENCED_JSON"],
+                )
             answer, citations = _answer_and_citations(structured)
             return {
                 "parse_level": "fenced_json", "structured_output": structured,
@@ -334,6 +377,10 @@ def parse_demo_content(content: str) -> dict[str, Any]:
     extracted = _first_balanced_json_object(stripped)
     if extracted is not None:
         structured = sanitize_for_record(extracted)
+        if not is_complete_demo_structured_response(structured):
+            return _unstructured_json_fragment(
+                stripped, ["DEMO_TOLERANT_PARSE_EXTRACTED_JSON"],
+            )
         answer, citations = _answer_and_citations(structured)
         return {
             "parse_level": "extracted_json", "structured_output": structured,
@@ -862,13 +909,21 @@ class DemoService:
                 secret = self.credential_reader(API_KEY_ENVIRONMENT_VARIABLE)
                 if not secret:
                     raise DemoSafeError("credential_missing", "Live API credential is unavailable.")
-                result = self._perform_live_request(record["case_id"], secret)
+                result = self._perform_live_request(record, secret)
                 record.update(result)
         except DemoSafeError as exc:
-            record.update({
-                "status": "failed", "http_status": exc.http_status,
-                "safe_error_code": exc.code, "safe_error_message": exc.safe_message,
-            })
+            failure = {
+                "status": "failed",
+                "safe_error_code": exc.code,
+                "safe_error_message": exc.safe_message,
+            }
+            if exc.http_status is not None:
+                failure["http_status"] = exc.http_status
+            if exc.code == "provider_empty_content":
+                failure["warnings"] = list(dict.fromkeys([
+                    *(record.get("warnings") or []), EMPTY_CONTENT_WARNING,
+                ]))
+            record.update(failure)
         except Exception:
             # Do not interpolate exception text: a third-party exception could echo request data.
             LOGGER.error("Unexpected internal failure for demo run %s", run_id)
@@ -965,6 +1020,11 @@ class DemoService:
         def json_text(value: Any) -> str:
             return h(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2))
 
+        def supplied(value: Any) -> Any:
+            if value is None or (isinstance(value, str) and not value.strip()):
+                return "N/A · not supplied by provider"
+            return value
+
         item_rows: list[str] = []
         details: list[str] = []
         for item in batch["items"]:
@@ -983,19 +1043,29 @@ class DemoService:
             case = self.cases.detail(item["case_id"])
             structured = child.get("structured_output") if isinstance(child.get("structured_output"), dict) else {}
             provider_metadata = {
-                "provider": child.get("provider"),
-                "requested_model": child.get("requested_model"),
-                "reported_model": child.get("reported_model"),
-                "provider_response_id": child.get("provider_response_id"),
-                "http_status": child.get("http_status"),
-                "finish_reason": child.get("finish_reason"),
-                "usage": child.get("usage"),
+                "provider": supplied(child.get("provider")),
+                "requested_model": supplied(child.get("requested_model")),
+                "reported_model": supplied(child.get("reported_model")),
+                "provider_response_id": supplied(child.get("provider_response_id")),
+                "http_status": supplied(child.get("http_status")),
+                "finish_reason": supplied(child.get("finish_reason")),
+                "usage": supplied(child.get("usage")),
             }
+            partial_notice = (
+                "<p class=\"notice partial\"><strong>Partial provider output preserved</strong><br>"
+                "Not a complete scientific answer</p>"
+                if child.get("safe_error_code") == "provider_output_truncated" else ""
+            )
+            empty_notice = (
+                "<p class=\"notice failure\"><strong>Provider returned no usable final answer content.</strong></p>"
+                if child.get("safe_error_code") == "provider_empty_content" else ""
+            )
             details.append(
                 "<section class=\"case\">"
                 f"<h2>{h(item['case_number'])}. <code>{h(item['case_id'])}</code></h2>"
                 f"<p><strong>Question:</strong> {h(case['question'])}</p>"
                 f"<p><strong>Status:</strong> {h(child['status'])} · <strong>Parse level:</strong> {h(child.get('parse_level'))}</p>"
+                f"{partial_notice}{empty_notice}"
                 f"<h3>Answer</h3><pre>{h(child.get('answer_text') or '')}</pre>"
                 f"<h3>Warnings</h3><pre>{json_text(child.get('warnings') or [])}</pre>"
                 f"<h3>Safe provider metadata</h3><pre>{json_text(provider_metadata)}</pre>"
@@ -1014,7 +1084,8 @@ class DemoService:
             "<style>body{max-width:1200px;margin:0 auto;padding:32px;font:15px/1.55 system-ui,sans-serif;color:#14211d}"
             "table{width:100%;border-collapse:collapse}th,td{padding:8px;border:1px solid #dce4de;text-align:left}"
             "th{background:#edf5f0}code,pre{font-family:ui-monospace,monospace}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f8f6;padding:12px}"
-            ".notice{padding:14px;background:#fff1d8;border-left:4px solid #a45b08}.case{margin-top:30px;padding-top:18px;border-top:2px solid #dce4de}</style></head><body>",
+            ".notice{padding:14px;background:#fff1d8;border-left:4px solid #a45b08}.notice.partial,.notice.failure{background:#fde8e6;border-color:#a13535}"
+            ".case{margin-top:30px;padding-top:18px;border-top:2px solid #dce4de}</style></head><body>",
             "<p class=\"notice\"><strong>Demo output — not automatically accepted into the benchmark</strong></p>",
             fixture_notice,
             f"<h1>Seven-case batch report</h1><p><strong>Batch ID:</strong> <code>{h(batch_id)}</code><br>"
@@ -1031,8 +1102,8 @@ class DemoService:
             "".join(item_rows), "</tbody></table>", "".join(details), "</body></html>",
         ])
 
-    def _perform_live_request(self, case_id: str, secret: str) -> dict[str, Any]:
-        prompt = self.cases.prompt(case_id)
+    def _perform_live_request(self, record: dict[str, Any], secret: str) -> dict[str, Any]:
+        prompt = self.cases.prompt(record["case_id"])
         payload = build_live_payload(
             prompt, model_id=self.config.model_id, max_output_tokens=self.config.max_output_tokens,
         )
@@ -1050,6 +1121,8 @@ class DemoService:
         except requests.RequestException as exc:
             raise DemoSafeError("provider_connection_error", "The provider request could not be completed.") from exc
         status = int(getattr(response, "status_code", 0) or 0)
+        record["http_status"] = status or None
+        self.store.write(record, secret=secret)
         if status != HTTPStatus.OK:
             raise DemoSafeError(
                 _http_error(status), f"Provider returned HTTP {status}.", http_status=status or None,
@@ -1064,18 +1137,52 @@ class DemoService:
             raise DemoSafeError(
                 "provider_malformed_response", "Provider response shape was invalid.", http_status=status,
             )
+        record.update({
+            "provider_response_id": sanitize_for_record(body.get("id"), secret=secret),
+            "reported_model": sanitize_for_record(body.get("model"), secret=secret),
+            "usage": _safe_usage(body.get("usage")),
+        })
+        self.store.write(record, secret=secret)
         choices = body.get("choices")
         if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
             raise DemoSafeError(
                 "provider_malformed_response", "Provider response choices were invalid.", http_status=status,
             )
         choice = choices[0]
+        record["finish_reason"] = sanitize_for_record(choice.get("finish_reason"), secret=secret)
+        self.store.write(record, secret=secret)
         message = choice.get("message")
         if not isinstance(message, dict):
             raise DemoSafeError(
                 "provider_malformed_response", "Provider response message was invalid.", http_status=status,
             )
         content = message.get("content")
+        finish_reason = record["finish_reason"]
+        if finish_reason == "length":
+            try:
+                parsed = parse_demo_content(content)
+            except DemoSafeError as exc:
+                if exc.code != "provider_empty_content":
+                    raise
+                parsed = {
+                    "parse_level": None,
+                    "structured_output": None,
+                    "answer_text": "",
+                    "citations": [],
+                    "warnings": [EMPTY_CONTENT_WARNING],
+                }
+            parsed["warnings"] = list(dict.fromkeys([
+                *(parsed.get("warnings") or []), TRUNCATED_OUTPUT_WARNING,
+            ]))
+            parsed = sanitize_for_record(
+                parsed, secret=secret, repository_root=self.store.repository_root,
+            )
+            return {
+                "status": "failed",
+                "safe_error_code": "provider_output_truncated",
+                "safe_error_message": TRUNCATED_OUTPUT_MESSAGE,
+                **parsed,
+            }
         parsed = parse_demo_content(content)
         parsed = sanitize_for_record(parsed, secret=secret, repository_root=self.store.repository_root)
         return {
@@ -1084,11 +1191,11 @@ class DemoService:
                 if parsed["parse_level"] == "unstructured_text"
                 else "succeeded_structured"
             ),
-            "http_status": status,
-            "provider_response_id": sanitize_for_record(body.get("id"), secret=secret),
-            "reported_model": sanitize_for_record(body.get("model"), secret=secret),
-            "finish_reason": sanitize_for_record(choice.get("finish_reason"), secret=secret),
-            "usage": _safe_usage(body.get("usage")),
+            "http_status": record["http_status"],
+            "provider_response_id": record["provider_response_id"],
+            "reported_model": record["reported_model"],
+            "finish_reason": finish_reason,
+            "usage": record["usage"],
             **parsed,
         }
 

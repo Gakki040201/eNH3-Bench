@@ -106,6 +106,22 @@ Live requests may consume USTC project tokens. Automatic retries are disabled. A
 rerun is a separate provider request. The default client waiting ceiling is 900 seconds; it
 is not a provider service guarantee.
 
+For a later targeted manual rerun, the launcher accepts explicit output and client-waiting
+limits without a source edit. This command is an operator example only; increasing the
+limit may consume more project tokens and does not add an automatic retry:
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File .\scripts\start_demo_v017.ps1 `
+  -Live `
+  -MaxOutputTokens 8192 `
+  -TimeoutSeconds 900
+```
+
+The launcher validates `MaxOutputTokens` as a positive integer and `TimeoutSeconds` as a
+positive finite number. It prints both selected values at startup but never prints or passes
+the key on the command line.
+
 ## Model preflight flow
 
 1. Start with `-Live` and open the local page.
@@ -137,6 +153,19 @@ There is no arbitrary prompt input. The live payload contains exactly `model`, `
 and `max_tokens`. The default requested model is `deepseek-v4-pro`; the default
 `max_tokens` value is 4096. Normal answer content may be retained, while
 `reasoning_content`, headers, and credentials are discarded.
+
+Safe envelope metadata—HTTP status, provider response ID, reported model, finish reason,
+and usage—is sanitized and persisted before final content parsing. It therefore remains
+available when final content is empty or parsing fails. The complete provider response,
+response headers, Authorization material, and hidden reasoning are never persisted.
+
+`finish_reason=length` is always `failed` with
+`safe_error_code=provider_output_truncated`. Readable partial content is preserved and
+clearly marked as incomplete, but it is never accepted as a complete scientific answer.
+There is no automatic retry. When final `message.content` is empty, the result remains
+`provider_empty_content`; `reasoning_content`, if supplied, is discarded and is never
+displayed, persisted, or transformed into answer text. The safe warning
+`DEMO_FINAL_CONTENT_EMPTY` may accompany the failure.
 
 ## HTTP routes
 
@@ -195,6 +224,14 @@ The demo preserves readable answers even when formatting is imperfect:
 The last three levels display visible warnings. Unstructured text is not represented as
 schema-valid benchmark output. Missing citations are never fabricated.
 
+JSON parsing alone is not enough for a structured success. At every JSON level, a complete
+top-level Demo response must contain either a non-empty string `answer_text` or a non-empty
+string `summary`, plus `claims` as a list and `citations` as a list. Additional fields are
+allowed. A nested claim or citation object is only a fragment, not a complete response. For
+a non-truncated response, the full readable provider text is retained as
+`unstructured_text` with `DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE`; claims or citations
+are not fabricated.
+
 ## Configuration
 
 `scripts/run_demo_v017.py` supports:
@@ -211,7 +248,8 @@ schema-valid benchmark output. Missing citations are never fabricated.
 - `--enable-live-api` (off by default)
 
 The PowerShell launcher additionally supports `-PilotRoot`, `-GenerationRunName`,
-`-DemoRoot`, and `-Port`.
+`-DemoRoot`, `-Port`, `-MaxOutputTokens` (default `4096`), and `-TimeoutSeconds` (default
+`900`).
 
 ## Stop the server
 
@@ -251,3 +289,13 @@ place the key in a command or file.
 **Timeout or connection failure:** the run record contains only a safe category. Automatic
 retry is disabled; clicking run again would create a new provider request and may consume
 additional tokens.
+
+**`provider_output_truncated`:** the provider reported `finish_reason=length`. Treat the
+preserved text as a partial diagnostic only, select a larger `-MaxOutputTokens` for a later
+explicit targeted rerun if appropriate, and obtain the normal Live confirmation before
+submitting it.
+
+**`provider_empty_content`:** the provider returned no usable final answer content. Inspect
+the retained safe HTTP/model/response/finish/usage/latency metadata; unavailable values are
+shown as `N/A · not supplied by provider`. Hidden reasoning is intentionally unavailable.
+Do not expect an automatic retry.

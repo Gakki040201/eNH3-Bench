@@ -186,12 +186,13 @@ h3 { margin-bottom: 8px; font-size: 0.95rem; }
 .result-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr); gap: 18px; }
 .empty-state { min-height: 170px; display: grid; place-items: center; text-align: center; color: var(--muted); border: 1px dashed #cbd5ce; border-radius: 10px; }
 .answer-text { padding: 15px; white-space: pre-wrap; background: #f7faf8; border-radius: 9px; }
+.partial-output-notice { display: grid; gap: 3px; margin-bottom: 12px; padding: 14px; color: var(--red); background: var(--red-soft); border-left: 4px solid var(--red); border-radius: 8px; }
 .result-section { margin-top: 18px; }
 .structured-list { display: grid; gap: 7px; }
 .structured-item { padding: 10px; overflow-wrap: anywhere; background: #f7f8f7; border: 1px solid var(--line); border-radius: 7px; font-size: 0.82rem; white-space: pre-wrap; }
 .warning-section { padding: 12px 14px; background: var(--amber-soft); border-radius: 9px; }
 .warning-section ul { margin: 0; padding-left: 19px; }
-.error-box { margin-top: 15px; padding: 12px; color: var(--red); background: var(--red-soft); border-radius: 8px; }
+.error-box { margin-top: 15px; padding: 12px; color: var(--red); background: var(--red-soft); border-radius: 8px; white-space: pre-wrap; }
 .metadata-list { display: grid; gap: 0; margin: 0; }
 .metadata-list div { display: grid; grid-template-columns: minmax(105px, 0.9fr) minmax(0, 1.2fr); gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .metadata-list dt { color: var(--muted); font-size: 0.74rem; }

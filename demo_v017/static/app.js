@@ -243,7 +243,12 @@ function renderRun(record) {
   const modeBadge = $("result-mode");
   modeBadge.textContent = record.mode === "live" ? "LIVE API" : "FIXTURE";
   modeBadge.className = `badge ${record.mode === "live" ? "badge-live" : "badge-fixture"}`;
-  $("answer-heading").textContent = record.mode === "live" ? "模型回答" : "演示结果";
+  const truncated = record.safe_error_code === "provider_output_truncated";
+  const emptyContent = record.safe_error_code === "provider_empty_content";
+  $("answer-heading").textContent = truncated
+    ? "部分输出"
+    : (emptyContent ? "失败结果" : (record.mode === "live" ? "模型回答" : "演示结果"));
+  $("partial-output-notice").hidden = !truncated;
   const parseBadge = $("parse-level");
   parseBadge.textContent = record.status === "failed" ? "FAILED" : (record.parse_level || "NO PARSE").toUpperCase();
   parseBadge.className = `badge ${record.status === "failed" ? "badge-failed" : ""}`;
@@ -257,29 +262,39 @@ function renderRun(record) {
   if ((record.warnings || []).length === 0) warnings.append(element("li", "muted", "无警告"));
   const errorBox = $("error-box");
   errorBox.hidden = record.status !== "failed";
-  errorBox.textContent = record.status === "failed" ? `${record.safe_error_code || "failed"}: ${record.safe_error_message || "运行失败"}` : "";
+  let diagnostic = "";
+  if (truncated) {
+    diagnostic = "输出达到 max_tokens 上限，当前内容仅为不完整片段，不能作为完整科学回答。";
+  } else if (emptyContent) {
+    diagnostic = "Provider 未返回可用的最终回答内容。系统未使用或显示隐藏推理内容。";
+  }
+  errorBox.textContent = record.status === "failed"
+    ? `${record.safe_error_code || "failed"}: ${record.safe_error_message || "运行失败"}${diagnostic ? `\n${diagnostic}` : ""}`
+    : "";
   renderMetadata(record);
 }
 
 function renderMetadata(record) {
   const fixture = record.mode === "fixture";
   const noProviderRequest = "N/A · no provider request";
-  $("metadata-provider").textContent = fixture ? "deterministic fixture" : (record.provider ?? "N/A");
+  const notSupplied = "N/A · not supplied by provider";
+  const supplied = (value) => value == null || (typeof value === "string" && value.trim() === "") ? notSupplied : value;
+  $("metadata-provider").textContent = fixture ? "deterministic fixture" : supplied(record.provider);
   $("metadata-configured-model").textContent = fixture
     ? `${record.requested_model} · not called`
-    : (record.requested_model ?? "N/A");
-  $("metadata-reported-model").textContent = fixture ? "deterministic-fixture" : (record.reported_model ?? "N/A");
-  $("metadata-response-id").textContent = fixture ? noProviderRequest : (record.provider_response_id ?? "N/A");
-  $("metadata-http-status").textContent = fixture ? noProviderRequest : (record.http_status ?? "N/A");
-  $("metadata-finish-reason").textContent = fixture ? noProviderRequest : (record.finish_reason ?? "N/A");
-  $("metadata-latency").textContent = record.latency_seconds == null ? "N/A" : `${record.latency_seconds}s`;
-  $("metadata-usage").textContent = fixture ? noProviderRequest : (record.usage ? JSON.stringify(record.usage) : "N/A");
+    : supplied(record.requested_model);
+  $("metadata-reported-model").textContent = fixture ? "deterministic-fixture" : supplied(record.reported_model);
+  $("metadata-response-id").textContent = fixture ? noProviderRequest : supplied(record.provider_response_id);
+  $("metadata-http-status").textContent = fixture ? noProviderRequest : supplied(record.http_status);
+  $("metadata-finish-reason").textContent = fixture ? noProviderRequest : supplied(record.finish_reason);
+  $("metadata-latency").textContent = record.latency_seconds == null ? notSupplied : `${record.latency_seconds}s`;
+  $("metadata-usage").textContent = fixture ? noProviderRequest : (record.usage ? JSON.stringify(record.usage) : notSupplied);
   $("metadata-timeout").textContent = fixture
     ? `${record.timeout_seconds}s · not used by fixture`
     : `${record.timeout_seconds}s`;
   $("metadata-max-tokens").textContent = fixture
     ? `${record.max_output_tokens} · not used by fixture`
-    : String(record.max_output_tokens ?? "N/A");
+    : String(supplied(record.max_output_tokens));
 }
 
 function selectFixtureMode() {
