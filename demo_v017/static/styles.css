@@ -169,15 +169,30 @@ h3 { margin-bottom: 8px; font-size: 0.95rem; }
 .preflight-success { padding: 10px 12px; color: var(--green-dark); background: var(--green-soft); border-radius: 8px; }
 .preflight-failed { padding: 10px 12px; color: var(--red); background: var(--red-soft); border-radius: 8px; }
 
+.batch-panel .panel-heading p { margin-bottom: 0; }
+.batch-actions { display: flex; gap: 10px; margin-top: 16px; }
+.batch-actions .button { min-width: 190px; padding: 8px 16px; }
+.batch-progress-wrap { margin-top: 14px; }
+#batch-progress-table { min-width: 1120px; }
+.active-batch-row { background: #e8f0f7; box-shadow: inset 4px 0 0 var(--blue); }
+.batch-error { color: var(--red); }
+.child-result-button { white-space: nowrap; }
+.batch-summary { margin-top: 18px; padding: 16px; background: #f7faf8; border: 1px solid var(--line); border-radius: 10px; }
+.summary-grid { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 9px; }
+.summary-metric { display: grid; gap: 3px; padding: 10px; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.summary-metric span { font-size: 0.72rem; }
+.fixture-notice { margin: 12px 0; padding: 10px 12px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; }
+
 .result-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr); gap: 18px; }
 .empty-state { min-height: 170px; display: grid; place-items: center; text-align: center; color: var(--muted); border: 1px dashed #cbd5ce; border-radius: 10px; }
 .answer-text { padding: 15px; white-space: pre-wrap; background: #f7faf8; border-radius: 9px; }
+.partial-output-notice { display: grid; gap: 3px; margin-bottom: 12px; padding: 14px; color: var(--red); background: var(--red-soft); border-left: 4px solid var(--red); border-radius: 8px; }
 .result-section { margin-top: 18px; }
 .structured-list { display: grid; gap: 7px; }
 .structured-item { padding: 10px; overflow-wrap: anywhere; background: #f7f8f7; border: 1px solid var(--line); border-radius: 7px; font-size: 0.82rem; white-space: pre-wrap; }
 .warning-section { padding: 12px 14px; background: var(--amber-soft); border-radius: 9px; }
 .warning-section ul { margin: 0; padding-left: 19px; }
-.error-box { margin-top: 15px; padding: 12px; color: var(--red); background: var(--red-soft); border-radius: 8px; }
+.error-box { margin-top: 15px; padding: 12px; color: var(--red); background: var(--red-soft); border-radius: 8px; white-space: pre-wrap; }
 .metadata-list { display: grid; gap: 0; margin: 0; }
 .metadata-list div { display: grid; grid-template-columns: minmax(105px, 0.9fr) minmax(0, 1.2fr); gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .metadata-list dt { color: var(--muted); font-size: 0.74rem; }
@@ -188,8 +203,8 @@ h3 { margin-bottom: 8px; font-size: 0.95rem; }
 table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
 th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); }
 th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
-tbody tr[data-run-id] { cursor: pointer; }
-tbody tr[data-run-id]:hover { background: #f4f8f5; }
+tbody tr[data-run-id], tbody tr[data-batch-id] { cursor: pointer; }
+tbody tr[data-run-id]:hover, tbody tr[data-batch-id]:hover { background: #f4f8f5; }
 .empty-cell { color: var(--muted); text-align: center; }
 
 footer { padding: 20px clamp(18px, 3vw, 48px); display: flex; justify-content: space-between; gap: 18px; color: var(--muted); border-top: 1px solid var(--line); font-size: 0.75rem; }
@@ -199,12 +214,15 @@ footer { padding: 20px clamp(18px, 3vw, 48px); display: flex; justify-content: s
   .case-sidebar { position: static; }
   .case-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .result-layout { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
   .app-header { align-items: flex-start; flex-direction: column; }
   .header-status { justify-content: flex-start; }
   .case-list, .evidence-grid, .controls-grid, .mode-selector { grid-template-columns: 1fr; }
+  .batch-actions { align-items: stretch; flex-direction: column; }
+  .summary-grid { grid-template-columns: 1fr; }
   .case-meta-row, footer { align-items: flex-start; flex-direction: column; }
   .badge-row { justify-content: flex-start; }
   .panel { padding: 17px; }

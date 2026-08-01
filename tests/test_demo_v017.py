@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 from pathlib import Path
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
 import requests
 
 from enh3bench.demo_v017 import (
     API_KEY_ENVIRONMENT_VARIABLE,
+    BATCH_ITEM_FIELDS,
+    DEMO_BATCH_FIELDS,
+    DEMO_BATCH_SCHEMA_VERSION,
+    DEMO_RUN_SCHEMA_VERSION,
     DEMO_RUN_FIELDS,
     EXPECTED_CASE_IDS,
     FIXTURE_MESSAGE,
@@ -24,9 +30,11 @@ from enh3bench.demo_v017 import (
     DemoSafeError,
     DemoService,
     FixtureRepository,
+    TERMINAL_BATCH_STATES,
     TERMINAL_RUN_STATES,
     USTC_MODELS_ENDPOINT,
     build_live_payload,
+    is_complete_demo_structured_response,
     parse_demo_content,
 )
 
@@ -93,6 +101,31 @@ class FakeHTTPClient:
         if isinstance(self.post_result, BaseException):
             raise self.post_result
         return self.post_result
+
+
+class SequencedHTTPClient(FakeHTTPClient):
+    def __init__(self, post_results: list[FakeResponse | BaseException]) -> None:
+        super().__init__()
+        self.post_results = list(post_results)
+        self.active_posts = 0
+        self.maximum_concurrency = 0
+        self._lock = threading.Lock()
+
+    def post(self, url: str, **kwargs: object) -> FakeResponse:
+        with self._lock:
+            index = len(self.post_calls)
+            self.post_calls.append((url, kwargs))
+            self.active_posts += 1
+            self.maximum_concurrency = max(self.maximum_concurrency, self.active_posts)
+        try:
+            time.sleep(0.002)
+            result = self.post_results[index]
+            if isinstance(result, BaseException):
+                raise result
+            return result
+        finally:
+            with self._lock:
+                self.active_posts -= 1
 
 
 def synthetic_contract(run_name: str) -> tuple[dict, dict, list[dict], list[dict]]:
@@ -251,6 +284,25 @@ class DemoV017Tests(unittest.TestCase):
             time.sleep(0.01)
         self.fail(f"run did not become terminal: {run_id}")
 
+    def wait_batch_terminal(self, service: DemoService, batch_id: str, timeout: float = 5) -> dict:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            record = service.get_batch(batch_id)
+            if record["status"] in TERMINAL_BATCH_STATES:
+                return record
+            time.sleep(0.01)
+        self.fail(f"batch did not become terminal: {batch_id}")
+
+    def live_record(self, body: dict) -> tuple[dict, FakeHTTPClient]:
+        client = FakeHTTPClient(post_result=FakeResponse(200, body))
+        service = self.service(
+            live_enabled=True,
+            http_client=client,
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="live")
+        return self.wait_terminal(service, queued["run_id"]), client
+
     def test_01_exact_seven_case_order_is_loaded(self) -> None:
         self.assertEqual([row["case_id"] for row in self.cases().summaries()], list(EXPECTED_CASE_IDS))
 
@@ -319,16 +371,18 @@ class DemoV017Tests(unittest.TestCase):
         self.assertNotIn("hidden nested reasoning", text)
 
     def test_11_strict_json_parsing(self) -> None:
-        result = parse_demo_content('{"answer_text":"strict","citations":[]}')
+        result = parse_demo_content('{"answer_text":"strict","claims":[],"citations":[]}')
         self.assertEqual((result["parse_level"], result["answer_text"]), ("strict_json", "strict"))
 
     def test_12_fenced_json_parsing(self) -> None:
-        result = parse_demo_content('```json\n{"answer_text":"fenced","citations":[]}\n```')
+        result = parse_demo_content('```json\n{"answer_text":"fenced","claims":[],"citations":[]}\n```')
         self.assertEqual(result["parse_level"], "fenced_json")
         self.assertIn("DEMO_TOLERANT_PARSE_FENCED_JSON", result["warnings"])
 
     def test_13_balanced_json_extraction(self) -> None:
-        result = parse_demo_content('Preface {"answer_text":"extracted","nested":{"x":"}"}} suffix')
+        result = parse_demo_content(
+            'Preface {"answer_text":"extracted","claims":[],"citations":[],"nested":{"x":"}"}} suffix'
+        )
         self.assertEqual((result["parse_level"], result["answer_text"]), ("extracted_json", "extracted"))
 
     def test_14_unstructured_text_is_preserved(self) -> None:
@@ -501,7 +555,7 @@ class DemoV017Tests(unittest.TestCase):
         address = self.start_http(service)
         status, payload, _ = self.request(address, "GET", "/health")
         self.assertEqual(status, 200)
-        self.assertEqual(json.loads(payload), {"status": "ok", "version": "M017-D0-D1", "live_enabled": False})
+        self.assertEqual(json.loads(payload), {"status": "ok", "version": "M017-D0-D1-D2", "live_enabled": False})
 
     def test_35_no_m016_runtime_file_is_modified(self) -> None:
         sentinel = self.pilot_root / self.run_name / "m016_sentinel.json"
@@ -635,7 +689,7 @@ class DemoV017Tests(unittest.TestCase):
     def test_54_double_click_protection_prevents_duplicate_submission(self) -> None:
         app = APP_PATH.read_text(encoding="utf-8")
         run_function = app.split("async function runSelectedCase()", 1)[1].split("async function pollRun", 1)[0]
-        self.assertIn("if (!state.selectedCase || state.runInProgress) return;", run_function)
+        self.assertIn("if (!state.selectedCase || state.runInProgress || state.batchInProgress) return;", run_function)
         self.assertIn("state.runInProgress = true;", run_function)
         self.assertLess(run_function.index("state.runInProgress = true;"), run_function.index('api("/api/runs"'))
         self.assertGreaterEqual(app.count("state.runInProgress = false;"), 4)
@@ -674,6 +728,561 @@ class DemoV017Tests(unittest.TestCase):
         self.assertIn("& $PythonCommand @PythonPrefixArguments @Arguments", fixture_branch)
         self.assertNotIn("ENH3BENCH_API_KEY", fixture_branch)
         self.assertNotIn("Read-Host", fixture_branch)
+
+    def test_59_canonical_batch_has_exact_seven_case_contract(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(record["case_ids"], list(EXPECTED_CASE_IDS))
+        self.assertEqual(record["schema_version"], DEMO_BATCH_SCHEMA_VERSION)
+        self.assertEqual(set(record), DEMO_BATCH_FIELDS)
+        self.assertTrue(all(set(item) == BATCH_ITEM_FIELDS for item in record["items"]))
+
+    def test_60_unknown_batch_mode_is_rejected(self) -> None:
+        with self.assertRaisesRegex(DemoSafeError, "demo_mode_invalid"):
+            self.service().submit_batch(mode="arbitrary")
+
+    def test_61_fixture_batch_reads_no_credential(self) -> None:
+        reads: list[str] = []
+        service = self.service(credential_reader=lambda variable: reads.append(variable) or None)
+        queued = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(reads, [])
+
+    def test_62_fixture_batch_makes_no_provider_call(self) -> None:
+        client = FakeHTTPClient(get_result=AssertionError("GET"), post_result=AssertionError("POST"))
+        service = self.service(http_client=client)
+        queued = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual((client.get_calls, client.post_calls), ([], []))
+
+    def test_63_fixture_batch_creates_seven_child_dr17_records(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(len(record["run_ids"]), 7)
+        self.assertEqual(len(set(record["run_ids"])), 7)
+        self.assertTrue(all((self.demo_root / "runs" / f"{run_id}.json").is_file() for run_id in record["run_ids"]))
+
+    def test_64_fixture_batch_reaches_completed(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual((record["status"], record["completed_case_count"], record["succeeded_case_count"], record["failed_case_count"]), ("completed", 7, 7, 0))
+
+    def test_65_batch_items_preserve_canonical_order(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual([item["case_id"] for item in record["items"]], list(EXPECTED_CASE_IDS))
+        self.assertEqual([item["case_number"] for item in record["items"]], list(range(1, 8)))
+
+    def test_66_batch_record_uses_atomic_replace(self) -> None:
+        service = self.service()
+        with mock.patch("enh3bench.demo_v017.os.replace", wraps=os.replace) as replace:
+            queued = service.submit_batch(mode="fixture")
+            self.wait_batch_terminal(service, queued["batch_id"])
+        batch_path = self.demo_root / "batches" / f"{queued['batch_id']}.json"
+        self.assertTrue(any(Path(call.args[1]) == batch_path for call in replace.call_args_list))
+        self.assertEqual(list(batch_path.parent.glob("*.tmp")), [])
+
+    def test_67_batch_record_excludes_credential_fields(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        text = (self.demo_root / "batches" / f"{queued['batch_id']}.json").read_text(encoding="utf-8").lower()
+        self.assertNotIn("api_key", text)
+        self.assertNotIn("credential_hash", text)
+
+    def test_68_batch_record_excludes_authorization_headers(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        text = (self.demo_root / "batches" / f"{queued['batch_id']}.json").read_text(encoding="utf-8").lower()
+        self.assertNotIn("authorization", text)
+        self.assertNotIn("bearer ", text)
+
+    def test_69_batch_record_excludes_reasoning_content(self) -> None:
+        content = json.dumps({"answer_text": "visible", "claims": [], "citations": [], "reasoning_content": "hidden"})
+        client = SequencedHTTPClient([FakeResponse(200, successful_body(content)) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        text = (self.demo_root / "batches" / f"{queued['batch_id']}.json").read_text(encoding="utf-8")
+        self.assertNotIn("reasoning_content", text)
+        self.assertNotIn("hidden", text)
+
+    def test_70_fake_live_batch_makes_exactly_seven_post_attempts(self) -> None:
+        client = SequencedHTTPClient([FakeResponse(200, successful_body()) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(len(client.post_calls), 7)
+
+    def test_71_fake_live_batch_has_zero_retries(self) -> None:
+        client = SequencedHTTPClient([FakeResponse(500, {"error": "fake"}) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual((len(client.post_calls), record["failed_case_count"]), (7, 7))
+
+    def test_72_fake_live_batch_maximum_concurrency_is_one(self) -> None:
+        client = SequencedHTTPClient([FakeResponse(200, successful_body()) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(client.maximum_concurrency, 1)
+
+    def test_73_failed_fake_child_does_not_prevent_later_children(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        results[2] = FakeResponse(429, {"error": "fake"})
+        client = SequencedHTTPClient(results)
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(len(client.post_calls), 7)
+        self.assertTrue(record["items"][6]["status"].startswith("succeeded_"))
+        self.assertEqual(record["items"][2]["safe_error_code"], "provider_rate_limited")
+
+    def test_74_mixed_results_are_completed_with_failures(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        results[4] = requests.Timeout("fake")
+        client = SequencedHTTPClient(results)
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual((record["status"], record["succeeded_case_count"], record["failed_case_count"]), ("completed_with_failures", 6, 1))
+
+    def test_75_all_successful_results_are_completed(self) -> None:
+        client = SequencedHTTPClient([FakeResponse(200, successful_body()) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.assertEqual(self.wait_batch_terminal(service, queued["batch_id"])["status"], "completed")
+
+    def test_76_aggregate_prompt_tokens_are_summed(self) -> None:
+        bodies = []
+        for number in range(1, 8):
+            body = successful_body()
+            body["usage"] = {"prompt_tokens": number, "completion_tokens": 2, "total_tokens": number + 2}
+            bodies.append(FakeResponse(200, body))
+        service = self.service(live_enabled=True, http_client=SequencedHTTPClient(bodies), credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.assertEqual(self.wait_batch_terminal(service, queued["batch_id"])["aggregate_usage"]["prompt_tokens"], 28)
+
+    def test_77_aggregate_completion_tokens_are_summed(self) -> None:
+        bodies = []
+        for number in range(1, 8):
+            body = successful_body()
+            body["usage"] = {"prompt_tokens": 1, "completion_tokens": number, "total_tokens": number + 1}
+            bodies.append(FakeResponse(200, body))
+        service = self.service(live_enabled=True, http_client=SequencedHTTPClient(bodies), credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.assertEqual(self.wait_batch_terminal(service, queued["batch_id"])["aggregate_usage"]["completion_tokens"], 28)
+
+    def test_78_aggregate_total_tokens_are_summed(self) -> None:
+        bodies = []
+        for number in range(1, 8):
+            body = successful_body()
+            body["usage"] = {"prompt_tokens": number, "completion_tokens": number, "total_tokens": number * 2}
+            bodies.append(FakeResponse(200, body))
+        service = self.service(live_enabled=True, http_client=SequencedHTTPClient(bodies), credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        self.assertEqual(self.wait_batch_terminal(service, queued["batch_id"])["aggregate_usage"]["total_tokens"], 56)
+
+    def test_79_missing_usage_is_not_fabricated(self) -> None:
+        missing = successful_body()
+        missing.pop("usage")
+        results = [FakeResponse(200, missing)] + [FakeResponse(200, successful_body()) for _ in range(6)]
+        service = self.service(live_enabled=True, http_client=SequencedHTTPClient(results), credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertIsNone(record["items"][0]["total_tokens"])
+        self.assertEqual(record["aggregate_usage"]["total_tokens"], 108)
+
+    def test_80_batch_history_is_newest_first(self) -> None:
+        service = self.service()
+        first = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, first["batch_id"])
+        time.sleep(0.01)
+        second = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, second["batch_id"])
+        self.assertEqual([row["batch_id"] for row in service.batch_history(2)], [second["batch_id"], first["batch_id"]])
+
+    def test_81_malformed_batch_id_is_rejected(self) -> None:
+        with self.assertRaisesRegex(DemoSafeError, "batch_id_invalid"):
+            self.service().get_batch("DB17_not-valid")
+
+    def test_82_batch_path_traversal_is_rejected(self) -> None:
+        address = self.start_http(self.service())
+        status, payload, _ = self.request(address, "GET", "/api/batches/%2e%2e/secret")
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(payload)["safe_error_code"], "api_path_invalid")
+
+    def test_83_report_is_created_after_completion(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(record["report_filename"], f"reports/{queued['batch_id']}.html")
+        self.assertTrue((self.demo_root / record["report_filename"]).is_file())
+
+    def test_84_report_endpoint_returns_409_before_ready(self) -> None:
+        service = self.service()
+        record = service._create_batch_record("fixture")
+        address = self.start_http(service)
+        status, payload, _ = self.request(address, "GET", f"/api/batches/{record['batch_id']}/report")
+        self.assertEqual(status, 409)
+        self.assertEqual(json.loads(payload)["safe_error_code"], "batch_report_not_ready")
+
+    def test_85_report_contains_all_seven_case_ids(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / record["report_filename"]).read_text(encoding="utf-8")
+        self.assertTrue(all(case_id in report for case_id in EXPECTED_CASE_IDS))
+
+    def test_86_report_html_escapes_model_controlled_text(self) -> None:
+        content = json.dumps({"answer_text": "<script>alert('x')</script>", "claims": ["<b>claim</b>"], "citations": []})
+        client = SequencedHTTPClient([FakeResponse(200, successful_body(content)) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / record["report_filename"]).read_text(encoding="utf-8")
+        self.assertIn("&lt;script&gt;alert", report)
+        self.assertNotIn("<script>alert", report)
+        self.assertIn("&lt;b&gt;claim&lt;/b&gt;", report)
+
+    def test_87_report_excludes_credentials_and_reasoning_fields(self) -> None:
+        content = json.dumps({"answer_text": "visible", "claims": [], "citations": [], "reasoning_content": "hidden-chain"})
+        client = SequencedHTTPClient([FakeResponse(200, successful_body(content)) for _ in range(7)])
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / record["report_filename"]).read_text(encoding="utf-8").lower()
+        for forbidden in ("fake-test-key", "authorization", "reasoning_content", "hidden-chain", "chain_of_thought"):
+            self.assertNotIn(forbidden, report)
+
+    def test_88_child_result_is_fetchable_through_existing_run_api(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        batch = self.wait_batch_terminal(service, queued["batch_id"])
+        address = self.start_http(service)
+        status, payload, _ = self.request(address, "GET", f"/api/runs/{batch['run_ids'][0]}")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(payload)["run_id"], batch["run_ids"][0])
+
+    def test_89_existing_single_case_fixture_execution_still_works(self) -> None:
+        service = self.service()
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="fixture")
+        self.assertEqual(self.wait_terminal(service, queued["run_id"])["status"], "succeeded_structured")
+
+    def test_90_existing_fake_single_case_live_execution_still_works(self) -> None:
+        client = FakeHTTPClient()
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="live")
+        self.assertEqual(self.wait_terminal(service, queued["run_id"])["status"], "succeeded_structured")
+        self.assertEqual(len(client.post_calls), 1)
+
+    def test_91_static_ui_contains_batch_progress_table(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn('id="batch-progress-table"', html)
+        for heading in ("Case ID", "Task type", "Parse level", "Prompt tokens", "Completion tokens", "Total tokens", "Error"):
+            self.assertIn(heading, html)
+
+    def test_92_live_batch_ui_starts_disabled_before_preflight(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertRegex(html, r'id="live-batch-button"[^>]*disabled')
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('!state.preflightPassed', app)
+
+    def test_93_live_batch_confirmation_cancellation_submits_nothing(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        function = app.split("async function submitBatch(mode)", 1)[1].split("async function pollBatch", 1)[0]
+        self.assertLess(function.index("if (!confirmed) return;"), function.index('api("/api/batches"'))
+        self.assertIn("Maximum POST attempts = 7", function)
+
+    def test_94_fixture_batch_requires_no_confirmation(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        function = app.split("async function submitBatch(mode)", 1)[1].split("async function pollBatch", 1)[0]
+        self.assertIn('if (mode === "live")', function)
+        self.assertNotIn('if (mode === "fixture")', function)
+
+    def test_95_duplicate_batch_click_guard_precedes_submission(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        function = app.split("async function submitBatch(mode)", 1)[1].split("async function pollBatch", 1)[0]
+        self.assertIn("if (state.runInProgress || state.batchInProgress) return;", function)
+        self.assertLess(function.index("state.batchInProgress = true;"), function.index('api("/api/batches"'))
+
+    def test_96_active_batch_disables_batch_and_single_buttons(self) -> None:
+        app = APP_PATH.read_text(encoding="utf-8")
+        controls = app.split("function setSubmissionControls()", 1)[1].split("function element", 1)[0]
+        self.assertIn("state.runInProgress || state.batchInProgress", controls)
+        for button in ("run-button", "fixture-batch-button", "live-batch-button"):
+            self.assertIn(button, controls)
+
+    def test_97_report_path_remains_outside_repository(self) -> None:
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / record["report_filename"]).resolve()
+        with self.assertRaises(ValueError):
+            report.relative_to(self.repository_root.resolve())
+
+    def test_98_batch_does_not_modify_m016_runtime(self) -> None:
+        sentinel = self.pilot_root / self.run_name / "m016_batch_sentinel.json"
+        sentinel.write_text('{"immutable":true}\n', encoding="utf-8")
+        before = sentinel.read_bytes()
+        service = self.service()
+        queued = service.submit_batch(mode="fixture")
+        self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(sentinel.read_bytes(), before)
+        self.assertEqual(sorted(path.name for path in (self.pilot_root / self.run_name).iterdir()), [sentinel.name])
+
+    def test_99_complete_answer_text_top_level_remains_strict_json(self) -> None:
+        content = json.dumps({"answer_text": "complete", "claims": [], "citations": [], "extra": True})
+        result = parse_demo_content(content)
+        self.assertEqual(result["parse_level"], "strict_json")
+        self.assertTrue(is_complete_demo_structured_response(result["structured_output"]))
+
+    def test_100_complete_summary_top_level_remains_strict_json(self) -> None:
+        content = json.dumps({"summary": "complete summary", "claims": [], "citations": []})
+        result = parse_demo_content(content)
+        self.assertEqual((result["parse_level"], result["answer_text"]), ("strict_json", "complete summary"))
+
+    def test_101_nested_claim_json_is_not_complete_top_level_response(self) -> None:
+        content = json.dumps({"claim_id": "C1", "claim_text": "nested fragment"})
+        result = parse_demo_content(content)
+        self.assertEqual(result["parse_level"], "unstructured_text")
+        self.assertIn("DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE", result["warnings"])
+
+    def test_102_nested_citation_json_is_not_complete_top_level_response(self) -> None:
+        content = json.dumps({"citation_id": "CIT1", "source_span_id": "S001"})
+        result = parse_demo_content(content)
+        self.assertIsNone(result["structured_output"])
+        self.assertEqual(result["citations"], [])
+
+    def test_103_extracted_nested_claim_is_unstructured_not_structured_success(self) -> None:
+        content = 'partial prefix {"claim_id":"C1","claim_text":"fragment"} trailing text'
+        body = successful_body(content)
+        record, _ = self.live_record(body)
+        self.assertEqual((record["status"], record["parse_level"]), ("succeeded_unstructured", "unstructured_text"))
+        self.assertEqual(record["answer_text"], content)
+
+    def test_104_fenced_nested_fragment_preserves_complete_provider_text(self) -> None:
+        content = '```json\n{"citation_id":"CIT1","source_span_id":"S001"}\n```'
+        result = parse_demo_content(content)
+        self.assertEqual(result["answer_text"], content)
+        self.assertIn("DEMO_TOLERANT_PARSE_FENCED_JSON", result["warnings"])
+
+    def test_105_finish_reason_length_produces_truncated_error_code(self) -> None:
+        body = successful_body('{"claim_id":"C1","claim_text":"partial"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_output_truncated")
+        self.assertEqual(
+            record["safe_error_message"],
+            "Provider output reached the configured token limit before a complete answer was returned.",
+        )
+
+    def test_106_finish_reason_length_produces_failed_status(self) -> None:
+        body = successful_body("Readable partial provider output")
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["status"], "failed")
+        self.assertIn("DEMO_PROVIDER_OUTPUT_TRUNCATED_LENGTH", record["warnings"])
+
+    def test_107_truncated_readable_content_is_preserved(self) -> None:
+        partial = "Readable partial provider output that ends abruptly"
+        body = successful_body(partial)
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual((record["parse_level"], record["answer_text"]), ("unstructured_text", partial))
+
+    def test_108_truncated_invalid_fragment_does_not_fabricate_claims(self) -> None:
+        body = successful_body('{"claim_id":"C1","claim_text":"partial"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertIsNone(record["structured_output"])
+
+    def test_109_truncated_invalid_fragment_does_not_fabricate_citations(self) -> None:
+        body = successful_body('{"citation_id":"CIT1","source_span_id":"S001"}')
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["citations"], [])
+
+    def test_110_truncated_valid_top_level_json_preserves_safe_structure(self) -> None:
+        content = json.dumps({
+            "answer_text": "complete-shaped but provider-truncated",
+            "claims": [{"claim_id": "C1"}],
+            "citations": [{"source_span_id": "S001"}],
+        })
+        body = successful_body(content)
+        body["choices"][0]["finish_reason"] = "length"
+        record, _ = self.live_record(body)
+        self.assertEqual(record["structured_output"]["claims"], [{"claim_id": "C1"}])
+        self.assertEqual(record["citations"], [{"source_span_id": "S001"}])
+        self.assertEqual(record["status"], "failed")
+
+    def test_111_http_status_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["http_status"], 200)
+
+    def test_112_response_id_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = None
+        record, _ = self.live_record(body)
+        self.assertEqual(record["provider_response_id"], "provider-response-1")
+
+    def test_113_reported_model_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = " "
+        record, _ = self.live_record(body)
+        self.assertEqual(record["reported_model"], "deepseek-v4-pro")
+
+    def test_114_finish_reason_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["finish_reason"], "stop")
+
+    def test_115_usage_survives_provider_empty_content(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertEqual(record["usage"], {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18})
+
+    def test_116_reasoning_content_is_discarded_when_final_content_is_empty(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"].update({"content": "", "reasoning_content": "private fake chain"})
+        record, _ = self.live_record(body)
+        persisted = (self.demo_root / "runs" / f"{record['run_id']}.json").read_text(encoding="utf-8")
+        self.assertNotIn("reasoning_content", persisted)
+        self.assertNotIn("private fake chain", persisted)
+
+    def test_117_reasoning_content_is_not_used_as_answer_text(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"].update({"content": "", "reasoning_content": "private fake chain"})
+        record, _ = self.live_record(body)
+        self.assertEqual(record["answer_text"], "")
+        self.assertEqual(record["safe_error_code"], "provider_empty_content")
+
+    def test_118_empty_final_content_warning_is_present(self) -> None:
+        body = successful_body()
+        body["choices"][0]["message"]["content"] = ""
+        record, _ = self.live_record(body)
+        self.assertIn("DEMO_FINAL_CONTENT_EMPTY", record["warnings"])
+
+    def test_119_batch_child_truncation_produces_completed_with_failures(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial batch output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[3] = FakeResponse(200, truncated)
+        service = self.service(
+            live_enabled=True,
+            http_client=SequencedHTTPClient(results),
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(record["status"], "completed_with_failures")
+        self.assertEqual(record["items"][3]["safe_error_code"], "provider_output_truncated")
+
+    def test_120_later_batch_cases_execute_after_truncation(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial batch output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[1] = FakeResponse(200, truncated)
+        client = SequencedHTTPClient(results)
+        service = self.service(live_enabled=True, http_client=client, credential_reader=lambda _: "fake-test-key")
+        queued = service.submit_batch(mode="live")
+        record = self.wait_batch_terminal(service, queued["batch_id"])
+        self.assertEqual(len(client.post_calls), 7)
+        self.assertTrue(record["items"][6]["status"].startswith("succeeded_"))
+
+    def test_121_batch_report_marks_truncated_output_as_incomplete(self) -> None:
+        results = [FakeResponse(200, successful_body()) for _ in range(7)]
+        truncated = successful_body("Readable partial report output")
+        truncated["choices"][0]["finish_reason"] = "length"
+        results[0] = FakeResponse(200, truncated)
+        service = self.service(
+            live_enabled=True,
+            http_client=SequencedHTTPClient(results),
+            credential_reader=lambda _: "fake-test-key",
+        )
+        queued = service.submit_batch(mode="live")
+        batch = self.wait_batch_terminal(service, queued["batch_id"])
+        report = (self.demo_root / batch["report_filename"]).read_text(encoding="utf-8")
+        self.assertIn("Partial provider output preserved", report)
+        self.assertIn("Not a complete scientific answer", report)
+        self.assertIn("Readable partial report output", report)
+
+    def test_122_old_demo_run_schema_history_remains_readable(self) -> None:
+        service = self.service()
+        run_id = service._create_run_record(case_id=EXPECTED_CASE_IDS[0], mode="fixture")
+        stored = service.get_run(run_id)
+        self.assertEqual(stored["schema_version"], "0.17-demo-run.1")
+        self.assertEqual(DEMO_RUN_SCHEMA_VERSION, "0.17-demo-run.1")
+        self.assertEqual(service.history(1)[0]["run_id"], run_id)
+
+    def test_123_launcher_accepts_max_output_tokens(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        self.assertIn("[int]$MaxOutputTokens = 4096", script)
+        self.assertIn('"--max-output-tokens", "$MaxOutputTokens"', script)
+        self.assertIn('Write-Host "Live max_tokens = $MaxOutputTokens"', script)
+
+    def test_124_launcher_accepts_timeout_seconds(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        self.assertIn("[double]$TimeoutSeconds = 900", script)
+        self.assertIn('"--timeout-seconds", "$TimeoutSeconds"', script)
+        self.assertIn("[double]::IsInfinity($_)", script)
+
+    def test_125_launcher_still_clears_key_in_finally_after_new_parameters(self) -> None:
+        script = LAUNCHER_PATH.read_text(encoding="utf-8")
+        finally_block = script.split("    finally {", 1)[1]
+        self.assertIn("Remove-Item Env:ENH3BENCH_API_KEY", finally_block)
+        self.assertIn("ZeroFreeBSTR($KeyPointer)", finally_block)
+
+    def test_126_fixture_behavior_remains_unchanged_after_hardening(self) -> None:
+        service = self.service()
+        queued = service.submit_run(case_id=EXPECTED_CASE_IDS[0], mode="fixture")
+        record = self.wait_terminal(service, queued["run_id"])
+        self.assertEqual((record["status"], record["answer_text"]), ("succeeded_structured", FIXTURE_MESSAGE))
+        self.assertIn(FIXTURE_WARNING, record["warnings"])
+
+    def test_127_existing_successful_fake_live_response_remains_successful(self) -> None:
+        record, client = self.live_record(successful_body())
+        self.assertEqual((record["status"], record["parse_level"]), ("succeeded_structured", "strict_json"))
+        self.assertEqual(len(client.post_calls), 1)
+
+    def test_128_truncation_does_not_introduce_automatic_retry(self) -> None:
+        body = successful_body("Readable partial provider output")
+        body["choices"][0]["finish_reason"] = "length"
+        record, client = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_output_truncated")
+        self.assertEqual(len(client.post_calls), 1)
+
+    def test_129_single_result_ui_contains_required_partial_and_empty_diagnostics(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        app = APP_PATH.read_text(encoding="utf-8")
+        for required in (
+            "Partial provider output preserved",
+            "Not a complete scientific answer",
+            "输出达到 max_tokens 上限，当前内容仅为不完整片段，不能作为完整科学回答。",
+        ):
+            self.assertIn(required, html)
+        self.assertIn("Provider 未返回可用的最终回答内容。系统未使用或显示隐藏推理内容。", app)
+        self.assertIn('const notSupplied = "N/A · not supplied by provider";', app)
+
+    def test_130_safe_body_metadata_survives_malformed_choices(self) -> None:
+        body = successful_body()
+        body["choices"] = []
+        record, _ = self.live_record(body)
+        self.assertEqual(record["safe_error_code"], "provider_malformed_response")
+        self.assertEqual(record["http_status"], 200)
+        self.assertEqual(record["provider_response_id"], "provider-response-1")
+        self.assertEqual(record["reported_model"], "deepseek-v4-pro")
+        self.assertEqual(record["usage"]["total_tokens"], 18)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,11 @@ seven frozen B1B0 development cases, their questions, and their bounded evidence
 deterministic fixture by default; and can optionally send one selected case to the configured
 USTC model after an explicitly live-enabled startup.
 
+D1 provides the single-case workflow. D2 adds canonical seven-case sequential Fixture and
+Live batches, progress monitoring, aggregate metrics, child-result reopening, external DB17
+records, and portable local HTML reports. See
+[V017_BATCH_DEMO.md](V017_BATCH_DEMO.md) for the complete D2 contract and operator flow.
+
 This is a product demonstration, not a benchmark release. Fixture output is not scientific
 output. Live output is not automatically accepted into the benchmark.
 
@@ -36,6 +41,8 @@ The vertical slice intentionally has few moving parts:
 - `demo_v017/static/`: vanilla HTML, CSS, and JavaScript;
 - `demo_v017/fixtures/fixture_outputs.json`: seven deterministic non-scientific fixtures;
 - `<demo-root>/runs/`: one sanitized JSON record per run, outside Git.
+- `<demo-root>/batches/`: one sanitized JSON record per seven-case batch, outside Git;
+- `<demo-root>/reports/`: self-contained local HTML batch reports, outside Git.
 
 The server uses `ThreadingHTTPServer` for local HTTP handling and
 `ThreadPoolExecutor(max_workers=1)` for the execution queue. Browser run creation returns
@@ -99,6 +106,22 @@ Live requests may consume USTC project tokens. Automatic retries are disabled. A
 rerun is a separate provider request. The default client waiting ceiling is 900 seconds; it
 is not a provider service guarantee.
 
+For a later targeted manual rerun, the launcher accepts explicit output and client-waiting
+limits without a source edit. This command is an operator example only; increasing the
+limit may consume more project tokens and does not add an automatic retry:
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File .\scripts\start_demo_v017.ps1 `
+  -Live `
+  -MaxOutputTokens 8192 `
+  -TimeoutSeconds 900
+```
+
+The launcher validates `MaxOutputTokens` as a positive integer and `TimeoutSeconds` as a
+positive finite number. It prints both selected values at startup but never prints or passes
+the key on the command line.
+
 ## Model preflight flow
 
 1. Start with `-Live` and open the local page.
@@ -131,6 +154,19 @@ and `max_tokens`. The default requested model is `deepseek-v4-pro`; the default
 `max_tokens` value is 4096. Normal answer content may be retained, while
 `reasoning_content`, headers, and credentials are discarded.
 
+Safe envelope metadata—HTTP status, provider response ID, reported model, finish reason,
+and usage—is sanitized and persisted before final content parsing. It therefore remains
+available when final content is empty or parsing fails. The complete provider response,
+response headers, Authorization material, and hidden reasoning are never persisted.
+
+`finish_reason=length` is always `failed` with
+`safe_error_code=provider_output_truncated`. Readable partial content is preserved and
+clearly marked as incomplete, but it is never accepted as a complete scientific answer.
+There is no automatic retry. When final `message.content` is empty, the result remains
+`provider_empty_content`; `reasoning_content`, if supplied, is discarded and is never
+displayed, persisted, or transformed into answer text. The safe warning
+`DEMO_FINAL_CONTENT_EMPTY` may accompany the failure.
+
 ## HTTP routes
 
 | Route | Purpose |
@@ -143,6 +179,10 @@ and `max_tokens`. The default requested model is `deepseek-v4-pro`; the default
 | `POST /api/runs` | Queue one fixture or live run; returns HTTP 202 |
 | `GET /api/runs/{run_id}` | Complete sanitized run record |
 | `GET /api/runs?limit=20` | Newest-first sanitized history |
+| `POST /api/batches` | Queue the exact sequential seven-case batch; returns HTTP 202 |
+| `GET /api/batches/{batch_id}` | Complete sanitized batch record |
+| `GET /api/batches?limit=20` | Newest-first sanitized batch history |
+| `GET /api/batches/{batch_id}/report` | Terminal self-contained HTML batch report |
 | `GET /` | Web application |
 | `GET /static/app.js` | Local JavaScript |
 | `GET /static/styles.css` | Local CSS |
@@ -184,6 +224,14 @@ The demo preserves readable answers even when formatting is imperfect:
 The last three levels display visible warnings. Unstructured text is not represented as
 schema-valid benchmark output. Missing citations are never fabricated.
 
+JSON parsing alone is not enough for a structured success. At every JSON level, a complete
+top-level Demo response must contain either a non-empty string `answer_text` or a non-empty
+string `summary`, plus `claims` as a list and `citations` as a list. Additional fields are
+allowed. A nested claim or citation object is only a fragment, not a complete response. For
+a non-truncated response, the full readable provider text is retained as
+`unstructured_text` with `DEMO_JSON_FRAGMENT_NOT_TOP_LEVEL_RESPONSE`; claims or citations
+are not fabricated.
+
 ## Configuration
 
 `scripts/run_demo_v017.py` supports:
@@ -200,7 +248,8 @@ schema-valid benchmark output. Missing citations are never fabricated.
 - `--enable-live-api` (off by default)
 
 The PowerShell launcher additionally supports `-PilotRoot`, `-GenerationRunName`,
-`-DemoRoot`, and `-Port`.
+`-DemoRoot`, `-Port`, `-MaxOutputTokens` (default `4096`), and `-TimeoutSeconds` (default
+`900`).
 
 ## Stop the server
 
@@ -212,6 +261,8 @@ executor shuts down, and live launcher cleanup removes the process environment v
 - It is a single-user local demo with one execution worker.
 - There is no cancellation endpoint for an in-flight provider request.
 - Run history is local JSON, not a database.
+- The server must remain running and the browser must not be refreshed during an active Live batch.
+- Manually rerunning a Live batch may create up to seven new provider requests.
 - Tolerant parsing improves display continuity but does not constitute benchmark validation.
 - The UI does not import, score, judge, or review results.
 - A client timeout cannot determine whether a provider completed work server-side.
@@ -238,3 +289,13 @@ place the key in a command or file.
 **Timeout or connection failure:** the run record contains only a safe category. Automatic
 retry is disabled; clicking run again would create a new provider request and may consume
 additional tokens.
+
+**`provider_output_truncated`:** the provider reported `finish_reason=length`. Treat the
+preserved text as a partial diagnostic only, select a larger `-MaxOutputTokens` for a later
+explicit targeted rerun if appropriate, and obtain the normal Live confirmation before
+submitting it.
+
+**`provider_empty_content`:** the provider returned no usable final answer content. Inspect
+the retained safe HTTP/model/response/finish/usage/latency metadata; unavailable values are
+shown as `N/A · not supplied by provider`. Hidden reasoning is intentionally unavailable.
+Do not expect an automatic retry.
