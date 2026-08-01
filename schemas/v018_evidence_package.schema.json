@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/v018_evidence_package.schema.json",
+  "title": "M018 per-paper evidence package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "paper_id",
+    "source_documents",
+    "source_spans",
+    "experiment_records",
+    "scientific_claims",
+    "evidence_links",
+    "quality_gates",
+    "review_status",
+    "provenance",
+    "package_hashes"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.18-evidence-package.1"},
+    "package_id": {"type": "string", "pattern": "^EP18_[A-Z0-9]{16,64}$"},
+    "paper_id": {"$ref": "#/$defs/paperId"},
+    "source_documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceDocument"}
+    },
+    "source_spans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceSpan"}
+    },
+    "experiment_records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/experimentRecord"}
+    },
+    "scientific_claims": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/scientificClaim"}
+    },
+    "evidence_links": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidenceLink"}
+    },
+    "quality_gates": {"$ref": "#/$defs/qualityGates"},
+    "review_status": {"$ref": "#/$defs/reviewStatus"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "package_hashes": {"$ref": "#/$defs/packageHashes"}
+  },
+  "$defs": {
+    "paperId": {"type": "string", "pattern": "^P[0-9]{4}$"},
+    "stableId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{2,127}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "sourceDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_document_id",
+        "paper_id",
+        "document_type",
+        "availability_status",
+        "source_ref",
+        "sha256"
+      ],
+      "properties": {
+        "source_document_id": {"type": "string", "pattern": "^DOC18_[A-Z0-9]{16,64}$"},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "document_type": {"enum": ["main", "supplementary"]},
+        "availability_status": {"enum": ["available", "missing", "not_reported"]},
+        "source_ref": {"anyOf": [{"$ref": "#/$defs/relativePath"}, {"type": "null"}]},
+        "sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"availability_status": {"const": "available"}}},
+          "then": {
+            "properties": {
+              "source_ref": {"$ref": "#/$defs/relativePath"},
+              "sha256": {"$ref": "#/$defs/sha256"}
+            }
+          },
+          "else": {
+            "properties": {
+              "source_ref": {"type": "null"},
+              "sha256": {"type": "null"}
+            }
+          }
+        }
+      ]
+    },
+    "sourceSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_span_id",
+        "paper_id",
+        "source_document_id",
+        "start_offset",
+        "end_offset",
+        "text",
+        "provenance_type"
+      ],
+      "properties": {
+        "source_span_id": {"$ref": "#/$defs/stableId"},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "source_document_id": {"type": "string", "pattern": "^DOC18_[A-Z0-9]{16,64}$"},
+        "start_offset": {"type": "integer", "minimum": 0},
+        "end_offset": {"type": "integer", "minimum": 1},
+        "text": {"type": "string", "minLength": 1},
+        "provenance_type": {
+          "enum": [
+            "body",
+            "methods",
+            "results",
+            "table",
+            "figure_caption",
+            "scheme_caption",
+            "review_table",
+            "supplementary",
+            "reference",
+            "front_matter",
+            "metadata",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "reportableValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["reported", "missing", "not_reported"]},
+        "value": {}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "reported"}}},
+          "then": {"required": ["value"]},
+          "else": {"not": {"required": ["value"]}}
+        }
+      ]
+    },
+    "experimentRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experiment_record_id", "paper_id", "source_span_ids", "measurements"],
+      "properties": {
+        "experiment_record_id": {"type": "string", "pattern": "^EXP18_[A-Z0-9]{16,64}$"},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "source_span_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/stableId"}
+        },
+        "measurements": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+          "additionalProperties": {"$ref": "#/$defs/reportableValue"}
+        }
+      }
+    },
+    "scientificClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "paper_id", "claim_text", "source_span_ids", "drafting_status"],
+      "properties": {
+        "claim_id": {"type": "string", "pattern": "^CLM18_[A-Z0-9]{16,64}$"},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "claim_text": {"type": "string", "minLength": 1},
+        "source_span_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/stableId"}
+        },
+        "drafting_status": {"enum": ["machine_drafted", "human_reviewed", "gold_accepted"]}
+      }
+    },
+    "evidenceLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_link_id", "paper_id", "claim_id", "source_span_id", "support_role"],
+      "properties": {
+        "evidence_link_id": {"type": "string", "pattern": "^EL18_[A-Z0-9]{16,64}$"},
+        "paper_id": {"$ref": "#/$defs/paperId"},
+        "claim_id": {"type": "string", "pattern": "^CLM18_[A-Z0-9]{16,64}$"},
+        "source_span_id": {"$ref": "#/$defs/stableId"},
+        "support_role": {"enum": ["primary_support", "context_only", "contradiction", "insufficient"]}
+      }
+    },
+    "qualityGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "checks", "warnings"],
+      "properties": {
+        "passed": {"type": "boolean"},
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["gate_id", "status"],
+            "properties": {
+              "gate_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+              "status": {"enum": ["pass", "fail", "not_run"]}
+            }
+          }
+        },
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "reviewStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reviewer_ids"],
+      "properties": {
+        "status": {"enum": ["machine_drafted", "human_reviewed", "gold_accepted"]},
+        "reviewer_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/stableId"}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_by", "generation_method", "source_asset_refs", "code_commit"],
+      "properties": {
+        "created_by": {"enum": ["offline_audit", "deterministic_pipeline", "human"]},
+        "generation_method": {"type": "string", "minLength": 1},
+        "source_asset_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relativePath"}
+        },
+        "code_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+      }
+    },
+    "packageHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "content_sha256", "source_document_hashes"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "content_sha256": {"$ref": "#/$defs/sha256"},
+        "source_document_hashes": {
+          "type": "object",
+          "propertyNames": {"pattern": "^DOC18_[A-Z0-9]{16,64}$"},
+          "additionalProperties": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    }
+  }
+}
