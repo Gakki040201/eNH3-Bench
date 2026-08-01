@@ -1,0 +1,255 @@
+{
+  "papers": [
+    {
+      "paper_id": "P0797",
+      "selection_reasons": [
+        "coverage_lane:LiNRR",
+        "deterministic_asset_rank",
+        "development_answerability:insufficient_evidence",
+        "development_case:primary_evidence_sufficiency"
+      ],
+      "reaction_family_coverage": ["LiNRR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0425",
+      "selection_reasons": [
+        "coverage_lane:direct_eNRR",
+        "deterministic_asset_rank",
+        "development_answerability:partially_answerable",
+        "development_case:ammonia_quantification_assessment"
+      ],
+      "reaction_family_coverage": ["eNRR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0162",
+      "selection_reasons": [
+        "coverage_lane:ammonia_quantification",
+        "deterministic_asset_rank",
+        "development_answerability:answerable",
+        "development_case:validation_reliability_assessment"
+      ],
+      "reaction_family_coverage": ["NO3RR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0255",
+      "selection_reasons": [
+        "coverage_lane:isotope_or_contamination_validation",
+        "deterministic_asset_rank",
+        "development_answerability:insufficient_evidence",
+        "development_case:primary_evidence_sufficiency"
+      ],
+      "reaction_family_coverage": ["NO2RR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0471",
+      "selection_reasons": [
+        "coverage_lane:reactor_or_process_extraction",
+        "deterministic_asset_rank",
+        "development_answerability:partially_answerable",
+        "development_case:reactor_process_extraction"
+      ],
+      "reaction_family_coverage": ["unclear"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0217",
+      "selection_reasons": [
+        "coverage_lane:claim_ownership",
+        "deterministic_asset_rank",
+        "development_answerability:answerable",
+        "development_case:claim_ownership_assessment"
+      ],
+      "reaction_family_coverage": ["NO3RR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0362",
+      "selection_reasons": [
+        "coverage_lane:insufficient_evidence",
+        "deterministic_asset_rank",
+        "development_answerability:insufficient_evidence",
+        "development_case:ammonia_quantification_assessment"
+      ],
+      "reaction_family_coverage": ["eNRR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0007",
+      "selection_reasons": [
+        "coverage_lane:review_perspective_or_non_target_negative",
+        "deterministic_asset_rank",
+        "development_answerability:partially_answerable",
+        "development_case:paper_scope_classification"
+      ],
+      "reaction_family_coverage": ["unclear"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0961",
+      "selection_reasons": [
+        "deterministic_asset_rank",
+        "development_answerability:partially_answerable",
+        "development_case:validation_reliability_assessment",
+        "reaction_family_diversity:NORR"
+      ],
+      "reaction_family_coverage": ["NORR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0241",
+      "selection_reasons": [
+        "deterministic_asset_rank",
+        "development_answerability:partially_answerable",
+        "development_case:ammonia_quantification_assessment",
+        "reaction_family_diversity:mixed"
+      ],
+      "reaction_family_coverage": ["mixed"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0960",
+      "selection_reasons": [
+        "deterministic_asset_rank",
+        "deterministic_fill",
+        "development_answerability:answerable",
+        "development_case:reaction_family_identification"
+      ],
+      "reaction_family_coverage": ["eNRR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    },
+    {
+      "paper_id": "P0312",
+      "selection_reasons": [
+        "deterministic_asset_rank",
+        "deterministic_fill",
+        "development_answerability:answerable",
+        "development_case:ammonia_quantification_assessment"
+      ],
+      "reaction_family_coverage": ["NO3RR"],
+      "expected_asset_categories": [
+        "calibration",
+        "cleanroom_source_spans",
+        "evidence_links",
+        "experiment_records",
+        "gold",
+        "human_review",
+        "main_document",
+        "scientific_claims",
+        "selective_eval_development"
+      ]
+    }
+  ]
+}
