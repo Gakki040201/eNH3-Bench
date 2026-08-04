@@ -1,0 +1,15 @@
+{
+  "artifact_label": "NON_SCIENTIFIC_FIXTURE",
+  "capabilities": [
+    {
+      "availability": "available",
+      "capability_name": "FIXTURE_INSTRUMENT",
+      "category": "instrument",
+      "configured_value": true,
+      "notes": "Synthetic schema-test value with no laboratory meaning.",
+      "source_ref": "tests/fixtures/v018_design_compiler/README.md",
+      "source_status": "configured",
+      "unit": null
+    }
+  ]
+}

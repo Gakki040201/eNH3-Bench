@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/v018_design_card.schema.json",
+  "title": "M018 A2A executable-design-card contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "design_id", "design_version", "artifact_label", "design_class",
+    "reaction_family", "hypothesis", "falsification_criteria", "evidence_for",
+    "evidence_against", "decision_variables", "fixed_conditions", "objectives",
+    "constraints", "required_controls", "required_measurements", "simulation_plan",
+    "predictions", "uncertainties", "domain_of_applicability", "laboratory_readiness",
+    "simulation_readiness", "manufacturing_readiness", "human_gates", "provenance",
+    "content_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.18-design-card.1"},
+    "design_id": {"type": "string", "pattern": "^DES18_[A-F0-9]{24}$"},
+    "design_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "artifact_label": {"enum": ["NON_SCIENTIFIC_FIXTURE", "DRAFT_DESIGN", "EXECUTABLE_DESIGN"]},
+    "design_class": {"enum": ["electrolyte", "electrode", "current_collector", "reactor_geometry", "flow_field", "integrated_system"]},
+    "reaction_family": {"enum": ["LiNRR", "eNRR", "NO3RR", "NO2RR", "NORR", "mixed", "unclear"]},
+    "hypothesis": {"type": "string", "minLength": 1},
+    "falsification_criteria": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "evidence_for": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}},
+    "evidence_against": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}},
+    "decision_variables": {"type": "array", "items": {"$ref": "#/$defs/variableAssignment"}},
+    "fixed_conditions": {"type": "array", "items": {"$ref": "#/$defs/variableAssignment"}},
+    "objectives": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/objectiveRef"}},
+    "constraints": {"type": "array", "items": {"$ref": "#/$defs/constraintResult"}},
+    "required_controls": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "required_measurements": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "simulation_plan": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^SIM18_[A-F0-9]{24}$"}},
+    "predictions": {"type": "array", "items": {"$ref": "#/$defs/prediction"}},
+    "uncertainties": {"type": "array", "items": {"$ref": "#/$defs/uncertaintyItem"}},
+    "domain_of_applicability": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "laboratory_readiness": {"$ref": "#/$defs/readiness"},
+    "simulation_readiness": {"$ref": "#/$defs/readiness"},
+    "manufacturing_readiness": {"$ref": "#/$defs/readiness"},
+    "human_gates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/humanGate"}},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "scalar": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"},
+    "evidenceRef": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{2,127}$"},
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "lower", "upper", "notes"],
+      "properties": {
+        "method": {"enum": ["reported", "configured", "interval", "distribution", "not_available", "not_applicable"]},
+        "lower": {"type": ["number", "null"]},
+        "upper": {"type": ["number", "null"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "variableAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variable_id", "name", "value", "unit", "source_status", "required", "evidence_refs", "uncertainty"],
+      "properties": {
+        "variable_id": {"type": "string", "pattern": "^DV18_[A-F0-9]{24}$"},
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "value": {"$ref": "#/$defs/scalar"},
+        "unit": {"type": "string", "minLength": 1},
+        "source_status": {"enum": ["reported", "derived", "assumed", "unknown", "not_applicable"]},
+        "required": {"type": "boolean"},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"}
+      }
+    },
+    "objectiveRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objective_id", "name", "direction", "unit", "target", "acceptable_threshold", "weight", "hard_or_soft"],
+      "properties": {
+        "objective_id": {"type": "string", "pattern": "^OBJ18_[A-F0-9]{24}$"},
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "direction": {"enum": ["minimize", "maximize"]},
+        "unit": {"type": "string", "minLength": 1},
+        "target": {"$ref": "#/$defs/scalar"},
+        "acceptable_threshold": {"$ref": "#/$defs/scalar"},
+        "weight": {"type": ["number", "null"], "minimum": 0},
+        "hard_or_soft": {"enum": ["hard", "soft"]}
+      }
+    },
+    "constraintResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["constraint_id", "constraint_type", "status", "details"],
+      "properties": {
+        "constraint_id": {"type": "string", "pattern": "^CON18_[A-F0-9]{24}$"},
+        "constraint_type": {"enum": ["hard", "soft"]},
+        "status": {"enum": ["pass", "fail", "not_evaluated"]},
+        "details": {"type": "string", "minLength": 1}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "value", "unit", "source_status", "evidence_refs"],
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "value": {"$ref": "#/$defs/scalar"},
+        "unit": {"type": ["string", "null"]},
+        "source_status": {"enum": ["derived", "assumed", "unknown", "not_applicable"]},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}}
+      }
+    },
+    "uncertaintyItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "description", "level", "resolution"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "level": {"enum": ["low", "medium", "high", "unknown"]},
+        "resolution": {"type": "string", "minLength": 1}
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "missing_items"],
+      "properties": {
+        "status": {"enum": ["ready", "incomplete", "failed", "not_evaluated"]},
+        "missing_items": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "humanGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_id", "gate_type", "trigger", "required_information", "approver_role", "status", "decision", "decision_timestamp", "decision_provenance"],
+      "properties": {
+        "gate_id": {"type": "string", "pattern": "^HG18_[A-F0-9]{24}$"},
+        "gate_type": {"enum": ["GATE_SIMULATION_EXPENSIVE", "GATE_EXPERIMENT_SAFETY", "GATE_EXPERIMENT_EXECUTION", "GATE_RESULT_ACCEPTANCE", "GATE_MODEL_UPDATE"]},
+        "trigger": {"type": "string", "minLength": 1},
+        "required_information": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "approver_role": {"type": "string", "minLength": 1},
+        "status": {"enum": ["pending", "approved", "rejected", "not_triggered"]},
+        "decision": {"type": ["string", "null"]},
+        "decision_timestamp": {"type": ["string", "null"], "format": "date-time"},
+        "decision_provenance": {"anyOf": [{"$ref": "#/$defs/relativePath"}, {"type": "null"}]}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generated_by", "generation_method", "source_refs", "code_commit", "parent_ids"],
+      "properties": {
+        "generated_by": {"enum": ["deterministic_compiler", "human_configuration", "synthetic_fixture"]},
+        "generation_method": {"type": "string", "minLength": 1},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/relativePath"}},
+        "code_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "parent_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceRef"}}
+      }
+    }
+  }
+}
