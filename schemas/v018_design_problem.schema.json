@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/v018_design_problem.schema.json",
+  "title": "M018 A2A evidence-to-design problem",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "design_problem_id",
+    "reaction_family",
+    "scientific_objective",
+    "design_domains",
+    "decision_variables",
+    "objectives",
+    "hard_constraints",
+    "soft_constraints",
+    "laboratory_capabilities",
+    "evidence_package_refs",
+    "known_failure_modes",
+    "simulation_capabilities",
+    "human_gate_policy",
+    "provenance",
+    "content_hash"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.18-design-problem.1"},
+    "design_problem_id": {"type": "string", "pattern": "^DP18_[A-F0-9]{24}$"},
+    "reaction_family": {"$ref": "#/$defs/reactionFamily"},
+    "scientific_objective": {"type": "string", "minLength": 1},
+    "design_domains": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/designDomain"}
+    },
+    "decision_variables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/decisionVariable"}
+    },
+    "objectives": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/objective"}
+    },
+    "hard_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/constraint"}
+    },
+    "soft_constraints": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/constraint"}
+    },
+    "laboratory_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/laboratoryCapability"}
+    },
+    "evidence_package_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/evidencePackageRef"}
+    },
+    "known_failure_modes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/failureMode"}
+    },
+    "simulation_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["surrogate", "COMSOL", "DFT", "MD", "no_simulation", "human_required"]}
+    },
+    "human_gate_policy": {
+      "type": "array",
+      "minItems": 5,
+      "items": {"$ref": "#/$defs/humanGate"}
+    },
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "content_hash": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "reactionFamily": {"enum": ["LiNRR", "eNRR", "NO3RR", "NO2RR", "NORR", "mixed", "unclear"]},
+    "designDomain": {"enum": ["electrolyte", "electrode_current_collector", "electrochemical_operation", "reactor_chamber", "process_product_handling"]},
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "stableRef": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{2,127}$"},
+    "scalar": {"type": ["string", "number", "integer", "boolean", "null"]},
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "lower", "upper", "notes"],
+      "properties": {
+        "method": {"enum": ["reported", "configured", "interval", "distribution", "not_available", "not_applicable"]},
+        "lower": {"type": ["number", "null"]},
+        "upper": {"type": ["number", "null"]},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "numericBounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum", "maximum", "minimum_inclusive", "maximum_inclusive"],
+      "properties": {
+        "minimum": {"type": ["number", "null"]},
+        "maximum": {"type": ["number", "null"]},
+        "minimum_inclusive": {"type": "boolean"},
+        "maximum_inclusive": {"type": "boolean"}
+      }
+    },
+    "decisionVariable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variable_id", "domain", "name", "data_type", "unit", "allowed_values",
+        "numeric_bounds", "nominal_value", "controllability", "measurement_method",
+        "source_status", "evidence_refs", "uncertainty", "cost_class", "safety_class"
+      ],
+      "properties": {
+        "variable_id": {"type": "string", "pattern": "^DV18_[A-F0-9]{24}$"},
+        "domain": {"$ref": "#/$defs/designDomain"},
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "data_type": {"enum": ["number", "integer", "string", "boolean"]},
+        "unit": {"type": "string", "minLength": 1},
+        "allowed_values": {
+          "anyOf": [
+            {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/scalar"}},
+            {"type": "null"}
+          ]
+        },
+        "numeric_bounds": {"anyOf": [{"$ref": "#/$defs/numericBounds"}, {"type": "null"}]},
+        "nominal_value": {"$ref": "#/$defs/scalar"},
+        "controllability": {"enum": ["controllable", "fixed", "measured_only", "unknown", "not_applicable"]},
+        "measurement_method": {"type": ["string", "null"]},
+        "source_status": {"enum": ["reported", "derived", "assumed", "unknown", "not_applicable"]},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/stableRef"}},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"},
+        "cost_class": {"enum": ["low", "medium", "high", "unknown", "not_applicable"]},
+        "safety_class": {"enum": ["routine", "controlled", "hazardous", "prohibited", "unknown", "not_applicable"]}
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objective_id", "name", "direction", "unit", "measurement_or_simulation_source", "target", "acceptable_threshold", "weight", "hard_or_soft", "uncertainty_method"],
+      "properties": {
+        "objective_id": {"type": "string", "pattern": "^OBJ18_[A-F0-9]{24}$"},
+        "name": {"enum": ["faradaic_efficiency_nh3", "nh3_production_rate", "nh3_concentration", "energy_efficiency", "cell_voltage", "stability", "selectivity", "replicate_success_rate", "mass_transfer_uniformity", "current_distribution_uniformity", "pressure_drop", "electrolyte_inventory", "manufacturability", "experimental_cost", "simulation_cost", "safety_risk", "information_gain"]},
+        "direction": {"enum": ["minimize", "maximize"]},
+        "unit": {"type": "string", "minLength": 1},
+        "measurement_or_simulation_source": {"type": "string", "minLength": 1},
+        "target": {"$ref": "#/$defs/scalar"},
+        "acceptable_threshold": {"$ref": "#/$defs/scalar"},
+        "weight": {"type": ["number", "null"], "minimum": 0},
+        "hard_or_soft": {"enum": ["hard", "soft"]},
+        "uncertainty_method": {"type": "string", "minLength": 1}
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["constraint_id", "constraint_type", "name", "expression", "affected_variables", "operator", "value", "unit", "source_status", "evidence_refs", "uncertainty"],
+      "properties": {
+        "constraint_id": {"type": "string", "pattern": "^CON18_[A-F0-9]{24}$"},
+        "constraint_type": {"enum": ["hard", "soft"]},
+        "name": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "expression": {"type": "string", "minLength": 1},
+        "affected_variables": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^DV18_[A-F0-9]{24}$"}},
+        "operator": {"enum": ["equal", "not_equal", "less_than", "less_than_or_equal", "greater_than", "greater_than_or_equal", "in", "compatible_with", "required", "policy"]},
+        "value": {"$ref": "#/$defs/scalar"},
+        "unit": {"type": ["string", "null"]},
+        "source_status": {"enum": ["reported", "configured", "derived", "assumed", "unknown"]},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/stableRef"}},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"}
+      }
+    },
+    "laboratoryCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability_name", "category", "availability", "configured_value", "unit", "source_status", "source_ref", "notes"],
+      "properties": {
+        "capability_name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"},
+        "category": {"enum": ["reagent", "instrument", "reactor", "control", "simulation", "manufacturing", "safety", "other"]},
+        "availability": {"enum": ["available", "unavailable", "unknown", "not_applicable"]},
+        "configured_value": {"$ref": "#/$defs/scalar"},
+        "unit": {"type": ["string", "null"]},
+        "source_status": {"enum": ["configured", "unknown"]},
+        "source_ref": {"$ref": "#/$defs/relativePath"},
+        "notes": {"type": ["string", "null"]}
+      }
+    },
+    "evidencePackageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paper_id", "package_id", "package_path", "reaction_family_coverage", "cross_family_role", "review_status", "content_sha256", "evidence_link_count"],
+      "properties": {
+        "paper_id": {"type": "string", "pattern": "^P[0-9]{4}$"},
+        "package_id": {"type": "string", "pattern": "^EP18_[A-F0-9]{24}$"},
+        "package_path": {"$ref": "#/$defs/relativePath"},
+        "reaction_family_coverage": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/reactionFamily"}},
+        "cross_family_role": {"enum": ["direct_design_evidence", "validation_pattern", "methodological_context", "failure_context"]},
+        "review_status": {"enum": ["machine_drafted", "human_reviewed", "gold_accepted"]},
+        "content_sha256": {"$ref": "#/$defs/sha256"},
+        "evidence_link_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "failureMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_mode_id", "description", "detection_method", "blocking", "source_status", "evidence_refs"],
+      "properties": {
+        "failure_mode_id": {"type": "string", "pattern": "^CON18_[A-F0-9]{24}$"},
+        "description": {"type": "string", "minLength": 1},
+        "detection_method": {"type": "string", "minLength": 1},
+        "blocking": {"type": "boolean"},
+        "source_status": {"enum": ["reported", "configured", "derived", "assumed", "unknown"]},
+        "evidence_refs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/stableRef"}}
+      }
+    },
+    "humanGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_id", "gate_type", "trigger", "required_information", "approver_role", "status", "decision", "decision_timestamp", "decision_provenance"],
+      "properties": {
+        "gate_id": {"type": "string", "pattern": "^HG18_[A-F0-9]{24}$"},
+        "gate_type": {"enum": ["GATE_SIMULATION_EXPENSIVE", "GATE_EXPERIMENT_SAFETY", "GATE_EXPERIMENT_EXECUTION", "GATE_RESULT_ACCEPTANCE", "GATE_MODEL_UPDATE"]},
+        "trigger": {"type": "string", "minLength": 1},
+        "required_information": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "approver_role": {"type": "string", "minLength": 1},
+        "status": {"enum": ["pending", "approved", "rejected", "not_triggered"]},
+        "decision": {"type": ["string", "null"]},
+        "decision_timestamp": {"type": ["string", "null"], "format": "date-time"},
+        "decision_provenance": {"anyOf": [{"$ref": "#/$defs/relativePath"}, {"type": "null"}]}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generated_by", "generation_method", "source_refs", "code_commit", "parent_ids"],
+      "properties": {
+        "generated_by": {"enum": ["deterministic_compiler", "human_configuration", "synthetic_fixture"]},
+        "generation_method": {"type": "string", "minLength": 1},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/relativePath"}},
+        "code_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "parent_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/stableRef"}}
+      }
+    }
+  }
+}
