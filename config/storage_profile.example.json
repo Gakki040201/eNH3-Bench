@@ -1,0 +1,15 @@
+{
+  "schema_version": "storage-1.0",
+  "work_root": "${ENH3_WORK_ROOT}",
+  "archive_root": "${ENH3_ARCHIVE_ROOT}",
+  "legacy": {
+    "pilot_root": "${ENH3_PILOT_ROOT}",
+    "demo_root": "${ENH3_DEMO_ROOT}"
+  },
+  "policy": {
+    "archive_only_frozen": true,
+    "delete_after_export": false,
+    "require_manifest": true,
+    "require_sha256": true
+  }
+}
