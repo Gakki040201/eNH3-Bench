@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 *.env
+config/storage_profile.local.json
 
 input_raw/*
 !input_raw/.gitkeep

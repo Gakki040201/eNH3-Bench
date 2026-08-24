@@ -23,15 +23,20 @@ from enh3bench.demo_v017 import (  # noqa: E402
     USTC_LLM_GATEWAY_ENDPOINT,
     serve_demo,
 )
+from enh3bench.storage import legacy_root_from_env  # noqa: E402
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the local M017 seven-case evidence-grounded demonstration.",
     )
-    parser.add_argument("--pilot-root", type=Path, default=DEFAULT_PILOT_ROOT)
+    parser.add_argument(
+        "--pilot-root", type=Path, default=legacy_root_from_env("pilot", DEFAULT_PILOT_ROOT)
+    )
     parser.add_argument("--generation-run-name", default=DEFAULT_GENERATION_RUN_NAME)
-    parser.add_argument("--demo-root", type=Path, default=DEFAULT_DEMO_ROOT)
+    parser.add_argument(
+        "--demo-root", type=Path, default=legacy_root_from_env("demo", DEFAULT_DEMO_ROOT)
+    )
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--endpoint", default=USTC_LLM_GATEWAY_ENDPOINT)
