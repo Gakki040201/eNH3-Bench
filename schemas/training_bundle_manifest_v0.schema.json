@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/training_bundle_manifest_v0.schema.json",
+  "title": "eNH3-Bench training bundle manifest v0",
+  "type": "object",
+  "required": ["schema_version", "bundle_id", "source_group", "bundle_path", "assets"],
+  "properties": {
+    "schema_version": {"const": "training_bundle_manifest_v0"},
+    "bundle_id": {"type": "string", "minLength": 1},
+    "source_group": {"enum": ["legacy_oa", "shaofeng_li_curated", "linrr_electrolyte_curated", "battery_transfer_curated"]},
+    "bundle_path": {"type": "string", "minLength": 1},
+    "provisional_bundle_id": {"type": "string", "pattern": "^NEWBUNDLE_[0-9a-f]{12}$"},
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_asset_id", "relative_path", "size_bytes", "sha256", "format", "probable_role"],
+        "properties": {
+          "source_asset_id": {"type": "string"},
+          "relative_path": {"type": "string"},
+          "size_bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "format": {"type": "string"},
+          "probable_role": {"enum": ["main_article", "supporting_information", "supplementary_data", "source_data", "archive", "metadata_text", "other"]},
+          "archive_members": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/training_admission_v0.schema.json",
+  "title": "eNH3-Bench LiNRR training admission v0",
+  "type": "object",
+  "required": ["record_id", "eligibility_tier", "model_eligible_fe", "gate_results", "reasons"],
+  "properties": {
+    "record_id": {"type": "string"},
+    "eligibility_tier": {"enum": ["TIER_A", "TIER_B", "TIER_C", "EXCLUDED"]},
+    "model_eligible_fe": {"type": "boolean"},
+    "gate_results": {
+      "type": "object",
+      "required": ["primary_experimental", "linrr_n2_to_nh3", "author_owned_target", "fe_available", "electrolyte_defined", "condition_defined", "exact_source", "ownership_clear", "duplicate_clear", "signal_valid"],
+      "additionalProperties": {"type": "boolean"}
+    },
+    "reasons": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

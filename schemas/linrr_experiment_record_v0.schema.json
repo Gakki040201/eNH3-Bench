@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://enh3bench.local/schemas/linrr_experiment_record_v0.schema.json",
+  "title": "eNH3-Bench LiNRR condition-level experiment record v0",
+  "type": "object",
+  "required": ["schema_version", "record_id", "paper_id", "provisional_bundle_id", "source_group", "reaction_family", "document_genre", "training_role", "source_asset_id", "source_filename", "source_file_sha256", "source_locator", "evidence_authority", "extraction_status", "review_status", "missing_required_fields", "reported_not_measured_fields", "ambiguity_flags"],
+  "properties": {
+    "schema_version": {"const": "linrr_experiment_record_v0"},
+    "record_id": {"type": "string", "minLength": 1},
+    "paper_id": {"type": ["string", "null"]},
+    "provisional_bundle_id": {"type": ["string", "null"]},
+    "source_group": {"enum": ["legacy_oa", "shaofeng_li_curated", "linrr_electrolyte_curated", "battery_transfer_curated"]},
+    "reaction_family": {"type": ["string", "null"]},
+    "document_genre": {"type": ["string", "null"]},
+    "training_role": {"enum": ["target_label_candidate", "descriptor_prior_only", "evidence_only", "excluded"]},
+    "source_asset_id": {"type": ["string", "null"]},
+    "source_filename": {"type": ["string", "null"]},
+    "source_file_sha256": {"type": ["string", "null"]},
+    "source_locator": {"type": ["string", "null"]},
+    "source_table": {"type": ["string", "null"]},
+    "source_figure": {"type": ["string", "null"]},
+    "source_page": {"type": ["integer", "null"]},
+    "source_text_excerpt": {"type": ["string", "null"]},
+    "evidence_authority": {"type": ["string", "null"]},
+    "extraction_status": {"type": ["string", "null"]},
+    "review_status": {"type": ["string", "null"]},
+    "fe_nh3_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "missing_required_fields": {"type": "array", "items": {"type": "string"}},
+    "reported_not_measured_fields": {"type": "array", "items": {"type": "string"}},
+    "ambiguity_flags": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

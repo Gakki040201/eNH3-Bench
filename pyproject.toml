@@ -28,6 +28,9 @@ document = [
   "markitdown",
   "pymupdf"
 ]
+modeling = [
+  "scikit-learn>=1.5"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
