@@ -257,11 +257,11 @@ def write_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
             writer.writerow({key: json.dumps(value, ensure_ascii=False, sort_keys=True) if isinstance(value, (dict, list)) else value for key, value in row.items()})
 
 
-def write_training_outputs(result: dict[str, Any], output_dir: str | Path, dataset_path: str | Path, repo: str | Path, target: str = "fe_nh3_percent") -> None:
+def write_training_outputs(result: dict[str, Any], output_dir: str | Path, dataset_path: str | Path, repo: str | Path, target: str = "fe_nh3_percent", overwrite: bool = False) -> None:
     output_dir = Path(output_dir)
-    if output_dir.exists():
+    if output_dir.exists() and not overwrite:
         raise FileExistsError(f"Refusing to overwrite modeling output: {output_dir}")
-    output_dir.mkdir(parents=True)
+    output_dir.mkdir(parents=True, exist_ok=overwrite)
     feature_path = output_dir / "feature_schema.json"
     feature_path.write_text(json.dumps(result["feature_schema"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     metrics_payload = {"model_type": "literature shadow model", "gate": result["gate"], "a_only_gate": result.get("a_only_gate"), "secondary_target_gate": result.get("secondary_target_gate"), "metrics": result["metrics"]}
