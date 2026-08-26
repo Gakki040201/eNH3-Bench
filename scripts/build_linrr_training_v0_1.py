@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from enh3bench.linrr_predictor import secondary_target_assessment, train_grouped_models, write_training_outputs  # noqa: E402
+from enh3bench.linrr_v01_audit import build_tier_c_terminal_status, validate_terminal_statuses  # noqa: E402
 from enh3bench.training_ingest import deterministic_dataset_hash, write_csv, write_jsonl  # noqa: E402
 from enh3bench.training_rescue import (  # noqa: E402
     RESCUE_QUEUE_FIELDS,
@@ -83,7 +84,7 @@ def _write_workbook(path: Path, records: list[dict], rescue_queue: list[dict], a
     workbook.save(path)
 
 
-def _summary(records: list[dict], starting: dict, structured: list[dict], human: list[dict]) -> dict:
+def _summary(records: list[dict], starting: dict, structured: list[dict], human: list[dict], terminal_counts: dict[str, int]) -> dict:
     eligible = [row for row in records if row.get("model_eligible_fe")]
     groups = {row.get("paper_id") or row.get("provisional_bundle_id") or row.get("source_bundle_id") for row in eligible}
     return {
@@ -94,6 +95,9 @@ def _summary(records: list[dict], starting: dict, structured: list[dict], human:
         "tier_c_reviewed": starting["tier_c"],
         "auto_resolved_rows": len(structured),
         "human_review_required": len(human),
+        "original_tier_c_terminal_counts": terminal_counts,
+        "original_tier_c_auto_resolved": terminal_counts["AUTO_RESOLVED"],
+        "review_packet_candidate_records": starting["tier_c"],
         "condition_level_candidate_records": len(records),
         "tier_counts": dict(sorted(Counter(row.get("eligibility_tier") for row in records).items())),
         "model_eligible_fe_rows": len(eligible),
@@ -186,20 +190,32 @@ def main() -> int:
                 structured.append(record)
 
     records = copy_for_v01(source_records)
-    for row in records:
-        if row.get("eligibility_tier") == "TIER_C":
-            row["human_review_required"] = True
-            row["review_status"] = "HUMAN_REVIEW_REQUIRED"
     records.extend(structured)
     validate_no_cross_paper_inheritance(structured, manifests)
     duplicate = resolve_duplicates(records)
     conflicts = classify_source_conflicts(records)
+    final_by_id = {str(row["record_id"]): row for row in records}
+    duplicate_by_id = {str(row["record_id"]): row for row in duplicate}
+    terminal = build_tier_c_terminal_status(tier_c_v0, final_by_id, duplicate_by_id, {str(row["record_id"]) for row in tier_c_v0})
+    terminal_counts = validate_terminal_statuses(terminal, expected_count=119)
+    terminal_by_id = {str(row["record_id"]): row for row in terminal}
+    for record_id, status_row in terminal_by_id.items():
+        final = final_by_id[record_id]
+        final["human_review_required"] = bool(status_row["requires_human_review"])
+        if status_row["terminal_status"] in {"HUMAN_REVIEW_REQUIRED", "REMAINS_TIER_C"}:
+            final["review_status"] = status_row["terminal_status"]
     eligible = [row for row in records if row.get("model_eligible_fe") and row.get("review_status") != "MERGED_DUPLICATE"]
-    human = [row for row in records if row.get("human_review_required")]
+    human = [final_by_id[row["record_id"]] for row in terminal if row["requires_human_review"]]
+    review_records = [final_by_id[row["record_id"]] for row in terminal]
     rescue_queue = build_rescue_queue(tier_c_v0, manifests)
+    for queue_row in rescue_queue:
+        status_row = terminal_by_id[str(queue_row["record_id"])]
+        queue_row["rescue_status"] = status_row["terminal_status"]
+        queue_row["human_review_required"] = status_row["requires_human_review"]
+        queue_row["review_notes"] = status_row["resolution_reason"]
     priorities = [{"record_id": row.get("record_id"), "paper_id": row.get("paper_id"), "source_group": row.get("source_group"), "priority": rescue_priority(row), "admission_failures": row.get("missing_required_fields"), "ambiguity_flags": row.get("ambiguity_flags")} for row in tier_c_v0]
 
-    summary = _summary(records, starting, structured, human)
+    summary = _summary(records, starting, structured, human, terminal_counts)
     dataset_dir.mkdir(parents=True, exist_ok=args.replace_partial)
     report_dir.mkdir(parents=True, exist_ok=args.replace_partial)
     write_jsonl(records, dataset_dir / "all_candidate_records.jsonl")
@@ -211,7 +227,8 @@ def main() -> int:
     write_csv(human, dataset_dir / "human_review_required.csv", V01_FIELDS)
     write_csv(duplicate, dataset_dir / "duplicate_resolution.csv")
     write_csv(conflicts, dataset_dir / "source_conflict_resolution.csv")
-    write_csv(human, dataset_dir / "review_queue.csv", V01_FIELDS)
+    write_csv(review_records, dataset_dir / "review_queue.csv", V01_FIELDS)
+    write_csv(terminal, dataset_dir / "tier_c_terminal_status.csv")
     (dataset_dir / "dataset_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     write_csv(rescue_queue, report_dir / "tier_c_rescue_queue.csv", RESCUE_QUEUE_FIELDS)
     write_csv(priorities, report_dir / "rescue_priority.csv")
