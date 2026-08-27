@@ -28,6 +28,10 @@ document = [
   "markitdown",
   "pymupdf"
 ]
+figure-recovery = [
+  "pymupdf>=1.24",
+  "pillow>=10",
+]
 modeling = [
   "scikit-learn>=1.5"
 ]
